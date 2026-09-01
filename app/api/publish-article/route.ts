@@ -37,9 +37,14 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet.' }, { status: 401 });
 
-    const { articleId, githubToken } = await req.json();
-    if (!articleId || !githubToken) {
-      return NextResponse.json({ error: 'articleId und githubToken sind erforderlich.' }, { status: 400 });
+    const { articleId } = await req.json();
+    if (!articleId) {
+      return NextResponse.json({ error: 'articleId ist erforderlich.' }, { status: 400 });
+    }
+
+    const githubToken = process.env.GITHUB_TOKEN;
+    if (!githubToken) {
+      return NextResponse.json({ error: 'Serverkonfiguration unvollständig (GITHUB_TOKEN fehlt).' }, { status: 500 });
     }
 
     const { data: article, error: articleError } = await supabase

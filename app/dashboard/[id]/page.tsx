@@ -20,7 +20,6 @@ export default function WebsiteDetailPage() {
   const [analyzeError, setAnalyzeError] = useState('');
   const [generatingKeyword, setGeneratingKeyword] = useState<string | null>(null);
   const [publishModal, setPublishModal] = useState<Article | null>(null);
-  const [githubToken, setGithubToken] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState('');
   const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
@@ -82,19 +81,18 @@ export default function WebsiteDetailPage() {
   };
 
   const handlePublish = async () => {
-    if (!publishModal || !githubToken.trim()) return;
+    if (!publishModal) return;
     setPublishing(true);
     setPublishError('');
     try {
       const res = await fetch('/api/publish-article', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articleId: publishModal.id, githubToken: githubToken.trim() }),
+        body: JSON.stringify({ articleId: publishModal.id }),
       });
       const data = await res.json();
       if (!res.ok) { setPublishError(data.error || 'Veröffentlichung fehlgeschlagen.'); setPublishing(false); return; }
       setPublishModal(null);
-      setGithubToken('');
       if (user) await loadData(user.id);
     } catch {
       setPublishError('Veröffentlichung fehlgeschlagen.');
@@ -224,21 +222,18 @@ export default function WebsiteDetailPage() {
           <div className="card" style={{ maxWidth: 440, width: '100%', padding: '2rem' }}>
             <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', marginBottom: '0.5rem', color: 'var(--ink)' }}>Artikel veröffentlichen</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.2rem' }}>
-              Wird als <code>blog/{publishModal.slug}/index.html</code> in <strong>{website.github_repo}</strong> committet. Der GitHub-Token wird nicht gespeichert.
+              Wird als <code>blog/{publishModal.slug}/index.html</code> in <strong>{website.github_repo}</strong> committet und löst ein automatisches Deployment aus.
             </p>
-            <label className="form-label">GitHub Personal Access Token</label>
-            <input type="password" value={githubToken} onChange={e => setGithubToken(e.target.value)}
-              className="form-input" placeholder="ghp_..." style={{ marginBottom: '1rem' }} />
             {publishError && (
               <div style={{ background: '#fce8e8', border: '1px solid #f5a5a5', padding: '0.75rem', fontSize: '0.85rem', color: '#b02020', borderRadius: 8, marginBottom: '1rem' }}>
                 {publishError}
               </div>
             )}
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button onClick={() => { setPublishModal(null); setGithubToken(''); }} className="btn-outline" style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem' }}>
+              <button onClick={() => setPublishModal(null)} className="btn-outline" style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem' }}>
                 Abbrechen
               </button>
-              <button onClick={handlePublish} disabled={publishing || !githubToken.trim()} className="btn-emerald" style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', opacity: publishing ? 0.7 : 1 }}>
+              <button onClick={handlePublish} disabled={publishing} className="btn-emerald" style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', opacity: publishing ? 0.7 : 1 }}>
                 {publishing ? 'Wird veröffentlicht…' : 'Jetzt veröffentlichen'}
               </button>
             </div>
