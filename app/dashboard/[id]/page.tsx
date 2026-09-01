@@ -190,6 +190,7 @@ export default function WebsiteDetailPage() {
           {website.hosting_platform === 'wordpress' && (
             editingWp ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem', maxWidth: 280 }}>
+                <a href="/hilfe/wordpress" target="_blank" rel="noopener" style={{ fontSize: '0.78rem', color: 'var(--emerald)', fontWeight: 600 }}>Ausführliche Anleitung →</a>
                 <input type="text" value={wpUrlInput} onChange={e => setWpUrlInput(e.target.value)} placeholder="https://ihredomain.de" className="form-input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.7rem' }} />
                 <input type="text" value={wpUserInput} onChange={e => setWpUserInput(e.target.value)} placeholder="Benutzername" className="form-input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.7rem' }} />
                 <input type="password" value={wpPassInput} onChange={e => setWpPassInput(e.target.value)} placeholder="Anwendungspasswort" className="form-input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.7rem' }} />

@@ -124,7 +124,8 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
       {hostingPlatform === 'wordpress' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', background: 'var(--paper-dark)', padding: '1rem', borderRadius: 8 }}>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-            In WordPress unter Benutzer → Profil → &quot;Anwendungspasswörter&quot; ein neues Passwort erstellen und hier eintragen. Kein Plugin nötig.
+            In WordPress unter Benutzer → Profil → &quot;Anwendungspasswörter&quot; ein neues Passwort erstellen und hier eintragen. Kein Plugin nötig.{' '}
+            <a href="/hilfe/wordpress" target="_blank" rel="noopener" style={{ color: 'var(--emerald)', fontWeight: 600 }}>Ausführliche Anleitung →</a>
           </p>
           <div>
             <label className="form-label">WordPress-URL</label>
