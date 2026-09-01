@@ -1,7 +1,8 @@
--- Run in Supabase SQL Editor
+-- suchmaschinen.pro tables, added to the shared "PAN21 Counter" Supabase project.
+-- Prefixed with sq_ to match the network convention (pc_, so_, ps_, sa_, lc_, ws_, sq_...).
+-- Already applied directly via Supabase migration; kept here for reference/documentation.
 
--- Websites table
-create table if not exists websites (
+create table if not exists sq_websites (
   id uuid default gen_random_uuid() primary key,
   created_at timestamptz default now(),
   user_id uuid references auth.users(id) on delete cascade,
@@ -12,31 +13,25 @@ create table if not exists websites (
   unique (user_id, domain)
 );
 
--- RLS
-alter table websites enable row level security;
+alter table sq_websites enable row level security;
 
--- Users can view their own websites
-create policy "Users can view own websites"
-  on websites for select
+create policy "Users can view own sq_websites"
+  on sq_websites for select
   using (auth.uid() = user_id);
 
--- Users can insert their own websites
-create policy "Users can insert own websites"
-  on websites for insert
+create policy "Users can insert own sq_websites"
+  on sq_websites for insert
   with check (auth.uid() = user_id);
 
--- Users can update their own websites
-create policy "Users can update own websites"
-  on websites for update
+create policy "Users can update own sq_websites"
+  on sq_websites for update
   using (auth.uid() = user_id);
 
--- Users can delete their own websites
-create policy "Users can delete own websites"
-  on websites for delete
+create policy "Users can delete own sq_websites"
+  on sq_websites for delete
   using (auth.uid() = user_id);
 
--- Contact requests table
-create table if not exists contact_requests (
+create table if not exists sq_contact_requests (
   id uuid default gen_random_uuid() primary key,
   created_at timestamptz default now(),
   name text not null,
@@ -44,8 +39,8 @@ create table if not exists contact_requests (
   message text not null
 );
 
-alter table contact_requests enable row level security;
+alter table sq_contact_requests enable row level security;
 
-create policy "Anyone can insert contact requests"
-  on contact_requests for insert
+create policy "Anyone can insert sq_contact_requests"
+  on sq_contact_requests for insert
   with check (true);

@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const supabase = await createClient();
-      await supabase.from('contact_requests').insert({ name, email, message });
+      await supabase.from('sq_contact_requests').insert({ name, email, message });
     } catch { /* Non-critical */ }
 
     return NextResponse.json({ ok: true });

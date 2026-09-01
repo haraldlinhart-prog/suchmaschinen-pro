@@ -31,7 +31,7 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
     }
 
     const supabase = createClient();
-    const { error } = await supabase.from('websites').insert({
+    const { error } = await supabase.from('sq_websites').insert({
       user_id: userId,
       domain: cleanedDomain,
       label: label.trim() || null,

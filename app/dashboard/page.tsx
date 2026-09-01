@@ -27,7 +27,7 @@ export default function DashboardPage() {
   const loadWebsites = async (userId: string) => {
     setLoading(true);
     const supabase = createClient();
-    const { data } = await supabase.from('websites').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    const { data } = await supabase.from('sq_websites').select('*').eq('user_id', userId).order('created_at', { ascending: false });
     setWebsites((data || []) as Website[]);
     setLoading(false);
   };
@@ -35,7 +35,7 @@ export default function DashboardPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Website wirklich entfernen?')) return;
     const supabase = createClient();
-    await supabase.from('websites').delete().eq('id', id);
+    await supabase.from('sq_websites').delete().eq('id', id);
     setWebsites(prev => prev.filter(w => w.id !== id));
   };
 
