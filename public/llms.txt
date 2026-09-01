@@ -1,0 +1,11 @@
+# suchmaschinen.pro
+
+> suchmaschinen.pro analysiert Websites, identifiziert relevante Suchbegriffe und veröffentlicht automatisch generierte, thematisch passende Artikel direkt auf der Hauptdomain des Kunden (z.B. ihredomain.de/blog/) statt auf einer isolierten Subdomain oder per Footer-Plugin — für echte Indexierbarkeit statt reiner Impressionen ohne Klicks.
+
+## Themen auf dieser Seite
+- Warum native Integration (eigene Domain statt Subdomain/Plugin) für SEO entscheidend ist
+- Ablauf: Website registrieren → Keywords finden → Artikel generieren → nativ veröffentlichen → Indexierung tracken
+- Registrierung und Verwaltung mehrerer Websites im Dashboard
+
+## Kontakt
+- Website: https://suchmaschinen.pro
