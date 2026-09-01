@@ -99,6 +99,9 @@ export async function POST(req: NextRequest) {
     // Path B: WordPress site with Application Password credentials — publish as a real WP post via REST API.
     if (website?.hosting_platform === 'wordpress' && website.wp_url && website.wp_username && website.wp_app_password) {
       const wpAuth = Buffer.from(`${website.wp_username}:${website.wp_app_password}`).toString('base64');
+      // WordPress themes render the post title separately — strip a leading <h1> from the
+      // generated content so it doesn't appear twice on the page.
+      const wpContent = article.content_html.replace(/^\s*<h1[^>]*>.*?<\/h1>\s*/i, '');
       const wpRes = await fetch(`${website.wp_url}/wp-json/wp/v2/posts`, {
         method: 'POST',
         headers: {
@@ -107,7 +110,7 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           title: article.title,
-          content: article.content_html,
+          content: wpContent,
           excerpt: article.meta_description || '',
           status: 'publish',
         }),
