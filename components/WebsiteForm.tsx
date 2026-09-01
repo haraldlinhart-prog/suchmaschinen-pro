@@ -26,6 +26,9 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
   const [githubRepo, setGithubRepo] = useState('');
   const [hostingPlatform, setHostingPlatform] = useState<HostingPlatform>('network');
   const [publishPath, setPublishPath] = useState('/blog/');
+  const [wpUrl, setWpUrl] = useState('');
+  const [wpUsername, setWpUsername] = useState('');
+  const [wpAppPassword, setWpAppPassword] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -48,6 +51,12 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
       return;
     }
 
+    if (hostingPlatform === 'wordpress' && (!wpUrl.trim() || !wpUsername.trim() || !wpAppPassword.trim())) {
+      setStatus('error');
+      setMessage('Bitte WordPress-URL, Benutzername und Anwendungspasswort angeben.');
+      return;
+    }
+
     let cleanedPath = publishPath.trim() || '/blog/';
     if (!cleanedPath.startsWith('/')) cleanedPath = `/${cleanedPath}`;
     if (!cleanedPath.endsWith('/')) cleanedPath = `${cleanedPath}/`;
@@ -62,6 +71,9 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
       hosting_platform: hostingPlatform,
       publish_path: cleanedPath,
       public_slug: slugifyDomain(cleanedDomain),
+      wp_url: hostingPlatform === 'wordpress' ? wpUrl.trim().replace(/\/$/, '') : null,
+      wp_username: hostingPlatform === 'wordpress' ? wpUsername.trim() : null,
+      wp_app_password: hostingPlatform === 'wordpress' ? wpAppPassword.trim() : null,
       status: 'pending',
     });
 
@@ -77,6 +89,9 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
     setGithubRepo('');
     setPublishPath('/blog/');
     setHostingPlatform('network');
+    setWpUrl('');
+    setWpUsername('');
+    setWpAppPassword('');
     setStatus('idle');
     onSuccess();
   };
@@ -106,11 +121,32 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
             className="form-input" placeholder="ihraccount/ihrrepo" />
         </div>
       )}
-      <div>
-        <label className="form-label">Gewünschter Pfad für Artikel</label>
-        <input type="text" value={publishPath} onChange={e => setPublishPath(e.target.value)}
-          className="form-input" placeholder="/blog/" />
-      </div>
+      {hostingPlatform === 'wordpress' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', background: 'var(--paper-dark)', padding: '1rem', borderRadius: 8 }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+            In WordPress unter Benutzer → Profil → &quot;Anwendungspasswörter&quot; ein neues Passwort erstellen und hier eintragen. Kein Plugin nötig.
+          </p>
+          <div>
+            <label className="form-label">WordPress-URL</label>
+            <input type="text" value={wpUrl} onChange={e => setWpUrl(e.target.value)} className="form-input" placeholder="https://ihredomain.de" />
+          </div>
+          <div>
+            <label className="form-label">Benutzername</label>
+            <input type="text" value={wpUsername} onChange={e => setWpUsername(e.target.value)} className="form-input" placeholder="admin" />
+          </div>
+          <div>
+            <label className="form-label">Anwendungspasswort</label>
+            <input type="password" value={wpAppPassword} onChange={e => setWpAppPassword(e.target.value)} className="form-input" placeholder="xxxx xxxx xxxx xxxx xxxx xxxx" />
+          </div>
+        </div>
+      )}
+      {hostingPlatform !== 'wordpress' && (
+        <div>
+          <label className="form-label">Gewünschter Pfad für Artikel</label>
+          <input type="text" value={publishPath} onChange={e => setPublishPath(e.target.value)}
+            className="form-input" placeholder="/blog/" />
+        </div>
+      )}
       <div>
         <label className="form-label">Notizen <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span></label>
         <textarea value={notes} onChange={e => setNotes(e.target.value)}

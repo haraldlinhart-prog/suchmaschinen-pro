@@ -26,6 +26,11 @@ export default function WebsiteDetailPage() {
   const [editingRepo, setEditingRepo] = useState(false);
   const [repoInput, setRepoInput] = useState('');
   const [savingRepo, setSavingRepo] = useState(false);
+  const [editingWp, setEditingWp] = useState(false);
+  const [wpUrlInput, setWpUrlInput] = useState('');
+  const [wpUserInput, setWpUserInput] = useState('');
+  const [wpPassInput, setWpPassInput] = useState('');
+  const [savingWp, setSavingWp] = useState(false);
   const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
 
   const loadData = useCallback(async (uid: string) => {
@@ -119,6 +124,25 @@ export default function WebsiteDetailPage() {
     if (user) await loadData(user.id);
   };
 
+  const handleSaveWp = async () => {
+    if (!wpUrlInput.trim() || !wpUserInput.trim() || !wpPassInput.trim()) {
+      alert('Bitte URL, Benutzername und Anwendungspasswort angeben.');
+      return;
+    }
+    setSavingWp(true);
+    const supabase = createClient();
+    const { error } = await supabase.from('sq_websites').update({
+      wp_url: wpUrlInput.trim().replace(/\/$/, ''),
+      wp_username: wpUserInput.trim(),
+      wp_app_password: wpPassInput.trim(),
+    }).eq('id', websiteId);
+    setSavingWp(false);
+    if (error) { alert('Fehler beim Speichern.'); return; }
+    setEditingWp(false);
+    setWpPassInput('');
+    if (user) await loadData(user.id);
+  };
+
   if (loading || !website) return <div style={{ padding: '4rem', textAlign: 'center' }}>Wird geladen...</div>;
 
   return (
@@ -129,37 +153,70 @@ export default function WebsiteDetailPage() {
         <div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', color: 'var(--ink)' }}>{website.domain}</h1>
           {website.label && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{website.label}</div>}
-          {editingRepo ? (
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.4rem' }}>
-              <input
-                type="text"
-                value={repoInput}
-                onChange={e => setRepoInput(e.target.value)}
-                placeholder="owner/repo"
-                className="form-input"
-                style={{ fontSize: '0.82rem', padding: '0.4rem 0.7rem', maxWidth: 220 }}
-              />
-              <button onClick={handleSaveRepo} disabled={savingRepo} className="btn-emerald" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
-                {savingRepo ? '…' : 'Speichern'}
-              </button>
-              <button onClick={() => setEditingRepo(false)} className="btn-outline" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
-                Abbrechen
-              </button>
-            </div>
-          ) : (
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
-              {website.github_repo ? (
-                <>GitHub: {website.github_repo} · </>
-              ) : (
-                <>Kein GitHub-Repo hinterlegt · </>
-              )}
-              <button
-                onClick={() => { setRepoInput(website.github_repo || ''); setEditingRepo(true); }}
-                style={{ background: 'none', border: 'none', color: 'var(--emerald)', fontWeight: 600, cursor: 'pointer', fontSize: '0.8rem', padding: 0, fontFamily: 'var(--font-body)' }}
-              >
-                {website.github_repo ? 'ändern' : 'jetzt verknüpfen'}
-              </button>
-            </div>
+          {website.hosting_platform === 'network' && (
+            editingRepo ? (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.4rem' }}>
+                <input
+                  type="text"
+                  value={repoInput}
+                  onChange={e => setRepoInput(e.target.value)}
+                  placeholder="owner/repo"
+                  className="form-input"
+                  style={{ fontSize: '0.82rem', padding: '0.4rem 0.7rem', maxWidth: 220 }}
+                />
+                <button onClick={handleSaveRepo} disabled={savingRepo} className="btn-emerald" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                  {savingRepo ? '…' : 'Speichern'}
+                </button>
+                <button onClick={() => setEditingRepo(false)} className="btn-outline" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                  Abbrechen
+                </button>
+              </div>
+            ) : (
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                {website.github_repo ? (
+                  <>GitHub: {website.github_repo} · </>
+                ) : (
+                  <>Kein GitHub-Repo hinterlegt · </>
+                )}
+                <button
+                  onClick={() => { setRepoInput(website.github_repo || ''); setEditingRepo(true); }}
+                  style={{ background: 'none', border: 'none', color: 'var(--emerald)', fontWeight: 600, cursor: 'pointer', fontSize: '0.8rem', padding: 0, fontFamily: 'var(--font-body)' }}
+                >
+                  {website.github_repo ? 'ändern' : 'jetzt verknüpfen'}
+                </button>
+              </div>
+            )
+          )}
+          {website.hosting_platform === 'wordpress' && (
+            editingWp ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem', maxWidth: 280 }}>
+                <input type="text" value={wpUrlInput} onChange={e => setWpUrlInput(e.target.value)} placeholder="https://ihredomain.de" className="form-input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.7rem' }} />
+                <input type="text" value={wpUserInput} onChange={e => setWpUserInput(e.target.value)} placeholder="Benutzername" className="form-input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.7rem' }} />
+                <input type="password" value={wpPassInput} onChange={e => setWpPassInput(e.target.value)} placeholder="Anwendungspasswort" className="form-input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.7rem' }} />
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={handleSaveWp} disabled={savingWp} className="btn-emerald" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                    {savingWp ? '…' : 'Speichern'}
+                  </button>
+                  <button onClick={() => setEditingWp(false)} className="btn-outline" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                    Abbrechen
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                {website.wp_url ? (
+                  <>WordPress: {website.wp_url} · </>
+                ) : (
+                  <>Keine WordPress-Zugangsdaten hinterlegt · </>
+                )}
+                <button
+                  onClick={() => { setWpUrlInput(website.wp_url || ''); setWpUserInput(website.wp_username || ''); setWpPassInput(''); setEditingWp(true); }}
+                  style={{ background: 'none', border: 'none', color: 'var(--emerald)', fontWeight: 600, cursor: 'pointer', fontSize: '0.8rem', padding: 0, fontFamily: 'var(--font-body)' }}
+                >
+                  {website.wp_url ? 'ändern' : 'jetzt verknüpfen'}
+                </button>
+              </div>
+            )
           )}
         </div>
         <button onClick={handleAnalyze} disabled={analyzing} className="btn-emerald" style={{ opacity: analyzing ? 0.7 : 1 }}>
@@ -214,7 +271,7 @@ export default function WebsiteDetailPage() {
         </div>
       )}
 
-      {website.hosting_platform !== 'network' && (
+      {website.hosting_platform !== 'network' && website.hosting_platform !== 'wordpress' && (
         <div className="card" style={{ padding: '1.5rem', marginBottom: '2.5rem', borderColor: 'var(--emerald)', borderWidth: 1.5 }}>
           {(() => {
             const info = rewriteInstructions(website.hosting_platform, website.publish_path, website.public_slug);
@@ -254,11 +311,9 @@ export default function WebsiteDetailPage() {
                   </div>
                   <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)' }}>{article.title}</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Keyword: {article.keyword}</div>
-                  {(article.status === 'published') && (
+                  {(article.status === 'published') && article.published_url && (
                     <div style={{ fontSize: '0.78rem', color: 'var(--emerald)', marginTop: '0.2rem' }}>
-                      {article.github_path
-                        ? `https://${website.domain}${website.publish_path}${article.slug}/`
-                        : `https://suchmaschinen.pro/b/${website.public_slug}/${article.slug}`}
+                      {article.published_url}
                     </div>
                   )}
                 </div>
@@ -300,6 +355,8 @@ export default function WebsiteDetailPage() {
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.2rem' }}>
               {website.github_repo ? (
                 <>Wird als <code>{website.publish_path.replace(/^\//, '')}{publishModal.slug}/index.html</code> in <strong>{website.github_repo}</strong> committet und löst ein automatisches Deployment aus.</>
+              ) : website.hosting_platform === 'wordpress' ? (
+                <>Wird direkt als neuer WordPress-Beitrag auf <strong>{website.wp_url}</strong> veröffentlicht.</>
               ) : (
                 <>Wird bei suchmaschinen.pro veröffentlicht und erscheint unter <strong>{website.publish_path}</strong> auf {website.domain}, sobald die Weiterleitung eingerichtet ist (siehe Hinweis unten auf der Seite).</>
               )}

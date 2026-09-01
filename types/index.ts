@@ -16,6 +16,9 @@ export interface Website {
   public_slug: string;
   publish_path: string;
   hosting_platform: HostingPlatform;
+  wp_url: string | null;
+  wp_username: string | null;
+  wp_app_password: string | null;
 }
 
 export const HOSTING_LABELS: Record<HostingPlatform, string> = {
@@ -46,6 +49,7 @@ export interface Article {
   status: ArticleStatus;
   github_path: string | null;
   published_at: string | null;
+  published_url: string | null;
 }
 
 export const STATUS_LABELS: Record<WebsiteStatus, string> = {

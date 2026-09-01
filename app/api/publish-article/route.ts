@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
 
       const { error: updateError } = await supabase
         .from('sq_articles')
-        .update({ status: 'published', github_path: path, published_at: new Date().toISOString() })
+        .update({ status: 'published', github_path: path, published_at: new Date().toISOString(), published_url: `https://${website.domain}/${cleanPublishPath}/${article.slug}/` })
         .eq('id', articleId);
 
       if (updateError) return NextResponse.json({ error: 'Veröffentlicht, aber Status konnte nicht aktualisiert werden.' }, { status: 500 });
@@ -96,11 +96,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, mode: 'github', path, url: `https://${website.domain}/${cleanPublishPath}/${article.slug}/` });
     }
 
-    // Path B: no repo linked — host the article ourselves; it's already servable at /b/[slug]/[articleSlug].
+    // Path B: WordPress site with Application Password credentials — publish as a real WP post via REST API.
+    if (website?.hosting_platform === 'wordpress' && website.wp_url && website.wp_username && website.wp_app_password) {
+      const wpAuth = Buffer.from(`${website.wp_username}:${website.wp_app_password}`).toString('base64');
+      const wpRes = await fetch(`${website.wp_url}/wp-json/wp/v2/posts`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${wpAuth}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: article.title,
+          content: article.content_html,
+          excerpt: article.meta_description || '',
+          status: 'publish',
+        }),
+      });
+
+      if (!wpRes.ok) {
+        const errText = await wpRes.text();
+        console.error('WordPress publish error:', errText);
+        return NextResponse.json({ error: `WordPress-Veröffentlichung fehlgeschlagen (${wpRes.status}). Bitte URL, Benutzername und Anwendungspasswort prüfen.` }, { status: 500 });
+      }
+
+      const wpData = await wpRes.json();
+
+      const { error: updateError } = await supabase
+        .from('sq_articles')
+        .update({ status: 'published', published_at: new Date().toISOString(), published_url: wpData.link })
+        .eq('id', articleId);
+
+      if (updateError) return NextResponse.json({ error: 'Veröffentlicht, aber Status konnte nicht aktualisiert werden.' }, { status: 500 });
+
+      return NextResponse.json({ success: true, mode: 'wordpress', url: wpData.link });
+    }
+
+    // Path C: no repo/WP credentials — host the article ourselves; it's already servable at /b/[slug]/[articleSlug].
     // The customer routes their own publish_path to us via a one-time rewrite rule (see dashboard instructions).
+    const hostedUrl = `https://suchmaschinen.pro/b/${website.public_slug}/${article.slug}`;
     const { error: updateError } = await supabase
       .from('sq_articles')
-      .update({ status: 'published', published_at: new Date().toISOString() })
+      .update({ status: 'published', published_at: new Date().toISOString(), published_url: hostedUrl })
       .eq('id', articleId);
 
     if (updateError) return NextResponse.json({ error: 'Fehler beim Veröffentlichen.' }, { status: 500 });
@@ -108,7 +144,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       mode: 'hosted',
-      url: `https://suchmaschinen.pro/b/${website.public_slug}/${article.slug}`,
+      url: hostedUrl,
     });
   } catch (err) {
     console.error('Publish-article route error:', err);
