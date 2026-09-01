@@ -1,4 +1,5 @@
 export type WebsiteStatus = 'pending' | 'analyzing' | 'active' | 'paused';
+export type ArticleStatus = 'draft' | 'published';
 
 export interface Website {
   id: string;
@@ -8,6 +9,30 @@ export interface Website {
   label: string | null;
   status: WebsiteStatus;
   notes: string | null;
+  github_repo: string | null;
+  suggested_keywords: SuggestedKeyword[] | null;
+  last_analyzed_at: string | null;
+}
+
+export interface SuggestedKeyword {
+  keyword: string;
+  rationale: string;
+  intent: string;
+}
+
+export interface Article {
+  id: string;
+  created_at: string;
+  website_id: string;
+  user_id: string;
+  keyword: string;
+  title: string;
+  slug: string;
+  meta_description: string | null;
+  content_html: string;
+  status: ArticleStatus;
+  github_path: string | null;
+  published_at: string | null;
 }
 
 export const STATUS_LABELS: Record<WebsiteStatus, string> = {

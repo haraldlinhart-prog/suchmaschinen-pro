@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import type { Website } from '@/types';
@@ -90,7 +91,8 @@ export default function DashboardPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {websites.map(w => (
-                <div key={w.id} className="card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <Link key={w.id} href={`/dashboard/${w.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div className="card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
                       <span className={`badge ${w.status === 'active' ? 'badge-active' : 'badge-pending'}`}>
@@ -107,7 +109,7 @@ export default function DashboardPage() {
                     {w.notes && <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>{w.notes}</div>}
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button onClick={() => handleDelete(w.id)} style={{
+                    <button onClick={(e) => { e.preventDefault(); handleDelete(w.id); }} style={{
                       padding: '0.45rem 1rem', background: 'transparent', border: '1px solid #e0a0a0', borderRadius: 8,
                       color: '#b02020', fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'var(--font-body)',
                     }}>
@@ -115,6 +117,7 @@ export default function DashboardPage() {
                     </button>
                   </div>
                 </div>
+                </Link>
               ))}
             </div>
           )}

@@ -15,6 +15,7 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
   const [domain, setDomain] = useState('');
   const [label, setLabel] = useState('');
   const [notes, setNotes] = useState('');
+  const [githubRepo, setGithubRepo] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -30,12 +31,20 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
       return;
     }
 
+    const cleanedRepo = githubRepo.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+    if (cleanedRepo && !/^[\w.-]+\/[\w.-]+$/.test(cleanedRepo)) {
+      setStatus('error');
+      setMessage('Bitte GitHub-Repo im Format "owner/repo" angeben.');
+      return;
+    }
+
     const supabase = createClient();
     const { error } = await supabase.from('sq_websites').insert({
       user_id: userId,
       domain: cleanedDomain,
       label: label.trim() || null,
       notes: notes.trim() || null,
+      github_repo: cleanedRepo || null,
       status: 'pending',
     });
 
@@ -48,6 +57,7 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
     setDomain('');
     setLabel('');
     setNotes('');
+    setGithubRepo('');
     setStatus('idle');
     onSuccess();
   };
@@ -63,6 +73,11 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
         <label className="form-label">Bezeichnung <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span></label>
         <input type="text" value={label} onChange={e => setLabel(e.target.value)}
           className="form-input" placeholder="z. B. Hauptseite" />
+      </div>
+      <div>
+        <label className="form-label">GitHub-Repo <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional, für automatische Veröffentlichung)</span></label>
+        <input type="text" value={githubRepo} onChange={e => setGithubRepo(e.target.value)}
+          className="form-input" placeholder="ihraccount/ihrrepo" />
       </div>
       <div>
         <label className="form-label">Notizen <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span></label>
