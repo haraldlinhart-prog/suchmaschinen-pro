@@ -22,6 +22,9 @@ export default function WebsiteDetailPage() {
   const [publishModal, setPublishModal] = useState<Article | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState('');
+  const [editingRepo, setEditingRepo] = useState(false);
+  const [repoInput, setRepoInput] = useState('');
+  const [savingRepo, setSavingRepo] = useState(false);
   const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
 
   const loadData = useCallback(async (uid: string) => {
@@ -100,6 +103,21 @@ export default function WebsiteDetailPage() {
     setPublishing(false);
   };
 
+  const handleSaveRepo = async () => {
+    const cleaned = repoInput.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+    if (cleaned && !/^[\w.-]+\/[\w.-]+$/.test(cleaned)) {
+      alert('Bitte im Format "owner/repo" angeben.');
+      return;
+    }
+    setSavingRepo(true);
+    const supabase = createClient();
+    const { error } = await supabase.from('sq_websites').update({ github_repo: cleaned || null }).eq('id', websiteId);
+    setSavingRepo(false);
+    if (error) { alert('Fehler beim Speichern.'); return; }
+    setEditingRepo(false);
+    if (user) await loadData(user.id);
+  };
+
   if (loading || !website) return <div style={{ padding: '4rem', textAlign: 'center' }}>Wird geladen...</div>;
 
   return (
@@ -110,7 +128,38 @@ export default function WebsiteDetailPage() {
         <div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', color: 'var(--ink)' }}>{website.domain}</h1>
           {website.label && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{website.label}</div>}
-          {website.github_repo && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>GitHub: {website.github_repo}</div>}
+          {editingRepo ? (
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.4rem' }}>
+              <input
+                type="text"
+                value={repoInput}
+                onChange={e => setRepoInput(e.target.value)}
+                placeholder="owner/repo"
+                className="form-input"
+                style={{ fontSize: '0.82rem', padding: '0.4rem 0.7rem', maxWidth: 220 }}
+              />
+              <button onClick={handleSaveRepo} disabled={savingRepo} className="btn-emerald" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                {savingRepo ? '…' : 'Speichern'}
+              </button>
+              <button onClick={() => setEditingRepo(false)} className="btn-outline" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                Abbrechen
+              </button>
+            </div>
+          ) : (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+              {website.github_repo ? (
+                <>GitHub: {website.github_repo} · </>
+              ) : (
+                <>Kein GitHub-Repo hinterlegt · </>
+              )}
+              <button
+                onClick={() => { setRepoInput(website.github_repo || ''); setEditingRepo(true); }}
+                style={{ background: 'none', border: 'none', color: 'var(--emerald)', fontWeight: 600, cursor: 'pointer', fontSize: '0.8rem', padding: 0, fontFamily: 'var(--font-body)' }}
+              >
+                {website.github_repo ? 'ändern' : 'jetzt verknüpfen'}
+              </button>
+            </div>
+          )}
         </div>
         <button onClick={handleAnalyze} disabled={analyzing} className="btn-emerald" style={{ opacity: analyzing ? 0.7 : 1 }}>
           {analyzing ? 'Analysiere…' : website.suggested_keywords ? 'Erneut analysieren' : 'Website analysieren'}
