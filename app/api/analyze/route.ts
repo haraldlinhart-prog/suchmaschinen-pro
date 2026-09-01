@@ -56,12 +56,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Auf der Website wurde kein auswertbarer Inhalt gefunden (evtl. JavaScript-only Seite).' }, { status: 400 });
     }
 
-    const prompt = `You are an SEO analyst. Analyze the following website content and identify the 6 most valuable German-language search keywords/phrases this site should target for organic traffic. For each, give a short rationale (why it fits this site) and the likely search intent (informational, commercial, or transactional).
+    const prompt = `You are a German-language SEO analyst. Analyze the following website content and identify the 6 most valuable German-language search keywords/phrases this site should target for organic traffic. For each, give a short rationale (why it fits this site) and the likely search intent (informational, commercial, or transactional).
 
 Website: ${website.domain}
 Page title: ${pageTitle}
 Content excerpt:
 ${pageText}
+
+IMPORTANT: Write the "keyword" and "rationale" fields entirely in German. Only the "intent" value stays in English (one of: informational, commercial, transactional).
 
 Respond ONLY with a JSON array, no other text, in this exact shape:
 [{"keyword": "...", "rationale": "...", "intent": "informational|commercial|transactional"}]`;
