@@ -100,8 +100,47 @@ export async function POST(req: NextRequest) {
     if (website?.hosting_platform === 'wordpress' && website.wp_url && website.wp_username && website.wp_app_password) {
       const wpAuth = Buffer.from(`${website.wp_username}:${website.wp_app_password}`).toString('base64');
       // WordPress themes render the post title separately — strip a leading <h1> from the
-      // generated content so it doesn't appear twice on the page.
-      const wpContent = article.content_html.replace(/^\s*<h1[^>]*>.*?<\/h1>\s*/i, '');
+      // generated content so it doesn't appear twice on the page. Also strip our inline
+      // <figure> image block, since the same image is uploaded as the WP featured image instead.
+      let wpContent = article.content_html.replace(/^\s*<h1[^>]*>.*?<\/h1>\s*/i, '');
+      wpContent = wpContent.replace(/^\s*<figure[^>]*>[\s\S]*?<\/figure>\s*/i, '');
+
+      let featuredMediaId: number | undefined;
+      if (article.image_url) {
+        try {
+          const imgRes = await fetch(article.image_url);
+          if (imgRes.ok) {
+            const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+            const filename = `${article.slug}.jpg`;
+            const mediaRes = await fetch(`${website.wp_url}/wp-json/wp/v2/media`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Basic ${wpAuth}`,
+                'Content-Type': 'image/jpeg',
+                'Content-Disposition': `attachment; filename="${filename}"`,
+              },
+              body: imgBuffer,
+            });
+            if (mediaRes.ok) {
+              const mediaData = await mediaRes.json();
+              featuredMediaId = mediaData.id;
+              if (article.image_alt) {
+                await fetch(`${website.wp_url}/wp-json/wp/v2/media/${featuredMediaId}`, {
+                  method: 'POST',
+                  headers: { Authorization: `Basic ${wpAuth}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ alt_text: article.image_alt }),
+                }).catch(() => {});
+              }
+            } else {
+              console.error('WP media upload failed:', await mediaRes.text());
+            }
+          }
+        } catch (imgErr) {
+          console.error('WP featured image upload error:', imgErr);
+          // Non-fatal — continue publishing the post without a featured image.
+        }
+      }
+
       const wpRes = await fetch(`${website.wp_url}/wp-json/wp/v2/posts`, {
         method: 'POST',
         headers: {
@@ -113,6 +152,7 @@ export async function POST(req: NextRequest) {
           content: wpContent,
           excerpt: article.meta_description || '',
           status: 'publish',
+          ...(featuredMediaId ? { featured_media: featuredMediaId } : {}),
         }),
       });
 

@@ -50,6 +50,8 @@ export interface Article {
   github_path: string | null;
   published_at: string | null;
   published_url: string | null;
+  image_url: string | null;
+  image_alt: string | null;
 }
 
 export const STATUS_LABELS: Record<WebsiteStatus, string> = {
