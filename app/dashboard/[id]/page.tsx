@@ -32,6 +32,7 @@ export default function WebsiteDetailPage() {
   const [wpPassInput, setWpPassInput] = useState('');
   const [savingWp, setSavingWp] = useState(false);
   const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
+  const [savingAutomation, setSavingAutomation] = useState(false);
 
   const loadData = useCallback(async (uid: string) => {
     setLoading(true);
@@ -140,6 +141,22 @@ export default function WebsiteDetailPage() {
     if (error) { alert('Fehler beim Speichern.'); return; }
     setEditingWp(false);
     setWpPassInput('');
+    if (user) await loadData(user.id);
+  };
+
+  const handleTogglePlan = async (plan: 'basic' | 'plus') => {
+    setSavingAutomation(true);
+    const supabase = createClient();
+    await supabase.from('sq_websites').update({ plan }).eq('id', websiteId);
+    setSavingAutomation(false);
+    if (user) await loadData(user.id);
+  };
+
+  const handleToggleAutoPublish = async (enabled: boolean) => {
+    setSavingAutomation(true);
+    const supabase = createClient();
+    await supabase.from('sq_websites').update({ auto_publish: enabled }).eq('id', websiteId);
+    setSavingAutomation(false);
     if (user) await loadData(user.id);
   };
 
@@ -271,6 +288,39 @@ export default function WebsiteDetailPage() {
           </div>
         </div>
       )}
+
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '2.5rem' }}>
+        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)', marginBottom: '0.75rem' }}>Automatische Veröffentlichung</div>
+        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Plan</div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button onClick={() => handleTogglePlan('basic')} disabled={savingAutomation}
+                className={website.plan === 'basic' ? 'btn-emerald' : 'btn-outline'} style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                Basic — 1×/Woche
+              </button>
+              <button onClick={() => handleTogglePlan('plus')} disabled={savingAutomation}
+                className={website.plan === 'plus' ? 'btn-emerald' : 'btn-outline'} style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                Plus — 1×/Tag
+              </button>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Status</div>
+            <button onClick={() => handleToggleAutoPublish(!website.auto_publish)} disabled={savingAutomation}
+              className={website.auto_publish ? 'btn-emerald' : 'btn-outline'} style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+              {website.auto_publish ? 'Aktiv — ausschalten' : 'Inaktiv — einschalten'}
+            </button>
+          </div>
+        </div>
+        {website.auto_publish && (
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.9rem', marginBottom: 0 }}>
+            {website.last_auto_published_at
+              ? `Letzter automatischer Artikel: ${new Date(website.last_auto_published_at).toLocaleString('de-DE')}`
+              : 'Noch kein automatischer Artikel veröffentlicht — der nächste Lauf startet automatisch.'}
+          </p>
+        )}
+      </div>
 
       {website.hosting_platform !== 'network' && website.hosting_platform !== 'wordpress' && (
         <div className="card" style={{ padding: '1.5rem', marginBottom: '2.5rem', borderColor: 'var(--emerald)', borderWidth: 1.5 }}>

@@ -19,6 +19,9 @@ export interface Website {
   wp_url: string | null;
   wp_username: string | null;
   wp_app_password: string | null;
+  plan: 'basic' | 'plus';
+  auto_publish: boolean;
+  last_auto_published_at: string | null;
 }
 
 export const HOSTING_LABELS: Record<HostingPlatform, string> = {
