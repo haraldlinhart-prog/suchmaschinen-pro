@@ -42,11 +42,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'articleId ist erforderlich.' }, { status: 400 });
     }
 
-    const githubToken = process.env.GITHUB_TOKEN;
-    if (!githubToken) {
-      return NextResponse.json({ error: 'Serverkonfiguration unvollständig (GITHUB_TOKEN fehlt).' }, { status: 500 });
-    }
-
     const { data: article, error: articleError } = await supabase
       .from('sq_articles')
       .select('*, sq_websites!inner(*)')
@@ -57,43 +52,64 @@ export async function POST(req: NextRequest) {
     if (articleError || !article) return NextResponse.json({ error: 'Artikel nicht gefunden.' }, { status: 404 });
 
     const website = Array.isArray(article.sq_websites) ? article.sq_websites[0] : article.sq_websites;
-    if (!website?.github_repo) {
-      return NextResponse.json({ error: 'Für diese Website ist kein GitHub-Repo hinterlegt.' }, { status: 400 });
+
+    // Path A: website has a linked GitHub repo (network sites) — commit directly, "zuhause bei Mutti".
+    if (website?.github_repo) {
+      const githubToken = process.env.GITHUB_TOKEN;
+      if (!githubToken) {
+        return NextResponse.json({ error: 'Serverkonfiguration unvollständig (GITHUB_TOKEN fehlt).' }, { status: 500 });
+      }
+
+      const [owner, repo] = website.github_repo.split('/');
+      const cleanPublishPath = (website.publish_path || '/blog/').replace(/^\/|\/$/g, '');
+      const path = `${cleanPublishPath}/${article.slug}/index.html`;
+      const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain);
+      const contentBase64 = Buffer.from(html, 'utf-8').toString('base64');
+
+      const ghUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+      const ghRes = await fetch(ghUrl, {
+        method: 'PUT',
+        headers: {
+          Authorization: `token ${githubToken}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: `suchmaschinen.pro: publish article "${article.title}"`,
+          content: contentBase64,
+        }),
+      });
+
+      if (!ghRes.ok) {
+        const errText = await ghRes.text();
+        console.error('GitHub publish error:', errText);
+        return NextResponse.json({ error: `GitHub-Veröffentlichung fehlgeschlagen (${ghRes.status}). Bitte Token und Repo-Zugriff prüfen.` }, { status: 500 });
+      }
+
+      const { error: updateError } = await supabase
+        .from('sq_articles')
+        .update({ status: 'published', github_path: path, published_at: new Date().toISOString() })
+        .eq('id', articleId);
+
+      if (updateError) return NextResponse.json({ error: 'Veröffentlicht, aber Status konnte nicht aktualisiert werden.' }, { status: 500 });
+
+      return NextResponse.json({ success: true, mode: 'github', path, url: `https://${website.domain}/${cleanPublishPath}/${article.slug}/` });
     }
 
-    const [owner, repo] = website.github_repo.split('/');
-    const path = `blog/${article.slug}/index.html`;
-    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain);
-    const contentBase64 = Buffer.from(html, 'utf-8').toString('base64');
-
-    const ghUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-    const ghRes = await fetch(ghUrl, {
-      method: 'PUT',
-      headers: {
-        Authorization: `token ${githubToken}`,
-        Accept: 'application/vnd.github+json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message: `suchmaschinen.pro: publish article "${article.title}"`,
-        content: contentBase64,
-      }),
-    });
-
-    if (!ghRes.ok) {
-      const errText = await ghRes.text();
-      console.error('GitHub publish error:', errText);
-      return NextResponse.json({ error: `GitHub-Veröffentlichung fehlgeschlagen (${ghRes.status}). Bitte Token und Repo-Zugriff prüfen.` }, { status: 500 });
-    }
-
+    // Path B: no repo linked — host the article ourselves; it's already servable at /b/[slug]/[articleSlug].
+    // The customer routes their own publish_path to us via a one-time rewrite rule (see dashboard instructions).
     const { error: updateError } = await supabase
       .from('sq_articles')
-      .update({ status: 'published', github_path: path, published_at: new Date().toISOString() })
+      .update({ status: 'published', published_at: new Date().toISOString() })
       .eq('id', articleId);
 
-    if (updateError) return NextResponse.json({ error: 'Veröffentlicht, aber Status konnte nicht aktualisiert werden.' }, { status: 500 });
+    if (updateError) return NextResponse.json({ error: 'Fehler beim Veröffentlichen.' }, { status: 500 });
 
-    return NextResponse.json({ success: true, path, url: `https://${website.domain}/blog/${article.slug}/` });
+    return NextResponse.json({
+      success: true,
+      mode: 'hosted',
+      url: `https://suchmaschinen.pro/b/${website.public_slug}/${article.slug}`,
+    });
   } catch (err) {
     console.error('Publish-article route error:', err);
     return NextResponse.json({ error: 'Ein unerwarteter Fehler ist aufgetreten.' }, { status: 500 });

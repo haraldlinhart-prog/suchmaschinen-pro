@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import type { Website, Article, SuggestedKeyword } from '@/types';
+import { rewriteInstructions } from '@/lib/rewriteInstructions';
 
 export default function WebsiteDetailPage() {
   const router = useRouter();
@@ -213,6 +214,32 @@ export default function WebsiteDetailPage() {
         </div>
       )}
 
+      {website.hosting_platform !== 'network' && (
+        <div className="card" style={{ padding: '1.5rem', marginBottom: '2.5rem', borderColor: 'var(--emerald)', borderWidth: 1.5 }}>
+          {(() => {
+            const info = rewriteInstructions(website.hosting_platform, website.publish_path, website.public_slug);
+            return (
+              <>
+                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)', marginBottom: '0.5rem' }}>
+                  Einmalige Einrichtung: {info.title}
+                </div>
+                {info.steps.map((s, i) => (
+                  <p key={i} style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0 0 0.5rem' }}>{s}</p>
+                ))}
+                {info.snippet && (
+                  <pre style={{ background: 'var(--paper-dark)', padding: '1rem', borderRadius: 8, fontSize: '0.8rem', overflow: 'auto', marginTop: '0.5rem' }}>
+                    {info.snippet}
+                  </pre>
+                )}
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.75rem', marginBottom: 0 }}>
+                  Sobald das eingerichtet ist, erscheinen veröffentlichte Artikel automatisch unter <strong>{website.domain}{website.publish_path}</strong>.
+                </p>
+              </>
+            );
+          })()}
+        </div>
+      )}
+
       {articles.length > 0 && (
         <div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginBottom: '1rem' }}>Generierte Artikel</h2>
@@ -227,9 +254,11 @@ export default function WebsiteDetailPage() {
                   </div>
                   <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)' }}>{article.title}</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Keyword: {article.keyword}</div>
-                  {article.status === 'published' && article.github_path && (
+                  {(article.status === 'published') && (
                     <div style={{ fontSize: '0.78rem', color: 'var(--emerald)', marginTop: '0.2rem' }}>
-                      https://{website.domain}/blog/{article.slug}/
+                      {article.github_path
+                        ? `https://${website.domain}${website.publish_path}${article.slug}/`
+                        : `https://suchmaschinen.pro/b/${website.public_slug}/${article.slug}`}
                     </div>
                   )}
                 </div>
@@ -240,10 +269,8 @@ export default function WebsiteDetailPage() {
                   {article.status === 'draft' && (
                     <button
                       onClick={() => { setPublishModal(article); setPublishError(''); }}
-                      disabled={!website.github_repo}
                       className="btn-emerald"
-                      style={{ padding: '0.5rem 1rem', fontSize: '0.82rem', opacity: website.github_repo ? 1 : 0.5 }}
-                      title={website.github_repo ? '' : 'Kein GitHub-Repo für diese Website hinterlegt'}
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.82rem' }}
                     >
                       Veröffentlichen
                     </button>
@@ -271,7 +298,11 @@ export default function WebsiteDetailPage() {
           <div className="card" style={{ maxWidth: 440, width: '100%', padding: '2rem' }}>
             <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', marginBottom: '0.5rem', color: 'var(--ink)' }}>Artikel veröffentlichen</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.2rem' }}>
-              Wird als <code>blog/{publishModal.slug}/index.html</code> in <strong>{website.github_repo}</strong> committet und löst ein automatisches Deployment aus.
+              {website.github_repo ? (
+                <>Wird als <code>{website.publish_path.replace(/^\//, '')}{publishModal.slug}/index.html</code> in <strong>{website.github_repo}</strong> committet und löst ein automatisches Deployment aus.</>
+              ) : (
+                <>Wird bei suchmaschinen.pro veröffentlicht und erscheint unter <strong>{website.publish_path}</strong> auf {website.domain}, sobald die Weiterleitung eingerichtet ist (siehe Hinweis unten auf der Seite).</>
+              )}
             </p>
             {publishError && (
               <div style={{ background: '#fce8e8', border: '1px solid #f5a5a5', padding: '0.75rem', fontSize: '0.85rem', color: '#b02020', borderRadius: 8, marginBottom: '1rem' }}>

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import type { HostingPlatform } from '@/types';
+import { HOSTING_LABELS } from '@/types';
 
 function cleanDomain(input: string): string {
   let d = input.trim().toLowerCase();
@@ -11,11 +13,19 @@ function cleanDomain(input: string): string {
   return d;
 }
 
+function slugifyDomain(domain: string): string {
+  return domain.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+const PLATFORM_OPTIONS: HostingPlatform[] = ['network', 'vercel', 'netlify', 'apache', 'wordpress', 'other'];
+
 export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: () => void }) {
   const [domain, setDomain] = useState('');
   const [label, setLabel] = useState('');
   const [notes, setNotes] = useState('');
   const [githubRepo, setGithubRepo] = useState('');
+  const [hostingPlatform, setHostingPlatform] = useState<HostingPlatform>('network');
+  const [publishPath, setPublishPath] = useState('/blog/');
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -32,11 +42,15 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
     }
 
     const cleanedRepo = githubRepo.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
-    if (cleanedRepo && !/^[\w.-]+\/[\w.-]+$/.test(cleanedRepo)) {
+    if (hostingPlatform === 'network' && cleanedRepo && !/^[\w.-]+\/[\w.-]+$/.test(cleanedRepo)) {
       setStatus('error');
       setMessage('Bitte GitHub-Repo im Format "owner/repo" angeben.');
       return;
     }
+
+    let cleanedPath = publishPath.trim() || '/blog/';
+    if (!cleanedPath.startsWith('/')) cleanedPath = `/${cleanedPath}`;
+    if (!cleanedPath.endsWith('/')) cleanedPath = `${cleanedPath}/`;
 
     const supabase = createClient();
     const { error } = await supabase.from('sq_websites').insert({
@@ -44,7 +58,10 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
       domain: cleanedDomain,
       label: label.trim() || null,
       notes: notes.trim() || null,
-      github_repo: cleanedRepo || null,
+      github_repo: hostingPlatform === 'network' ? (cleanedRepo || null) : null,
+      hosting_platform: hostingPlatform,
+      publish_path: cleanedPath,
+      public_slug: slugifyDomain(cleanedDomain),
       status: 'pending',
     });
 
@@ -58,6 +75,8 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
     setLabel('');
     setNotes('');
     setGithubRepo('');
+    setPublishPath('/blog/');
+    setHostingPlatform('network');
     setStatus('idle');
     onSuccess();
   };
@@ -75,9 +94,22 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
           className="form-input" placeholder="z. B. Hauptseite" />
       </div>
       <div>
-        <label className="form-label">GitHub-Repo <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional, für automatische Veröffentlichung)</span></label>
-        <input type="text" value={githubRepo} onChange={e => setGithubRepo(e.target.value)}
-          className="form-input" placeholder="ihraccount/ihrrepo" />
+        <label className="form-label">Wo läuft die Website?</label>
+        <select value={hostingPlatform} onChange={e => setHostingPlatform(e.target.value as HostingPlatform)} className="form-input">
+          {PLATFORM_OPTIONS.map(p => <option key={p} value={p}>{HOSTING_LABELS[p]}</option>)}
+        </select>
+      </div>
+      {hostingPlatform === 'network' && (
+        <div>
+          <label className="form-label">GitHub-Repo <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional, für automatische Veröffentlichung)</span></label>
+          <input type="text" value={githubRepo} onChange={e => setGithubRepo(e.target.value)}
+            className="form-input" placeholder="ihraccount/ihrrepo" />
+        </div>
+      )}
+      <div>
+        <label className="form-label">Gewünschter Pfad für Artikel</label>
+        <input type="text" value={publishPath} onChange={e => setPublishPath(e.target.value)}
+          className="form-input" placeholder="/blog/" />
       </div>
       <div>
         <label className="form-label">Notizen <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span></label>

@@ -1,5 +1,6 @@
 export type WebsiteStatus = 'pending' | 'analyzing' | 'active' | 'paused';
 export type ArticleStatus = 'draft' | 'published';
+export type HostingPlatform = 'network' | 'vercel' | 'netlify' | 'apache' | 'wordpress' | 'other';
 
 export interface Website {
   id: string;
@@ -12,7 +13,19 @@ export interface Website {
   github_repo: string | null;
   suggested_keywords: SuggestedKeyword[] | null;
   last_analyzed_at: string | null;
+  public_slug: string;
+  publish_path: string;
+  hosting_platform: HostingPlatform;
 }
+
+export const HOSTING_LABELS: Record<HostingPlatform, string> = {
+  network: 'PAN21-Netzwerk (GitHub + Vercel) — "zuhause bei Mutti"',
+  vercel: 'Vercel (andere Domain)',
+  netlify: 'Netlify',
+  apache: 'Klassischer Webhoster (Apache/.htaccess)',
+  wordpress: 'WordPress',
+  other: 'Sonstiges / weiß ich nicht',
+};
 
 export interface SuggestedKeyword {
   keyword: string;
