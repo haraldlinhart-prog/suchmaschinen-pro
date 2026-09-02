@@ -91,3 +91,7 @@ h1,h2,h3,h4 { font-family: var(--font-display); line-height: 1.2; }
 }
 .badge-active { background: var(--emerald-pale); color: var(--emerald); }
 .badge-pending { background: #fdf3dc; color: #8a6a1a; }
+
+@media (max-width: 860px) {
+  .hero-text-block { margin: 0 auto !important; }
+}

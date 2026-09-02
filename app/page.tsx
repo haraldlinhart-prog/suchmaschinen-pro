@@ -4,22 +4,32 @@ export default function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section style={{ background: 'linear-gradient(180deg, var(--ink) 0%, var(--ink-mid) 100%)', color: 'white', padding: '5rem 1.5rem 4.5rem', textAlign: 'center' }}>
-        <div style={{ maxWidth: 780, margin: '0 auto' }}>
-          <div className="section-label" style={{ color: 'var(--emerald-light)' }}>KI-generierter SEO-Content, der tatsächlich rankt</div>
-          <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.1rem)', margin: '1rem 0 1.25rem', letterSpacing: '-0.02em' }}>
-            Artikel, die Google tatsächlich indexiert — weil sie auf Ihrer eigenen Domain liegen.
-          </h1>
-          <p style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.75)', maxWidth: 620, margin: '0 auto 2.2rem', lineHeight: 1.65 }}>
-            Wir analysieren Ihre Website, finden die relevantesten Suchbegriffe und schreiben passende Artikel — veröffentlicht direkt unter <code style={{ background: 'rgba(255,255,255,0.1)', padding: '0.1rem 0.4rem', borderRadius: 4 }}>ihredomain.de/blog/</code>, statt auf einer isolierten Subdomain oder als Footer-Plugin.
-          </p>
-          <div style={{ display: 'flex', gap: '0.9rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/auth?mode=register" className="btn-emerald" style={{ padding: '0.9rem 2rem', fontSize: '0.95rem' }}>
-              Kostenlos testen →
-            </Link>
-            <Link href="#so-funktionierts" className="btn-outline" style={{ padding: '0.9rem 2rem', fontSize: '0.95rem', borderColor: 'rgba(255,255,255,0.35)', color: 'white' }}>
-              So funktioniert&apos;s
-            </Link>
+      <section
+        style={{
+          background: `linear-gradient(90deg, var(--ink) 0%, rgba(6,20,15,0.55) 38%, rgba(6,20,15,0.55) 62%, var(--ink) 100%), url('/hero-graphic.jpg')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          color: 'white',
+          padding: '5rem 1.5rem 4.5rem',
+        }}
+      >
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <div style={{ maxWidth: 620, margin: '0 22%', textAlign: 'center' }} className="hero-text-block">
+            <div className="section-label" style={{ color: 'var(--emerald-light)' }}>KI-generierter SEO-Content, der tatsächlich rankt</div>
+            <h1 style={{ fontSize: 'clamp(1.9rem, 4vw, 2.7rem)', margin: '1rem 0 1.25rem', letterSpacing: '-0.02em' }}>
+              Artikel, die Google tatsächlich indexiert — weil sie auf Ihrer eigenen Domain liegen.
+            </h1>
+            <p style={{ fontSize: '1.05rem', color: 'rgba(255,255,255,0.8)', margin: '0 auto 2.2rem', lineHeight: 1.65 }}>
+              Wir analysieren Ihre Website, finden die relevantesten Suchbegriffe und schreiben passende Artikel — veröffentlicht direkt unter <code style={{ background: 'rgba(255,255,255,0.12)', padding: '0.1rem 0.4rem', borderRadius: 4 }}>ihredomain.de/blog/</code>, statt auf einer isolierten Subdomain oder als Footer-Plugin.
+            </p>
+            <div style={{ display: 'flex', gap: '0.9rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link href="/auth?mode=register" className="btn-emerald" style={{ padding: '0.9rem 2rem', fontSize: '0.95rem' }}>
+                Kostenlos testen →
+              </Link>
+              <Link href="#so-funktionierts" className="btn-outline" style={{ padding: '0.9rem 2rem', fontSize: '0.95rem', borderColor: 'rgba(255,255,255,0.35)', color: 'white' }}>
+                So funktioniert&apos;s
+              </Link>
+            </div>
           </div>
         </div>
       </section>
