@@ -144,12 +144,21 @@ export default function WebsiteDetailPage() {
     if (user) await loadData(user.id);
   };
 
-  const handleTogglePlan = async (plan: 'basic' | 'plus') => {
+  const handleUpgrade = async (plan: 'basic' | 'pro') => {
     setSavingAutomation(true);
-    const supabase = createClient();
-    await supabase.from('sq_websites').update({ plan }).eq('id', websiteId);
+    try {
+      const res = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ website_id: websiteId, plan }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) { window.location.href = data.url; return; }
+      alert(data.error || 'Checkout konnte nicht gestartet werden.');
+    } catch {
+      alert('Checkout konnte nicht gestartet werden.');
+    }
     setSavingAutomation(false);
-    if (user) await loadData(user.id);
   };
 
   const handleToggleAutoPublish = async (enabled: boolean) => {
@@ -159,6 +168,16 @@ export default function WebsiteDetailPage() {
     setSavingAutomation(false);
     if (user) await loadData(user.id);
   };
+
+  // If we just came back from Stripe Checkout, confirm the session immediately
+  // (no webhook — see /api/confirm-checkout).
+  useEffect(() => {
+    const sessionId = new URLSearchParams(window.location.search).get('session_id');
+    if (!sessionId) return;
+    fetch(`/api/confirm-checkout?session_id=${sessionId}`)
+      .then(() => { if (user) loadData(user.id); })
+      .finally(() => window.history.replaceState({}, '', window.location.pathname));
+  }, [user, loadData]);
 
   if (loading || !website) return <div style={{ padding: '4rem', textAlign: 'center' }}>Wird geladen...</div>;
 
@@ -293,17 +312,25 @@ export default function WebsiteDetailPage() {
         <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)', marginBottom: '0.75rem' }}>Automatische Veröffentlichung</div>
         <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Plan</div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Tarif</div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button onClick={() => handleTogglePlan('basic')} disabled={savingAutomation}
-                className={website.plan === 'basic' ? 'btn-emerald' : 'btn-outline'} style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
-                Basic — 1×/Woche
+              <button disabled className={website.plan === 'free' ? 'btn-emerald' : 'btn-outline'} style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem', opacity: website.plan === 'free' ? 1 : 0.6, cursor: 'default' }}>
+                Free — alle 2 Wochen
               </button>
-              <button onClick={() => handleTogglePlan('plus')} disabled={savingAutomation}
-                className={website.plan === 'plus' ? 'btn-emerald' : 'btn-outline'} style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
-                Plus — 1×/Tag
+              <button onClick={() => handleUpgrade('basic')} disabled={savingAutomation || website.plan === 'basic'}
+                className={website.plan === 'basic' ? 'btn-emerald' : 'btn-outline'} style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                Basic — 1×/Woche · 19 €/Monat
+              </button>
+              <button onClick={() => handleUpgrade('pro')} disabled={savingAutomation || website.plan === 'pro'}
+                className={website.plan === 'pro' ? 'btn-emerald' : 'btn-outline'} style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                Pro — täglich · 29 €/Monat
               </button>
             </div>
+            {website.plan !== 'free' && (
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+                Abrechnungsstatus: {website.billing_status === 'active' ? 'aktiv' : website.billing_status === 'past_due' ? 'Zahlung überfällig' : website.billing_status}
+              </div>
+            )}
           </div>
           <div>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Status</div>
@@ -319,6 +346,25 @@ export default function WebsiteDetailPage() {
               ? `Letzter automatischer Artikel: ${new Date(website.last_auto_published_at).toLocaleString('de-DE')}`
               : 'Noch kein automatischer Artikel veröffentlicht — der nächste Lauf startet automatisch.'}
           </p>
+        )}
+        {website.plan === 'free' && (
+          <div style={{ marginTop: '1.1rem', paddingTop: '1.1rem', borderTop: '1px solid var(--border)' }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--ink)', fontWeight: 600, marginBottom: '0.4rem' }}>
+              Badge einbinden {website.badge_status === 'active' ? '✓ erkannt' : website.badge_status === 'missing' ? '— nicht gefunden, bitte einbinden' : '(wird beim nächsten Lauf geprüft)'}
+            </div>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+              Der Free-Tarif läuft nur, solange dieser Badge auf {website.domain} eingebunden ist. Code einfach vor dem schließenden <code>&lt;/body&gt;</code>-Tag einfügen:
+            </p>
+            <pre style={{ background: 'var(--ink)', color: '#e6e6e6', padding: '0.85rem 1rem', borderRadius: 8, fontSize: '0.72rem', overflowX: 'auto' }}>
+{`<a href="https://suchmaschinen.pro" target="_blank" rel="noopener"
+   data-suchmaschinen-badge="pro21"
+   style="display:inline-block">
+  <img src="https://suchmaschinen.pro/badge.png"
+       alt="Diese Website wird von suchmaschinen.pro SEO optimiert"
+       width="280" height="90" loading="lazy" />
+</a>`}
+            </pre>
+          </div>
         )}
       </div>
 
