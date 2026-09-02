@@ -69,6 +69,7 @@ export interface GaProperty {
   property: string; // e.g. "properties/123456789"
   displayName: string;
   account: string;
+  domain?: string; // enriched separately via getPropertyDomains — the actual tracked hostname
 }
 
 export async function listGa4Properties(accessToken: string): Promise<GaProperty[]> {
@@ -97,6 +98,45 @@ export async function listGa4Properties(accessToken: string): Promise<GaProperty
 
   properties.sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'));
   return properties;
+}
+
+/**
+ * Property display names in this account don't reliably follow the tracked domain
+ * (many are generic, e.g. "PAN21.com Corporate Consultants" reused across dozens of
+ * sites) — see chat 02.09.26. Fetch each property's actual web data stream hostname so
+ * the picker can search/match by real domain instead. Limited concurrency to stay
+ * within GA4 Admin API rate limits across ~200 properties.
+ */
+export async function enrichWithDomains(accessToken: string, properties: GaProperty[]): Promise<GaProperty[]> {
+  const CONCURRENCY = 8;
+  const result = [...properties];
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < result.length) {
+      const i = cursor++;
+      try {
+        const res = await fetch(`${GA_ADMIN_API}/${result[i].property}/dataStreams?pageSize=10`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const webStream = (data.dataStreams || []).find((s: { webStreamData?: { defaultUri?: string } }) => s.webStreamData?.defaultUri);
+        if (webStream?.webStreamData?.defaultUri) {
+          try {
+            result[i] = { ...result[i], domain: new URL(webStream.webStreamData.defaultUri).hostname.replace(/^www\./, '') };
+          } catch {
+            // malformed URI, skip
+          }
+        }
+      } catch {
+        // one property's enrichment failing shouldn't break the rest
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  return result;
 }
 
 export interface GaDailyRow {

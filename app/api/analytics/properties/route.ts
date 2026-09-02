@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { refreshAccessToken, listGa4Properties } from '@/lib/google/analytics';
+import { refreshAccessToken, listGa4Properties, enrichWithDomains } from '@/lib/google/analytics';
+
+// ~200 properties enriched with 8-way concurrency can take a while; default function
+// timeout would cut it off (see chat 02.09.26).
+export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
   const websiteId = req.nextUrl.searchParams.get('websiteId');
@@ -22,7 +26,8 @@ export async function GET(req: NextRequest) {
   try {
     const accessToken = await refreshAccessToken(website.ga_refresh_token);
     const properties = await listGa4Properties(accessToken);
-    return NextResponse.json({ properties });
+    const enriched = await enrichWithDomains(accessToken, properties);
+    return NextResponse.json({ properties: enriched });
   } catch (e) {
     console.error('GA properties error:', e);
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Properties konnten nicht geladen werden.' }, { status: 500 });

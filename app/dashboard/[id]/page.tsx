@@ -62,7 +62,7 @@ export default function WebsiteDetailPage() {
   const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
   const [savingAutomation, setSavingAutomation] = useState(false);
 
-  const [gaProperties, setGaProperties] = useState<{ property: string; displayName: string; account: string }[] | null>(null);
+  const [gaProperties, setGaProperties] = useState<{ property: string; displayName: string; account: string; domain?: string }[] | null>(null);
   const [gaPropertyFilter, setGaPropertyFilter] = useState('');
   const [gaLoadingProperties, setGaLoadingProperties] = useState(false);
   const [gaChartData, setGaChartData] = useState<{ date: string; sessions: number; activeUsers: number }[] | null>(null);
@@ -249,8 +249,11 @@ export default function WebsiteDetailPage() {
       .then(data => {
         if (data.properties) {
           setGaProperties(data.properties);
-          // Pre-fill the search with the site's own domain root (e.g. "turnkey-companies"
-          // for turnkey-companies.com) so the right property is easy to spot in long lists.
+          // Auto-pick when the enriched domain matches exactly — no need to search.
+          const exact = data.properties.find((p: { domain?: string }) => p.domain === website.domain);
+          if (exact) { handleSelectGaProperty(exact); return; }
+          // Otherwise pre-fill the search with the site's own domain root (e.g.
+          // "turnkey-companies" for turnkey-companies.com).
           setGaPropertyFilter(website.domain.split('.')[0]);
         } else {
           setGaError(data.error || 'Properties konnten nicht geladen werden.');
@@ -524,7 +527,14 @@ export default function WebsiteDetailPage() {
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.9rem' }}>
               Verbunden — bitte wählen Sie die passende Property:
             </p>
-            {gaLoadingProperties && <span className="spinner" style={{ color: 'var(--emerald)' }} />}
+            {gaLoadingProperties && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <span className="spinner" style={{ color: 'var(--emerald)' }} />
+                <span className="progress-message" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Properties werden geladen — bei vielen Websites im Konto kann das einen Moment dauern…
+                </span>
+              </div>
+            )}
             {gaProperties && gaProperties.length > 0 && (
               <input
                 type="text"
@@ -539,8 +549,9 @@ export default function WebsiteDetailPage() {
               <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Keine GA4-Properties in diesem Google-Konto gefunden.</p>
             )}
             {gaProperties && gaProperties.length > 0 && (() => {
+              const q = gaPropertyFilter.toLowerCase();
               const filtered = gaProperties.filter(p =>
-                `${p.displayName} ${p.account}`.toLowerCase().includes(gaPropertyFilter.toLowerCase())
+                `${p.displayName} ${p.account} ${p.domain || ''}`.toLowerCase().includes(q)
               );
               return (
                 <>
@@ -554,7 +565,9 @@ export default function WebsiteDetailPage() {
                     {filtered.map(p => (
                       <button key={p.property} onClick={() => handleSelectGaProperty(p)} className="btn-outline"
                         style={{ padding: '0.55rem 0.9rem', fontSize: '0.82rem', textAlign: 'left' }}>
-                        {p.displayName} <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>({p.account})</span>
+                        {p.displayName}{' '}
+                        {p.domain && <span style={{ color: 'var(--emerald)', fontSize: '0.75rem' }}>· {p.domain}</span>}{' '}
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>({p.account})</span>
                       </button>
                     ))}
                   </div>
