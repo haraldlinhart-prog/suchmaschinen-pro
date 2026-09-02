@@ -29,6 +29,10 @@ export interface Website {
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   billing_status: 'free' | 'active' | 'past_due' | 'canceled';
+  ga_refresh_token: string | null;
+  ga_property_id: string | null;
+  ga_property_name: string | null;
+  ga_connected_at: string | null;
 }
 
 export const HOSTING_LABELS: Record<HostingPlatform, string> = {

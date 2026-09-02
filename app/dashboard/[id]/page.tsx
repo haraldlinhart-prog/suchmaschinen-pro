@@ -8,6 +8,7 @@ import type { User } from '@supabase/supabase-js';
 import type { Website, Article, SuggestedKeyword } from '@/types';
 import { rewriteInstructions } from '@/lib/rewriteInstructions';
 import { isAdminEmail } from '@/lib/supabase/admin';
+import { AnalyticsChart } from '@/components/AnalyticsChart';
 
 const ANALYZE_MESSAGES = [
   'Website wird geladen…',
@@ -60,6 +61,12 @@ export default function WebsiteDetailPage() {
   const [savingWp, setSavingWp] = useState(false);
   const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
   const [savingAutomation, setSavingAutomation] = useState(false);
+
+  const [gaProperties, setGaProperties] = useState<{ property: string; displayName: string; account: string }[] | null>(null);
+  const [gaLoadingProperties, setGaLoadingProperties] = useState(false);
+  const [gaChartData, setGaChartData] = useState<{ date: string; sessions: number; activeUsers: number }[] | null>(null);
+  const [gaChartLoading, setGaChartLoading] = useState(false);
+  const [gaError, setGaError] = useState('');
 
   const analyzeMessage = useRotatingMessage(analyzing, ANALYZE_MESSAGES);
   const generateMessage = useRotatingMessage(!!generatingKeyword, GENERATE_MESSAGES);
@@ -224,6 +231,44 @@ export default function WebsiteDetailPage() {
       .then(() => { if (user) loadData(user.id); })
       .finally(() => window.history.replaceState({}, '', window.location.pathname));
   }, [user, loadData]);
+
+  // Clear the ga_connected / ga_error markers Google's OAuth redirect leaves in the URL.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('ga_error')) { setGaError('Google Analytics konnte nicht verbunden werden.'); window.history.replaceState({}, '', window.location.pathname); }
+    else if (params.get('ga_connected')) { window.history.replaceState({}, '', window.location.pathname); }
+  }, []);
+
+  // Once connected but no property chosen yet, load the list of GA4 properties to pick from.
+  useEffect(() => {
+    if (!website?.ga_refresh_token || website.ga_property_id) return;
+    setGaLoadingProperties(true);
+    fetch(`/api/analytics/properties?websiteId=${websiteId}`)
+      .then(res => res.json())
+      .then(data => { if (data.properties) setGaProperties(data.properties); else setGaError(data.error || 'Properties konnten nicht geladen werden.'); })
+      .catch(() => setGaError('Properties konnten nicht geladen werden.'))
+      .finally(() => setGaLoadingProperties(false));
+  }, [website?.ga_refresh_token, website?.ga_property_id, websiteId]);
+
+  // Once a property is chosen, load the last 30 days of sessions/users.
+  useEffect(() => {
+    if (!website?.ga_property_id) return;
+    setGaChartLoading(true);
+    fetch(`/api/analytics/data?websiteId=${websiteId}&days=30`)
+      .then(res => res.json())
+      .then(data => { if (data.rows) setGaChartData(data.rows); else setGaError(data.error || 'Daten konnten nicht geladen werden.'); })
+      .catch(() => setGaError('Daten konnten nicht geladen werden.'))
+      .finally(() => setGaChartLoading(false));
+  }, [website?.ga_property_id, websiteId]);
+
+  const handleSelectGaProperty = async (p: { property: string; displayName: string }) => {
+    await fetch('/api/analytics/select-property', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ websiteId, propertyId: p.property, propertyName: p.displayName }),
+    });
+    if (user) await loadData(user.id);
+  };
 
   if (loading || !website) return <div style={{ padding: '4rem', textAlign: 'center' }}>Wird geladen...</div>;
 
@@ -441,6 +486,66 @@ export default function WebsiteDetailPage() {
 </a>`}
             </pre>
           </div>
+        )}
+      </div>
+
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '2.5rem' }}>
+        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)', marginBottom: '0.75rem' }}>Google Analytics</div>
+
+        {gaError && (
+          <div style={{ background: '#fce8e8', border: '1px solid #f5a5a5', padding: '0.7rem 0.9rem', fontSize: '0.82rem', color: '#b02020', borderRadius: 8, marginBottom: '1rem' }}>
+            {gaError}
+          </div>
+        )}
+
+        {!website.ga_refresh_token && (
+          <>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.9rem' }}>
+              Verbinden Sie Ihr Google-Analytics-4-Konto, um direkt hier zu sehen, ob die veröffentlichten Artikel Besucher bringen.
+            </p>
+            <a href={`/api/analytics/connect?websiteId=${websiteId}`} className="btn-outline" style={{ padding: '0.5rem 1.1rem', fontSize: '0.82rem', display: 'inline-block' }}>
+              Mit Google Analytics verbinden
+            </a>
+          </>
+        )}
+
+        {website.ga_refresh_token && !website.ga_property_id && (
+          <>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.9rem' }}>
+              Verbunden — bitte wählen Sie die passende Property:
+            </p>
+            {gaLoadingProperties && <span className="spinner" style={{ color: 'var(--emerald)' }} />}
+            {gaProperties && gaProperties.length === 0 && (
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Keine GA4-Properties in diesem Google-Konto gefunden.</p>
+            )}
+            {gaProperties && gaProperties.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {gaProperties.map(p => (
+                  <button key={p.property} onClick={() => handleSelectGaProperty(p)} className="btn-outline"
+                    style={{ padding: '0.55rem 0.9rem', fontSize: '0.82rem', textAlign: 'left' }}>
+                    {p.displayName} <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>({p.account})</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {website.ga_property_id && (
+          <>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Verbunden mit: {website.ga_property_name || website.ga_property_id} · letzte 30 Tage
+            </p>
+            {gaChartLoading && (
+              <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <span className="spinner" style={{ width: '1.4rem', height: '1.4rem', color: 'var(--emerald)' }} />
+              </div>
+            )}
+            {!gaChartLoading && gaChartData && gaChartData.length > 0 && <AnalyticsChart data={gaChartData} />}
+            {!gaChartLoading && gaChartData && gaChartData.length === 0 && (
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Noch keine Daten für diesen Zeitraum.</p>
+            )}
+          </>
         )}
       </div>
 
