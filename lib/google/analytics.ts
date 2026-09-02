@@ -72,18 +72,30 @@ export interface GaProperty {
 }
 
 export async function listGa4Properties(accessToken: string): Promise<GaProperty[]> {
-  const res = await fetch(`${GA_ADMIN_API}/accountSummaries?pageSize=200`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || 'GA4-Properties konnten nicht geladen werden.');
-
   const properties: GaProperty[] = [];
-  for (const account of data.accountSummaries || []) {
-    for (const p of account.propertySummaries || []) {
-      properties.push({ property: p.property, displayName: p.displayName, account: account.displayName });
+  let pageToken: string | undefined;
+
+  // accountSummaries paginates per Google *account*, not per property — with this many
+  // network domains under one Google account, a single page can silently truncate the
+  // list. Follow nextPageToken until exhausted (see chat 02.09.26).
+  do {
+    const url = new URL(`${GA_ADMIN_API}/accountSummaries`);
+    url.searchParams.set('pageSize', '200');
+    if (pageToken) url.searchParams.set('pageToken', pageToken);
+
+    const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${accessToken}` } });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'GA4-Properties konnten nicht geladen werden.');
+
+    for (const account of data.accountSummaries || []) {
+      for (const p of account.propertySummaries || []) {
+        properties.push({ property: p.property, displayName: p.displayName, account: account.displayName });
+      }
     }
-  }
+    pageToken = data.nextPageToken;
+  } while (pageToken);
+
+  properties.sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'));
   return properties;
 }
 

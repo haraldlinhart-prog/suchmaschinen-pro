@@ -63,6 +63,7 @@ export default function WebsiteDetailPage() {
   const [savingAutomation, setSavingAutomation] = useState(false);
 
   const [gaProperties, setGaProperties] = useState<{ property: string; displayName: string; account: string }[] | null>(null);
+  const [gaPropertyFilter, setGaPropertyFilter] = useState('');
   const [gaLoadingProperties, setGaLoadingProperties] = useState(false);
   const [gaChartData, setGaChartData] = useState<{ date: string; sessions: number; activeUsers: number }[] | null>(null);
   const [gaChartLoading, setGaChartLoading] = useState(false);
@@ -245,7 +246,16 @@ export default function WebsiteDetailPage() {
     setGaLoadingProperties(true);
     fetch(`/api/analytics/properties?websiteId=${websiteId}`)
       .then(res => res.json())
-      .then(data => { if (data.properties) setGaProperties(data.properties); else setGaError(data.error || 'Properties konnten nicht geladen werden.'); })
+      .then(data => {
+        if (data.properties) {
+          setGaProperties(data.properties);
+          // Pre-fill the search with the site's own domain root (e.g. "turnkey-companies"
+          // for turnkey-companies.com) so the right property is easy to spot in long lists.
+          setGaPropertyFilter(website.domain.split('.')[0]);
+        } else {
+          setGaError(data.error || 'Properties konnten nicht geladen werden.');
+        }
+      })
       .catch(() => setGaError('Properties konnten nicht geladen werden.'))
       .finally(() => setGaLoadingProperties(false));
   }, [website?.ga_refresh_token, website?.ga_property_id, websiteId]);
@@ -515,19 +525,42 @@ export default function WebsiteDetailPage() {
               Verbunden — bitte wählen Sie die passende Property:
             </p>
             {gaLoadingProperties && <span className="spinner" style={{ color: 'var(--emerald)' }} />}
+            {gaProperties && gaProperties.length > 0 && (
+              <input
+                type="text"
+                value={gaPropertyFilter}
+                onChange={e => setGaPropertyFilter(e.target.value)}
+                placeholder="Property suchen…"
+                className="form-input"
+                style={{ marginBottom: '0.75rem', fontSize: '0.85rem', padding: '0.5rem 0.8rem' }}
+              />
+            )}
             {gaProperties && gaProperties.length === 0 && (
               <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Keine GA4-Properties in diesem Google-Konto gefunden.</p>
             )}
-            {gaProperties && gaProperties.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {gaProperties.map(p => (
-                  <button key={p.property} onClick={() => handleSelectGaProperty(p)} className="btn-outline"
-                    style={{ padding: '0.55rem 0.9rem', fontSize: '0.82rem', textAlign: 'left' }}>
-                    {p.displayName} <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>({p.account})</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            {gaProperties && gaProperties.length > 0 && (() => {
+              const filtered = gaProperties.filter(p =>
+                `${p.displayName} ${p.account}`.toLowerCase().includes(gaPropertyFilter.toLowerCase())
+              );
+              return (
+                <>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                    {filtered.length} von {gaProperties.length} Properties
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 320, overflowY: 'auto' }}>
+                    {filtered.length === 0 && (
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Keine Treffer — anderen Suchbegriff versuchen.</p>
+                    )}
+                    {filtered.map(p => (
+                      <button key={p.property} onClick={() => handleSelectGaProperty(p)} className="btn-outline"
+                        style={{ padding: '0.55rem 0.9rem', fontSize: '0.82rem', textAlign: 'left' }}>
+                        {p.displayName} <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>({p.account})</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
           </>
         )}
 
