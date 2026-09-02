@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service';
 import { fetchSiteText, suggestKeywords, type SuggestedKeyword } from '@/lib/ai/analyzeWebsite';
 import { generateArticleContent } from '@/lib/ai/generateArticle';
 import { publishArticle } from '@/lib/publish/publishArticle';
+import { publishNewsIndex } from '@/lib/publish/publishNewsIndex';
 
 export const maxDuration = 300; // allow up to 5 minutes for multiple sites in one run
 
@@ -117,6 +118,8 @@ export async function GET(req: NextRequest) {
         .eq('id', articleRow.id);
 
       await supabase.from('sq_websites').update({ last_auto_published_at: new Date().toISOString() }).eq('id', website.id);
+
+      await publishNewsIndex(website, supabase).catch(e => console.error('publishNewsIndex failed', e));
 
       results.push({ domain: website.domain, status: 'published', detail: publishResult.url });
     } catch (siteErr) {
