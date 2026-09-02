@@ -6,7 +6,7 @@ export default function HomePage() {
       {/* Hero */}
       <section
         style={{
-          background: `linear-gradient(90deg, var(--ink) 0%, rgba(6,20,15,0.55) 38%, rgba(6,20,15,0.55) 62%, var(--ink) 100%), url('/hero-graphic.jpg')`,
+          background: `linear-gradient(90deg, rgba(6,20,15,0.85) 0%, rgba(6,20,15,0.3) 30%, rgba(6,20,15,0.3) 62%, rgba(6,20,15,0.85) 100%), url('/hero-graphic.jpg')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           color: 'white',
