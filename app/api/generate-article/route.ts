@@ -20,6 +20,20 @@ export async function POST(req: NextRequest) {
 
     if (fetchError || !website) return NextResponse.json({ error: 'Website nicht gefunden.' }, { status: 404 });
 
+    // Free tier: at most one manually generated article per website.
+    if (website.plan === 'free') {
+      const { count } = await supabase
+        .from('sq_articles')
+        .select('id', { count: 'exact', head: true })
+        .eq('website_id', websiteId);
+      if ((count || 0) >= 1) {
+        return NextResponse.json(
+          { error: 'Im Free-Tarif ist nur ein Artikel möglich. Für weitere Artikel auf Basic oder Pro upgraden.' },
+          { status: 403 }
+        );
+      }
+    }
+
     let generated;
     try {
       generated = await generateArticleContent(website.domain, website.notes, keyword, rationale, intent);

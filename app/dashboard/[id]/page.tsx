@@ -326,9 +326,15 @@ export default function WebsiteDetailPage() {
               Zuletzt analysiert: {new Date(website.last_analyzed_at).toLocaleString('de-DE')}
             </div>
           )}
+          {website.plan === 'free' && (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'var(--emerald-pale)', padding: '0.7rem 1rem', borderRadius: 8, marginBottom: '1rem' }}>
+              Im Free-Tarif ist ein manuell generierter Artikel enthalten{articles.length > 0 ? ' — bereits aufgebraucht.' : '.'} Für weitere Artikel auf Basic oder Pro upgraden.
+            </div>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {website.suggested_keywords.map((kw, i) => {
               const hasArticle = articles.some(a => a.keyword === kw.keyword);
+              const freeLimitReached = website.plan === 'free' && articles.length > 0 && !hasArticle;
               return (
                 <div key={i} className="card" style={{ padding: '1.1rem 1.4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: 220 }}>
@@ -338,12 +344,18 @@ export default function WebsiteDetailPage() {
                   </div>
                   <button
                     onClick={() => handleGenerateArticle(kw)}
-                    disabled={generatingKeyword === kw.keyword || hasArticle}
+                    disabled={generatingKeyword === kw.keyword || hasArticle || freeLimitReached}
                     className="btn-outline"
-                    style={{ padding: '0.5rem 1.1rem', fontSize: '0.82rem', opacity: hasArticle ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+                    style={{ padding: '0.5rem 1.1rem', fontSize: '0.82rem', opacity: hasArticle || freeLimitReached ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
                   >
                     {generatingKeyword === kw.keyword && <span className="spinner" />}
-                    {generatingKeyword === kw.keyword ? generateMessage : hasArticle ? 'Artikel vorhanden' : 'Artikel generieren'}
+                    {generatingKeyword === kw.keyword
+                      ? generateMessage
+                      : hasArticle
+                      ? 'Artikel vorhanden'
+                      : freeLimitReached
+                      ? 'Nur im Basic/Pro-Tarif'
+                      : 'Artikel generieren'}
                   </button>
                 </div>
               );
