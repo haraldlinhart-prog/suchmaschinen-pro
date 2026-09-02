@@ -95,21 +95,48 @@ export default function HomePage() {
       </section>
 
       {/* Pricing */}
-      <section id="preise" style={{ padding: '4rem 1.5rem', maxWidth: 1000, margin: '0 auto' }}>
+      <section id="preise" style={{ padding: '4rem 1.5rem', maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
           <div className="section-label">Preise</div>
           <div className="divider-emerald" style={{ margin: '0.75rem auto' }} />
           <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', color: 'var(--ink)' }}>Einfach starten</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginTop: '0.5rem' }}>Aktuell in der Testphase — Preise folgen in Kürze.</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginTop: '0.5rem' }}>
+            Einmalig Website registrieren, Tarif wählen — Artikel laufen automatisch.
+          </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', maxWidth: 720, margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', maxWidth: 960, margin: '0 auto' }}>
           <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.5rem' }}>BETA</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '0.5rem' }}>Kostenlos</div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Registrieren Sie Ihre Website und testen Sie das Konzept mit uns.</p>
-            <Link href="/auth?mode=register" className="btn-emerald" style={{ width: '100%', justifyContent: 'center' }}>Jetzt registrieren</Link>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.5rem' }}>FREE</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '0.5rem' }}>0 €</div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+              1 Artikel alle 2 Wochen. Kostenlos, solange unser Badge auf Ihrer Website eingebunden ist.
+            </p>
+            <Link href="/auth?mode=register" className="btn-outline" style={{ width: '100%', justifyContent: 'center' }}>Kostenlos starten</Link>
+          </div>
+          <div className="card" style={{ padding: '2rem', textAlign: 'center', borderColor: 'var(--emerald)', borderWidth: 1.5 }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--emerald)', fontWeight: 600, marginBottom: '0.5rem' }}>BASIC</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '0.5rem' }}>
+              19 €<span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-muted)' }}> / Monat</span>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+              1 Artikel pro Woche. Kein Badge nötig.
+            </p>
+            <Link href="/auth?mode=register" className="btn-emerald" style={{ width: '100%', justifyContent: 'center' }}>Jetzt starten</Link>
+          </div>
+          <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.5rem' }}>PRO</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '0.5rem' }}>
+              29 €<span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-muted)' }}> / Monat</span>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+              1 Artikel täglich. Maximales Publishing-Tempo.
+            </p>
+            <Link href="/auth?mode=register" className="btn-outline" style={{ width: '100%', justifyContent: 'center' }}>Jetzt starten</Link>
           </div>
         </div>
+        <p style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '1.5rem' }}>
+          Alle Preise zzgl. USt. Monatlich kündbar, keine Mindestlaufzeit.
+        </p>
       </section>
     </>
   );
