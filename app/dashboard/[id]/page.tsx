@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import type { Website, Article, SuggestedKeyword } from '@/types';
 import { rewriteInstructions } from '@/lib/rewriteInstructions';
+import { isAdminEmail } from '@/lib/supabase/admin';
 
 const ANALYZE_MESSAGES = [
   'Website wird geladen…',
@@ -174,9 +175,24 @@ export default function WebsiteDetailPage() {
     if (user) await loadData(user.id);
   };
 
-  const handleUpgrade = async (plan: 'basic' | 'pro') => {
+  const handleUpgrade = async (plan: 'free' | 'basic' | 'pro') => {
     setSavingAutomation(true);
     try {
+      // Admin account: set the plan directly, no Stripe charge (see chat 02.09.26 —
+      // avoids Harry having to pay-and-refund himself for every network site he adds).
+      if (isAdminEmail(user?.email)) {
+        const res = await fetch('/api/admin-set-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ website_id: websiteId, plan }),
+        });
+        const data = await res.json();
+        if (res.ok) { if (user) await loadData(user.id); setSavingAutomation(false); return; }
+        alert(data.error || 'Tarif konnte nicht gesetzt werden.');
+        setSavingAutomation(false);
+        return;
+      }
+
       const res = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -370,7 +386,11 @@ export default function WebsiteDetailPage() {
           <div>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Tarif</div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button disabled className={website.plan === 'free' ? 'btn-emerald' : 'btn-outline'} style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem', opacity: website.plan === 'free' ? 1 : 0.6, cursor: 'default' }}>
+              <button
+                disabled={!isAdminEmail(user?.email) || savingAutomation || website.plan === 'free'}
+                onClick={isAdminEmail(user?.email) ? () => handleUpgrade('free') : undefined}
+                className={website.plan === 'free' ? 'btn-emerald' : 'btn-outline'}
+                style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem', opacity: website.plan === 'free' ? 1 : 0.6, cursor: isAdminEmail(user?.email) ? 'pointer' : 'default' }}>
                 Free — alle 2 Wochen
               </button>
               <button onClick={() => handleUpgrade('basic')} disabled={savingAutomation || website.plan === 'basic'}
