@@ -95,3 +95,15 @@ h1,h2,h3,h4 { font-family: var(--font-display); line-height: 1.2; }
 @media (max-width: 860px) {
   .hero-text-block { margin: 0 auto !important; }
 }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  display: inline-block; width: 1em; height: 1em; border-radius: 50%;
+  border: 2px solid currentColor; border-top-color: transparent;
+  animation: spin 0.7s linear infinite; vertical-align: -0.15em;
+}
+@keyframes pulse-fade {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+.progress-message { animation: pulse-fade 1.8s ease-in-out infinite; }

@@ -8,6 +8,32 @@ import type { User } from '@supabase/supabase-js';
 import type { Website, Article, SuggestedKeyword } from '@/types';
 import { rewriteInstructions } from '@/lib/rewriteInstructions';
 
+const ANALYZE_MESSAGES = [
+  'Website wird geladen…',
+  'Inhalte werden gelesen…',
+  'Relevante Themen werden identifiziert…',
+  'Suchbegriffe werden mit KI bewertet…',
+  'Fast fertig…',
+];
+const GENERATE_MESSAGES = [
+  'Recherche zum Suchbegriff…',
+  'Artikelstruktur wird entworfen…',
+  'Text wird geschrieben…',
+  'Feinschliff…',
+];
+const PUBLISH_MESSAGES = ['Artikel wird übertragen…', 'Seite wird erzeugt…', 'Fast fertig…'];
+
+function useRotatingMessage(active: boolean, messages: string[], intervalMs = 2200): string {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (!active) { setI(0); return; }
+    const id = setInterval(() => setI(prev => (prev + 1) % messages.length), intervalMs);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+  return messages[i];
+}
+
 export default function WebsiteDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -33,6 +59,10 @@ export default function WebsiteDetailPage() {
   const [savingWp, setSavingWp] = useState(false);
   const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
   const [savingAutomation, setSavingAutomation] = useState(false);
+
+  const analyzeMessage = useRotatingMessage(analyzing, ANALYZE_MESSAGES);
+  const generateMessage = useRotatingMessage(!!generatingKeyword, GENERATE_MESSAGES);
+  const publishMessage = useRotatingMessage(publishing, PUBLISH_MESSAGES);
 
   const loadData = useCallback(async (uid: string) => {
     setLoading(true);
@@ -256,7 +286,8 @@ export default function WebsiteDetailPage() {
             )
           )}
         </div>
-        <button onClick={handleAnalyze} disabled={analyzing} className="btn-emerald" style={{ opacity: analyzing ? 0.7 : 1 }}>
+        <button onClick={handleAnalyze} disabled={analyzing} className="btn-emerald" style={{ opacity: analyzing ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          {analyzing && <span className="spinner" />}
           {analyzing ? 'Analysiere…' : website.suggested_keywords ? 'Erneut analysieren' : 'Website analysieren'}
         </button>
       </div>
@@ -264,6 +295,18 @@ export default function WebsiteDetailPage() {
       {analyzeError && (
         <div style={{ background: '#fce8e8', border: '1px solid #f5a5a5', padding: '0.85rem', fontSize: '0.85rem', color: '#b02020', borderRadius: 8, marginBottom: '1.5rem' }}>
           {analyzeError}
+        </div>
+      )}
+
+      {analyzing && (
+        <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 12, marginBottom: '2rem' }}>
+          <span className="spinner" style={{ width: '1.6rem', height: '1.6rem', color: 'var(--emerald)', marginBottom: '1rem' }} />
+          <p className="progress-message" style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginTop: '1rem' }}>
+            {analyzeMessage}
+          </p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.4rem' }}>
+            Das kann bei größeren Websites bis zu einer Minute dauern.
+          </p>
         </div>
       )}
 
@@ -297,9 +340,10 @@ export default function WebsiteDetailPage() {
                     onClick={() => handleGenerateArticle(kw)}
                     disabled={generatingKeyword === kw.keyword || hasArticle}
                     className="btn-outline"
-                    style={{ padding: '0.5rem 1.1rem', fontSize: '0.82rem', opacity: hasArticle ? 0.5 : 1 }}
+                    style={{ padding: '0.5rem 1.1rem', fontSize: '0.82rem', opacity: hasArticle ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
                   >
-                    {generatingKeyword === kw.keyword ? 'Wird geschrieben…' : hasArticle ? 'Artikel vorhanden' : 'Artikel generieren'}
+                    {generatingKeyword === kw.keyword && <span className="spinner" />}
+                    {generatingKeyword === kw.keyword ? generateMessage : hasArticle ? 'Artikel vorhanden' : 'Artikel generieren'}
                   </button>
                 </div>
               );
@@ -467,8 +511,9 @@ export default function WebsiteDetailPage() {
               <button onClick={() => setPublishModal(null)} className="btn-outline" style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem' }}>
                 Abbrechen
               </button>
-              <button onClick={handlePublish} disabled={publishing} className="btn-emerald" style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', opacity: publishing ? 0.7 : 1 }}>
-                {publishing ? 'Wird veröffentlicht…' : 'Jetzt veröffentlichen'}
+              <button onClick={handlePublish} disabled={publishing} className="btn-emerald" style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', opacity: publishing ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+                {publishing && <span className="spinner" />}
+                {publishing ? publishMessage : 'Jetzt veröffentlichen'}
               </button>
             </div>
           </div>
