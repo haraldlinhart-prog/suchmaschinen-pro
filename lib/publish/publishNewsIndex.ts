@@ -1,16 +1,10 @@
 import { escapeHtml } from '@/lib/ai/generateArticle';
 
-interface SupabaseLike {
-  from: (table: string) => {
-    select: (cols: string) => {
-      eq: (col: string, val: string) => {
-        eq: (col: string, val: string) => {
-          order: (col: string, opts: { ascending: boolean }) => Promise<{ data: unknown[] | null }>;
-        };
-      };
-    };
-  };
-}
+// Intentionally untyped (not matched structurally against the real generated Supabase
+// client) — that structural match is what caused "Type instantiation is excessively deep"
+// in the Next.js build. See chat 02.09.26.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseLike = any;
 
 interface PublishedArticle {
   title: string;
