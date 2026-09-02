@@ -19,9 +19,16 @@ export interface Website {
   wp_url: string | null;
   wp_username: string | null;
   wp_app_password: string | null;
-  plan: 'basic' | 'plus';
+  plan: 'free' | 'basic' | 'pro';
   auto_publish: boolean;
   last_auto_published_at: string | null;
+  badge_required: boolean;
+  badge_status: 'unchecked' | 'active' | 'missing';
+  badge_checked_at: string | null;
+  next_run_at: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  billing_status: 'free' | 'active' | 'past_due' | 'canceled';
 }
 
 export const HOSTING_LABELS: Record<HostingPlatform, string> = {

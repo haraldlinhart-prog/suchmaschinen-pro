@@ -6,7 +6,7 @@ import { publishArticle } from '@/lib/publish/publishArticle';
 
 export const maxDuration = 300; // allow up to 5 minutes for multiple sites in one run
 
-const PLAN_INTERVAL_DAYS: Record<string, number> = { basic: 7, plus: 1 };
+const PLAN_INTERVAL_DAYS: Record<string, number> = { free: 14, basic: 7, pro: 1 };
 
 function isDue(lastAutoPublishedAt: string | null, plan: string): boolean {
   if (!lastAutoPublishedAt) return true;
@@ -41,6 +41,12 @@ export async function GET(req: NextRequest) {
     try {
       if (!isDue(website.last_auto_published_at, website.plan)) {
         results.push({ domain: website.domain, status: 'skipped-not-due' });
+        continue;
+      }
+
+      // Free tier only runs while the badge is embedded (see chat 02.09.26 pricing model).
+      if (website.badge_required && website.badge_status !== 'active') {
+        results.push({ domain: website.domain, status: 'skipped-badge-missing' });
         continue;
       }
 
