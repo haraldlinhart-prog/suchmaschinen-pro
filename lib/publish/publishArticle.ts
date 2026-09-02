@@ -27,6 +27,20 @@ export interface PublishResult {
   githubPath?: string;
 }
 
+async function repoIsNextJs(owner: string, repo: string, githubToken: string): Promise<boolean> {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/`, {
+      headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github+json' },
+    });
+    if (!res.ok) return false;
+    const entries: Array<{ name: string; type: string }> = await res.json();
+    return entries.some(e => /^next\.config\.(js|mjs|ts)$/.test(e.name));
+  } catch (err) {
+    console.error('repoIsNextJs detection failed, defaulting to static-HTML layout:', err);
+    return false;
+  }
+}
+
 function buildHtmlPage(title: string, metaDescription: string, contentHtml: string, domain: string): string {
   return `<!DOCTYPE html>
 <html lang="de">
@@ -61,7 +75,14 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow): 
 
     const [owner, repo] = website.github_repo.split('/');
     const cleanPublishPath = (website.publish_path || '/blog/').replace(/^\/|\/$/g, '');
-    const path = `${cleanPublishPath}/${article.slug}/index.html`;
+
+    // Next.js projects only serve files that live under public/ (or go through the
+    // Next build) — a root-level path like `news/slug/index.html` is silently dropped
+    // and 404s. Plain static-HTML network sites serve any root-level file directly.
+    // Detect which kind of repo this is before deciding where to commit.
+    const isNextJs = await repoIsNextJs(owner, repo, githubToken);
+    const publishPrefix = isNextJs ? `public/${cleanPublishPath}` : cleanPublishPath;
+    const path = `${publishPrefix}/${article.slug}/index.html`;
     const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain);
     const contentBase64 = Buffer.from(html, 'utf-8').toString('base64');
 
