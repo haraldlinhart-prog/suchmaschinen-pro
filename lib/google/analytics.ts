@@ -3,7 +3,15 @@ const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GA_ADMIN_API = 'https://analyticsadmin.googleapis.com/v1beta';
 const GA_DATA_API = 'https://analyticsdata.googleapis.com/v1beta';
 
-const SCOPES = ['https://www.googleapis.com/auth/analytics.readonly'];
+const SCOPES = [
+  'https://www.googleapis.com/auth/analytics.readonly',
+  // Needed to create GA4 properties/data streams programmatically (see chat 03.09.26).
+  'https://www.googleapis.com/auth/analytics.edit',
+];
+
+// The one GA4 account all future auto-created properties should live under —
+// see chat 03.09.26 (previously scattered across 25 accounts by accident).
+export const MAIN_GA_ACCOUNT = 'accounts/230676168';
 
 function clientId(): string {
   const v = process.env.GOOGLE_OAUTH_CLIENT_ID;
@@ -144,6 +152,62 @@ export interface GaDailyRow {
   sessions: number;
   activeUsers: number;
 }
+
+/**
+ * Creates a new GA4 property under the given account, plus a web data stream for the
+ * given domain, and returns the resulting property resource name and Measurement ID.
+ * See chat 03.09.26 — used for the "1-click GA4 setup" flow.
+ */
+export async function createGa4PropertyWithStream(
+  accessToken: string,
+  accountResourceName: string,
+  domain: string
+): Promise<{ property: string; measurementId: string; streamUri: string }> {
+  const propRes = await fetch(`${GA_ADMIN_API}/properties`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      parent: accountResourceName,
+      displayName: domain.slice(0, 100),
+      timeZone: 'Europe/Berlin',
+      currencyCode: 'EUR',
+    }),
+  });
+  const propData = await propRes.json();
+  if (!propRes.ok) throw new Error(propData.error?.message || 'GA4-Property konnte nicht erstellt werden.');
+  const propertyName: string = propData.name; // "properties/123456789"
+
+  const streamUri = `https://${domain}`;
+  const streamRes = await fetch(`${GA_ADMIN_API}/${propertyName}/dataStreams`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type: 'WEB_DATA_STREAM',
+      displayName: domain,
+      webStreamData: { defaultUri: streamUri },
+    }),
+  });
+  const streamData = await streamRes.json();
+  if (!streamRes.ok) throw new Error(streamData.error?.message || 'GA4-Datenstream konnte nicht erstellt werden.');
+
+  const measurementId: string | undefined = streamData.webStreamData?.measurementId;
+  if (!measurementId) throw new Error('GA4-Datenstream wurde erstellt, aber keine Measurement-ID erhalten.');
+
+  return { property: propertyName, measurementId, streamUri };
+}
+
+/** Permanently deletes a GA4 property (moves it to GA's 30-day trash, technically). */
+export async function deleteGa4Property(accessToken: string, propertyResourceName: string): Promise<void> {
+  const res = await fetch(`${GA_ADMIN_API}/${propertyResourceName}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error?.message || `GA4-Property konnte nicht gelöscht werden (${res.status}).`);
+  }
+}
+
 
 export async function runDailyReport(accessToken: string, propertyId: string, days: number): Promise<GaDailyRow[]> {
   const res = await fetch(`${GA_DATA_API}/${propertyId}:runReport`, {
