@@ -68,6 +68,8 @@ export default function WebsiteDetailPage() {
   const [gaChartData, setGaChartData] = useState<{ date: string; sessions: number; activeUsers: number }[] | null>(null);
   const [gaChartLoading, setGaChartLoading] = useState(false);
   const [gaError, setGaError] = useState('');
+  const [gaSetupState, setGaSetupState] = useState<'idle' | 'loading'>('idle');
+  const [gaSetupResult, setGaSetupResult] = useState<string>('');
 
   const analyzeMessage = useRotatingMessage(analyzing, ANALYZE_MESSAGES);
   const generateMessage = useRotatingMessage(!!generatingKeyword, GENERATE_MESSAGES);
@@ -283,6 +285,32 @@ export default function WebsiteDetailPage() {
     if (user) await loadData(user.id);
   };
 
+  const handleGaSetup = async () => {
+    setGaSetupState('loading');
+    setGaSetupResult('');
+    try {
+      const res = await fetch('/api/analytics/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ websiteId }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setGaSetupResult(`Fehler: ${data.error || 'unbekannt'}`); setGaSetupState('idle'); return; }
+
+      const propertyMsg = data.propertyAction === 'created' ? 'Neue Property angelegt.' : 'Bestehende Property übernommen.';
+      const snippetMsg =
+        data.snippet.status === 'injected' ? `Snippet in ${data.snippet.path} eingebunden.`
+        : data.snippet.status === 'already-present' ? 'Snippet war schon vorhanden.'
+        : data.snippet.status === 'no-repo' ? 'Kein Repo verknüpft — Snippet manuell einbauen.'
+        : `Template nicht erkannt — Snippet manuell einbauen (Measurement-ID: ${data.measurementId}).`;
+      setGaSetupResult(`${propertyMsg} ${snippetMsg}`);
+      if (user) await loadData(user.id);
+    } catch {
+      setGaSetupResult('Fehler bei der Einrichtung.');
+    }
+    setGaSetupState('idle');
+  };
+
   if (loading || !website) return <div style={{ padding: '4rem', textAlign: 'center' }}>Wird geladen...</div>;
 
   return (
@@ -448,6 +476,19 @@ export default function WebsiteDetailPage() {
               Mit Google Analytics verbinden
             </a>
           </>
+        )}
+
+        {website.ga_refresh_token && isAdminEmail(user?.email) && (
+          <div style={{ marginBottom: website.ga_property_id ? '1.2rem' : '0', paddingBottom: website.ga_property_id ? '1.2rem' : '0', borderBottom: website.ga_property_id ? '1px solid var(--border)' : 'none' }}>
+            <button onClick={handleGaSetup} disabled={gaSetupState === 'loading'} className="btn-outline"
+              style={{ padding: '0.5rem 1.1rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.45rem', opacity: gaSetupState === 'loading' ? 0.7 : 1 }}>
+              {gaSetupState === 'loading' && <span className="spinner" />}
+              {gaSetupState === 'loading' ? 'Wird eingerichtet…' : website.github_repo ? 'GA4 automatisch einrichten' : 'GA4-Property anlegen'}
+            </button>
+            {gaSetupResult && (
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: 0 }}>{gaSetupResult}</p>
+            )}
+          </div>
         )}
 
         {website.ga_refresh_token && !website.ga_property_id && (

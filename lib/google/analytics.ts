@@ -196,6 +196,17 @@ export async function createGa4PropertyWithStream(
   return { property: propertyName, measurementId, streamUri };
 }
 
+/** Fetches the Measurement ID of a property's (first) web data stream, or null if none. */
+export async function getWebStreamMeasurementId(accessToken: string, propertyResourceName: string): Promise<string | null> {
+  const res = await fetch(`${GA_ADMIN_API}/${propertyResourceName}/dataStreams?pageSize=10`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const webStream = (data.dataStreams || []).find((s: { webStreamData?: { measurementId?: string } }) => s.webStreamData?.measurementId);
+  return webStream?.webStreamData?.measurementId || null;
+}
+
 /** Permanently deletes a GA4 property (moves it to GA's 30-day trash, technically). */
 export async function deleteGa4Property(accessToken: string, propertyResourceName: string): Promise<void> {
   const res = await fetch(`${GA_ADMIN_API}/${propertyResourceName}`, {
