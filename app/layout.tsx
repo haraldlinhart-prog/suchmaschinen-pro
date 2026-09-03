@@ -64,6 +64,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <Header />
         {children}
+        {/* <!-- WEBMASTER_PLUS_BADGE:START --> */}
+        <div dangerouslySetInnerHTML={{__html: "<div style=\"text-align:center;margin:1.5rem auto;\">\n  <a href=\"https://webmaster.plus\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"display:inline-block;\">\n    <img src=\"https://news.pan21.com/webmaster-plus-badge.gif\" alt=\"This website is powered by Webmaster.PLUS\" width=\"320\" height=\"80\" style=\"max-width:100%;height:auto;display:block;margin:0 auto;\">\n  </a>\n</div>"}} />
+        {/* <!-- WEBMASTER_PLUS_BADGE:END --> */}
         <Footer />
       </body>
     </html>
