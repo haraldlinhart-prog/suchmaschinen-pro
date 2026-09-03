@@ -86,6 +86,7 @@ export async function GET() {
 
     // 3. Check each duplicate-group member for whether it EVER had any data (wide range).
     const hasData = new Map<string, boolean>();
+    let apiErrorCount = 0;
     const CONCURRENCY = 6;
     let cursor = 0;
     async function worker() {
@@ -97,13 +98,16 @@ export async function GET() {
             headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               dateRanges: [{ startDate: '2015-01-01', endDate: 'today' }],
+              dimensions: [{ name: 'date' }],
               metrics: [{ name: 'sessions' }],
               limit: 1,
             }),
           });
           const data = await res.json().catch(() => ({}));
+          if (!res.ok) { apiErrorCount++; hasData.set(p.name, true); continue; } // API error -> don't risk deleting
           hasData.set(p.name, (data.rowCount || 0) > 0);
         } catch {
+          apiErrorCount++;
           hasData.set(p.name, true); // unknown -> treat as "has data" so we never delete it by mistake
         }
       }
@@ -138,6 +142,7 @@ export async function GET() {
     return NextResponse.json({
       totalPropertiesScanned: allProps.length,
       duplicateGroupsFound: dupGroups.length,
+      apiErrorCount,
       deleteCandidates,
       ambiguousGroups: ambiguous,
     });
