@@ -119,15 +119,15 @@ export default function HomePage() {
             </p>
             <Link href="/auth?mode=register" className="btn-outline" style={{ width: '100%', justifyContent: 'center' }}>Kostenlos starten</Link>
           </div>
-          <div className="card" style={{ padding: '2rem', textAlign: 'center', borderColor: 'var(--emerald)', borderWidth: 1.5 }}>
-            <div style={{ fontSize: '0.85rem', color: 'var(--emerald)', fontWeight: 600, marginBottom: '0.5rem' }}>BASIC</div>
+          <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.5rem' }}>BASIC</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '0.5rem' }}>
               19 €<span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-muted)' }}> / Monat</span>
             </div>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
               1 Artikel pro Woche. Kein Badge nötig.
             </p>
-            <Link href="/auth?mode=register" className="btn-emerald" style={{ width: '100%', justifyContent: 'center' }}>Jetzt starten</Link>
+            <Link href="/auth?mode=register" className="btn-outline" style={{ width: '100%', justifyContent: 'center' }}>Jetzt starten</Link>
           </div>
           <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.5rem' }}>PRO</div>
@@ -139,16 +139,35 @@ export default function HomePage() {
             </p>
             <Link href="/auth?mode=register" className="btn-outline" style={{ width: '100%', justifyContent: 'center' }}>Jetzt starten</Link>
           </div>
-          <div className="card" style={{ padding: '2rem', textAlign: 'center', borderColor: 'var(--emerald)', borderWidth: 1.5 }}>
-            <div style={{ fontSize: '0.85rem', color: 'var(--emerald)', fontWeight: 600, marginBottom: '0.5rem' }}>PREMIUM</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '0.5rem' }}>
-              49 €<span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-muted)' }}> / Monat</span>
+        </div>
+
+        <div
+          style={{
+            maxWidth: 960,
+            margin: '1.25rem auto 0',
+            padding: '2.25rem 2rem',
+            borderRadius: 16,
+            background: 'linear-gradient(135deg, var(--ink) 0%, #0d2e22 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1.5rem',
+          }}
+        >
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--emerald-light)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.4rem' }}>PREMIUM · MAXIMALES TEMPO</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.4rem' }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '2.4rem', fontWeight: 700, color: 'white' }}>49 €</span>
+              <span style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.65)' }}>/ Monat</span>
             </div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-              1 Artikel täglich. Maximales Publishing-Tempo.
+            <p style={{ fontSize: '0.92rem', color: 'rgba(255,255,255,0.75)', margin: 0 }}>
+              1 Artikel täglich — die schnellste Kadenz, die wir anbieten.
             </p>
-            <Link href="/auth?mode=register" className="btn-emerald" style={{ width: '100%', justifyContent: 'center' }}>Jetzt starten</Link>
           </div>
+          <Link href="/auth?mode=register" className="btn-emerald" style={{ padding: '0.9rem 2.2rem', fontSize: '0.95rem', whiteSpace: 'nowrap' }}>
+            Jetzt starten
+          </Link>
         </div>
         <p style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '1.5rem' }}>
           Alle Preise zzgl. USt. Monatlich kündbar, keine Mindestlaufzeit.
