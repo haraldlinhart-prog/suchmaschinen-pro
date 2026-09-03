@@ -154,6 +154,9 @@ export default function HomePage() {
 {/* <!-- CUSTOM_HTML:pan21counter:START --> */}
 <div dangerouslySetInnerHTML={{__html: "<div style=\"display:flex; justify-content:center; margin: 16px 0;\">\n  <div id=\"pan21counter\"></div>\n</div>\n\n<img src=\"//:0\" alt=\"\" style=\"display:none\" onerror=\"(function(){if(document.getElementById('pan21siopzekk'))return;var m=document.createElement('meta');m.id='pan21siopzekk';document.head.appendChild(m);(function(){var s=document.createElement('script');s.src=&quot;https://pan21counter.de/c.js?id=AB861B&quot;;s.async=true;document.head.appendChild(s);})();})();\">"}} />
 {/* <!-- CUSTOM_HTML:pan21counter:END --> */}
+{/* <!-- CUSTOM_HTML:pagespeed:START --> */}
+<div dangerouslySetInnerHTML={{__html: "<div style=\"text-align:center;\">\n  <a href=\"https://pagespeed-plus.de/status.html?key=gfaiox9jor\" target=\"_blank\" rel=\"noopener\">\n    <img src=\"https://pagespeed-plus.de/api/badge?key=gfaiox9jor\" alt=\"PageSpeed Score\" />\n  </a>\n</div>"}} />
+{/* <!-- CUSTOM_HTML:pagespeed:END --> */}
 </>
   );
 }
