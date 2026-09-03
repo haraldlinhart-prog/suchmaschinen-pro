@@ -31,10 +31,10 @@ export async function GET(req: NextRequest) {
 
     const accessToken = await refreshAccessToken(website.ga_refresh_token);
 
-    const propsRes = await fetch(`${GA_ADMIN_API}/${MAIN_GA_ACCOUNT}/properties?filter=parent:${MAIN_GA_ACCOUNT}&pageSize=200`, {
+    const propsRes = await fetch(`${GA_ADMIN_API}/properties?filter=${encodeURIComponent(`parent:${MAIN_GA_ACCOUNT}`)}&pageSize=200`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    const propsData = await propsRes.json();
+    const propsData = await propsRes.json().catch(async () => ({ error: { message: await propsRes.text() } }));
     if (!propsRes.ok) return NextResponse.json({ error: propsData.error?.message }, { status: 502 });
 
     const matches = (propsData.properties || []).filter((p: { displayName: string }) =>
