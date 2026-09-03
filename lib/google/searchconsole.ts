@@ -109,3 +109,17 @@ export async function submitSitemap(accessToken: string, siteUrl: string, sitema
     throw new Error(`Sitemap-Einreichung fehlgeschlagen (${res.status}): ${text}`);
   }
 }
+
+// URL Inspection API — ground truth for a single URL's actual Google index status,
+// independent of (and more reliable than) the sitemap resource's own "indexed" counter
+// (see chat 03.09.26 — used to sanity-check the network-wide sitemap scan).
+export async function inspectUrl(accessToken: string, siteUrl: string, inspectionUrl: string) {
+  const res = await fetch('https://searchconsole.googleapis.com/v1/urlInspection/index:inspect', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ inspectionUrl, siteUrl }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || 'URL-Inspektion fehlgeschlagen.');
+  return data.inspectionResult;
+}
