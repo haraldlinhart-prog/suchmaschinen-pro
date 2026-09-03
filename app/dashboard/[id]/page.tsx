@@ -366,78 +366,6 @@ export default function WebsiteDetailPage() {
         </button>
       </div>
 
-      {analyzeError && (
-        <div style={{ background: '#fce8e8', border: '1px solid #f5a5a5', padding: '0.85rem', fontSize: '0.85rem', color: '#b02020', borderRadius: 8, marginBottom: '1.5rem' }}>
-          {analyzeError}
-        </div>
-      )}
-
-      {analyzing && (
-        <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 12, marginBottom: '2rem' }}>
-          <span className="spinner" style={{ width: '1.6rem', height: '1.6rem', color: 'var(--emerald)', marginBottom: '1rem' }} />
-          <p className="progress-message" style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginTop: '1rem' }}>
-            {analyzeMessage}
-          </p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.4rem' }}>
-            Das kann bei größeren Websites bis zu einer Minute dauern.
-          </p>
-        </div>
-      )}
-
-      {!website.suggested_keywords && !analyzing && (
-        <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 12, marginBottom: '2rem' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem' }}>
-            Noch keine Analyse vorhanden. Klicken Sie auf &quot;Website analysieren&quot;, um relevante Suchbegriffe zu finden.
-          </p>
-        </div>
-      )}
-
-      {website.suggested_keywords && (
-        <div style={{ marginBottom: '2.5rem' }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginBottom: '0.25rem' }}>Vorgeschlagene Suchbegriffe</h2>
-          {website.last_analyzed_at && (
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              Zuletzt analysiert: {new Date(website.last_analyzed_at).toLocaleString('de-DE')}
-            </div>
-          )}
-          {website.plan === 'free' && (
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'var(--emerald-pale)', padding: '0.7rem 1rem', borderRadius: 8, marginBottom: '1rem' }}>
-              Im Free-Tarif ist ein manuell generierter Artikel enthalten{articles.length > 0 ? ' — bereits aufgebraucht.' : '.'} Für weitere Artikel auf Basic oder Pro upgraden.
-            </div>
-          )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {website.suggested_keywords.map((kw, i) => {
-              const hasArticle = articles.some(a => a.keyword === kw.keyword);
-              const freeLimitReached = website.plan === 'free' && articles.length > 0 && !hasArticle;
-              return (
-                <div key={i} className="card" style={{ padding: '1.1rem 1.4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                  <div style={{ flex: 1, minWidth: 220 }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)' }}>{kw.keyword}</div>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{kw.rationale}</div>
-                    <span className="badge badge-pending" style={{ marginTop: '0.4rem', display: 'inline-block' }}>{kw.intent}</span>
-                  </div>
-                  <button
-                    onClick={() => handleGenerateArticle(kw)}
-                    disabled={generatingKeyword === kw.keyword || hasArticle || freeLimitReached}
-                    className="btn-outline"
-                    style={{ padding: '0.5rem 1.1rem', fontSize: '0.82rem', opacity: hasArticle || freeLimitReached ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
-                  >
-                    {generatingKeyword === kw.keyword && <span className="spinner" />}
-                    {generatingKeyword === kw.keyword
-                      ? generateMessage
-                      : hasArticle
-                      ? 'Artikel vorhanden'
-                      : freeLimitReached
-                      ? 'Nur im Basic/Pro-Tarif'
-                      : 'Artikel generieren'}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       <div className="card" style={{ padding: '1.5rem', marginBottom: '2.5rem' }}>
         <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)', marginBottom: '0.75rem' }}>Automatische Veröffentlichung</div>
         <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
@@ -594,6 +522,78 @@ export default function WebsiteDetailPage() {
           </>
         )}
       </div>
+
+      {analyzeError && (
+        <div style={{ background: '#fce8e8', border: '1px solid #f5a5a5', padding: '0.85rem', fontSize: '0.85rem', color: '#b02020', borderRadius: 8, marginBottom: '1.5rem' }}>
+          {analyzeError}
+        </div>
+      )}
+
+      {analyzing && (
+        <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 12, marginBottom: '2rem' }}>
+          <span className="spinner" style={{ width: '1.6rem', height: '1.6rem', color: 'var(--emerald)', marginBottom: '1rem' }} />
+          <p className="progress-message" style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginTop: '1rem' }}>
+            {analyzeMessage}
+          </p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.4rem' }}>
+            Das kann bei größeren Websites bis zu einer Minute dauern.
+          </p>
+        </div>
+      )}
+
+      {!website.suggested_keywords && !analyzing && (
+        <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 12, marginBottom: '2rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem' }}>
+            Noch keine Analyse vorhanden. Klicken Sie auf &quot;Website analysieren&quot;, um relevante Suchbegriffe zu finden.
+          </p>
+        </div>
+      )}
+
+      {website.suggested_keywords && (
+        <div style={{ marginBottom: '2.5rem' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginBottom: '0.25rem' }}>Vorgeschlagene Suchbegriffe</h2>
+          {website.last_analyzed_at && (
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Zuletzt analysiert: {new Date(website.last_analyzed_at).toLocaleString('de-DE')}
+            </div>
+          )}
+          {website.plan === 'free' && (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'var(--emerald-pale)', padding: '0.7rem 1rem', borderRadius: 8, marginBottom: '1rem' }}>
+              Im Free-Tarif ist ein manuell generierter Artikel enthalten{articles.length > 0 ? ' — bereits aufgebraucht.' : '.'} Für weitere Artikel auf Basic oder Pro upgraden.
+            </div>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {website.suggested_keywords.map((kw, i) => {
+              const hasArticle = articles.some(a => a.keyword === kw.keyword);
+              const freeLimitReached = website.plan === 'free' && articles.length > 0 && !hasArticle;
+              return (
+                <div key={i} className="card" style={{ padding: '1.1rem 1.4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: 220 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)' }}>{kw.keyword}</div>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{kw.rationale}</div>
+                    <span className="badge badge-pending" style={{ marginTop: '0.4rem', display: 'inline-block' }}>{kw.intent}</span>
+                  </div>
+                  <button
+                    onClick={() => handleGenerateArticle(kw)}
+                    disabled={generatingKeyword === kw.keyword || hasArticle || freeLimitReached}
+                    className="btn-outline"
+                    style={{ padding: '0.5rem 1.1rem', fontSize: '0.82rem', opacity: hasArticle || freeLimitReached ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+                  >
+                    {generatingKeyword === kw.keyword && <span className="spinner" />}
+                    {generatingKeyword === kw.keyword
+                      ? generateMessage
+                      : hasArticle
+                      ? 'Artikel vorhanden'
+                      : freeLimitReached
+                      ? 'Nur im Basic/Pro-Tarif'
+                      : 'Artikel generieren'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {website.hosting_platform !== 'network' && website.hosting_platform !== 'wordpress' && (
         <div className="card" style={{ padding: '1.5rem', marginBottom: '2.5rem', borderColor: 'var(--emerald)', borderWidth: 1.5 }}>
