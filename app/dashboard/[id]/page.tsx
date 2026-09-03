@@ -394,6 +394,32 @@ export default function WebsiteDetailPage() {
         </button>
       </div>
 
+      {analyzeError && (
+        <div style={{ background: '#fce8e8', border: '1px solid #f5a5a5', padding: '0.85rem', fontSize: '0.85rem', color: '#b02020', borderRadius: 8, marginBottom: '1.5rem' }}>
+          {analyzeError}
+        </div>
+      )}
+
+      {analyzing && (
+        <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 12, marginBottom: '2rem' }}>
+          <span className="spinner" style={{ width: '1.6rem', height: '1.6rem', color: 'var(--emerald)', marginBottom: '1rem' }} />
+          <p className="progress-message" style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginTop: '1rem' }}>
+            {analyzeMessage}
+          </p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.4rem' }}>
+            Das kann bei größeren Websites bis zu einer Minute dauern.
+          </p>
+        </div>
+      )}
+
+      {!website.suggested_keywords && !analyzing && (
+        <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 12, marginBottom: '2rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem' }}>
+            Noch keine Analyse vorhanden. Klicken Sie auf &quot;Website analysieren&quot;, um relevante Suchbegriffe zu finden.
+          </p>
+        </div>
+      )}
+
       <div className="card" style={{ padding: '1.5rem', marginBottom: '2.5rem' }}>
         <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)', marginBottom: '0.75rem' }}>Automatische Veröffentlichung</div>
         <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
@@ -592,32 +618,6 @@ export default function WebsiteDetailPage() {
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {analyzeError && (
-        <div style={{ background: '#fce8e8', border: '1px solid #f5a5a5', padding: '0.85rem', fontSize: '0.85rem', color: '#b02020', borderRadius: 8, marginBottom: '1.5rem' }}>
-          {analyzeError}
-        </div>
-      )}
-
-      {analyzing && (
-        <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 12, marginBottom: '2rem' }}>
-          <span className="spinner" style={{ width: '1.6rem', height: '1.6rem', color: 'var(--emerald)', marginBottom: '1rem' }} />
-          <p className="progress-message" style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginTop: '1rem' }}>
-            {analyzeMessage}
-          </p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.4rem' }}>
-            Das kann bei größeren Websites bis zu einer Minute dauern.
-          </p>
-        </div>
-      )}
-
-      {!website.suggested_keywords && !analyzing && (
-        <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 12, marginBottom: '2rem' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem' }}>
-            Noch keine Analyse vorhanden. Klicken Sie auf &quot;Website analysieren&quot;, um relevante Suchbegriffe zu finden.
-          </p>
         </div>
       )}
 
