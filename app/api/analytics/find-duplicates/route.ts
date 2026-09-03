@@ -31,11 +31,21 @@ export async function GET(req: NextRequest) {
 
     const accessToken = await refreshAccessToken(website.ga_refresh_token);
 
-    const propsRes = await fetch(`${GA_ADMIN_API}/properties?filter=${encodeURIComponent(`parent:${MAIN_GA_ACCOUNT}`)}&pageSize=200`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    const propsData = await propsRes.json().catch(async () => ({ error: { message: await propsRes.text() } }));
-    if (!propsRes.ok) return NextResponse.json({ error: propsData.error?.message }, { status: 502 });
+    let allProps: { name: string; displayName: string; createTime: string }[] = [];
+    let pageToken: string | undefined;
+    do {
+      const url = new URL(`${GA_ADMIN_API}/properties`);
+      url.searchParams.set('filter', `parent:${MAIN_GA_ACCOUNT}`);
+      url.searchParams.set('pageSize', '200');
+      if (pageToken) url.searchParams.set('pageToken', pageToken);
+      const pRes = await fetch(url.toString(), { headers: { Authorization: `Bearer ${accessToken}` } });
+      const pData = await pRes.json().catch(async () => ({ error: { message: await pRes.text() } }));
+      if (!pRes.ok) return NextResponse.json({ error: pData.error?.message }, { status: 502 });
+      allProps = allProps.concat(pData.properties || []);
+      pageToken = pData.nextPageToken;
+    } while (pageToken);
+
+    const propsData = { properties: allProps };
 
     // Also fetch the known property directly, to see its actual parent account.
     const knownRes = await fetch(`${GA_ADMIN_API}/properties/348347435`, { headers: { Authorization: `Bearer ${accessToken}` } });
@@ -58,7 +68,11 @@ export async function GET(req: NextRequest) {
       })
     );
 
-    return NextResponse.json({ matches: withStreams, propertiesListRaw: propsData, knownProperty: knownData });
+    return NextResponse.json({
+      totalPropertiesInAccount: allProps.length,
+      matches: withStreams,
+      knownProperty: knownData ? { name: knownData.name, displayName: knownData.displayName, parent: knownData.parent } : null,
+    });
   } catch (e) {
     console.error('find-duplicates error:', e);
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
