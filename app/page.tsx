@@ -160,6 +160,9 @@ export default function HomePage() {
 {/* <!-- CUSTOM_HTML:linkcheck:START --> */}
 <div dangerouslySetInnerHTML={{__html: "<div style=\"text-align:center;\">\n  <a href=\"https://kaputte-links.de/status.html?key=zbp6xwiffk\" target=\"_blank\" rel=\"noopener\"><img src=\"https://kaputte-links.de/api/badge?key=zbp6xwiffk\" alt=\"Link-Status\" width=\"320\" height=\"80\" /></a>\n</div>"}} />
 {/* <!-- CUSTOM_HTML:linkcheck:END --> */}
+{/* <!-- CUSTOM_HTML:site-ok:START --> */}
+<div dangerouslySetInnerHTML={{__html: "<div style=\"text-align:center;\">\n  <a href=\"https://site-ok.de/status.html?key=z8x6ojmwgu\" target=\"_blank\" rel=\"noopener\"><img src=\"https://site-ok.de/api/badge?key=z8x6ojmwgu\" alt=\"Site-Status\" width=\"320\" height=\"80\" /></a>\n</div>"}} />
+{/* <!-- CUSTOM_HTML:site-ok:END --> */}
 </>
   );
 }
