@@ -70,7 +70,7 @@ export default function DashboardPage() {
       </div>
 
       {view === 'new' ? (
-        <WebsiteForm userId={user.id} onSuccess={() => { setView('list'); loadWebsites(user.id); }} />
+        <WebsiteForm userId={user.id} userEmail={user.email} onSuccess={() => { setView('list'); loadWebsites(user.id); }} />
       ) : (
         <>
           {loading ? (

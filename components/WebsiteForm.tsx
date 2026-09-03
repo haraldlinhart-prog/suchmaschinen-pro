@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { HostingPlatform } from '@/types';
 import { HOSTING_LABELS } from '@/types';
+
+const ADMIN_EMAIL = 'haraldlinhart@gmail.com';
 
 function cleanDomain(input: string): string {
   let d = input.trim().toLowerCase();
@@ -19,7 +21,8 @@ function slugifyDomain(domain: string): string {
 
 const PLATFORM_OPTIONS: HostingPlatform[] = ['network', 'vercel', 'netlify', 'apache', 'wordpress', 'other'];
 
-export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: () => void }) {
+export function WebsiteForm({ userId, userEmail, onSuccess }: { userId: string; userEmail?: string | null; onSuccess: () => void }) {
+  const isAdmin = userEmail === ADMIN_EMAIL;
   const [domain, setDomain] = useState('');
   const [label, setLabel] = useState('');
   const [notes, setNotes] = useState('');
@@ -31,6 +34,26 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
   const [wpAppPassword, setWpAppPassword] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
+
+  const [repoOptions, setRepoOptions] = useState<string[]>([]);
+  const [repoLoadState, setRepoLoadState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
+  const [repoManualEntry, setRepoManualEntry] = useState(false);
+
+  useEffect(() => {
+    if (!isAdmin || hostingPlatform !== 'network' || repoLoadState !== 'idle') return;
+    setRepoLoadState('loading');
+    fetch('/api/github/repos')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data.repos)) {
+          setRepoOptions(data.repos.map((r: { full_name: string }) => r.full_name));
+          setRepoLoadState('loaded');
+        } else {
+          setRepoLoadState('error');
+        }
+      })
+      .catch(() => setRepoLoadState('error'));
+  }, [isAdmin, hostingPlatform, repoLoadState]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,8 +140,43 @@ export function WebsiteForm({ userId, onSuccess }: { userId: string; onSuccess: 
       {hostingPlatform === 'network' && (
         <div>
           <label className="form-label">GitHub-Repo <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional, für automatische Veröffentlichung)</span></label>
-          <input type="text" value={githubRepo} onChange={e => setGithubRepo(e.target.value)}
-            className="form-input" placeholder="ihraccount/ihrrepo" />
+          {isAdmin && !repoManualEntry ? (
+            <>
+              {repoLoadState === 'loading' && (
+                <div className="form-input" style={{ color: 'var(--text-muted)' }}>Repos werden geladen…</div>
+              )}
+              {repoLoadState === 'error' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#b02020' }}>Repo-Liste konnte nicht geladen werden.</div>
+                  <input type="text" value={githubRepo} onChange={e => setGithubRepo(e.target.value)}
+                    className="form-input" placeholder="ihraccount/ihrrepo" />
+                </div>
+              )}
+              {repoLoadState === 'loaded' && (
+                <>
+                  <select value={githubRepo} onChange={e => setGithubRepo(e.target.value)} className="form-input">
+                    <option value="">— Repo auswählen —</option>
+                    {repoOptions.map(name => <option key={name} value={name}>{name}</option>)}
+                  </select>
+                  <button type="button" onClick={() => setRepoManualEntry(true)}
+                    style={{ background: 'none', border: 'none', padding: 0, marginTop: '0.4rem', fontSize: '0.78rem', color: 'var(--text-muted)', textDecoration: 'underline', cursor: 'pointer' }}>
+                    Stattdessen manuell eingeben
+                  </button>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <input type="text" value={githubRepo} onChange={e => setGithubRepo(e.target.value)}
+                className="form-input" placeholder="ihraccount/ihrrepo" />
+              {isAdmin && (
+                <button type="button" onClick={() => { setRepoManualEntry(false); setRepoLoadState('idle'); }}
+                  style={{ background: 'none', border: 'none', padding: 0, marginTop: '0.4rem', fontSize: '0.78rem', color: 'var(--text-muted)', textDecoration: 'underline', cursor: 'pointer' }}>
+                  Aus Repo-Liste auswählen
+                </button>
+              )}
+            </>
+          )}
         </div>
       )}
       {hostingPlatform === 'wordpress' && (
