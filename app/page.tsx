@@ -43,8 +43,11 @@ export default function HomePage() {
           <div className="section-label">Der Unterschied</div>
           <div className="divider-emerald" style={{ margin: '0.75rem auto' }} />
           <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', color: 'var(--ink)' }}>
-            Warum die meisten SEO-Auto-Publishing-Tools nicht wirken
+            Eine Domain, die wächst — statt vieler kleiner Inseln
           </h2>
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', maxWidth: 640, margin: '1rem auto 0', lineHeight: 1.65 }}>
+            Automatisierten SEO-Content gibt es von zahlreichen Anbietern. Der entscheidende Unterschied liegt darin, <strong>wo</strong> die Artikel am Ende landen: Bei uns erscheint jeder Artikel unter Ihrer eigenen Domain — nicht auf einer Subdomain und nicht als nachträglich eingebundenes Fremdsystem. Jeder veröffentlichte Artikel zahlt dadurch direkt auf die Sichtbarkeit und die Google-Impressionen Ihrer Hauptseite ein, statt sie auf ein separates System zu verteilen.
+          </p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
           <div className="card" style={{ padding: '1.75rem' }}>
@@ -63,9 +66,9 @@ export default function HomePage() {
           </div>
           <div className="card" style={{ padding: '1.75rem', borderColor: 'var(--emerald)', borderWidth: 2 }}>
             <div style={{ fontSize: '1.5rem', marginBottom: '0.6rem' }}>✅</div>
-            <h3 style={{ fontSize: '1.05rem', color: 'var(--ink)', marginBottom: '0.5rem' }}>Unser Ansatz: native Integration</h3>
+            <h3 style={{ fontSize: '1.05rem', color: 'var(--ink)', marginBottom: '0.5rem' }}>Unser Ansatz: eine gemeinsam wachsende Domain</h3>
             <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
-              Artikel liegen direkt im Verzeichnis Ihrer Hauptdomain, sauber verlinkt — echter Teil Ihrer Seite statt angeflanschtem Fremdsystem.
+              Alle Artikel liegen im selben Verzeichnis wie der Rest Ihrer Website, sauber intern verlinkt. Jeder neue Artikel erhöht so die Zahl der Seiten, mit denen Ihre Domain insgesamt in der Google-Suche erscheint — die Impressionen wachsen auf Ihrer eigenen Domain, nicht auf einem angeflanschten Fremdsystem.
             </p>
           </div>
         </div>
