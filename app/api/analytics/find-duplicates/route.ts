@@ -37,6 +37,10 @@ export async function GET(req: NextRequest) {
     const propsData = await propsRes.json().catch(async () => ({ error: { message: await propsRes.text() } }));
     if (!propsRes.ok) return NextResponse.json({ error: propsData.error?.message }, { status: 502 });
 
+    // Also fetch the known property directly, to see its actual parent account.
+    const knownRes = await fetch(`${GA_ADMIN_API}/properties/348347435`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const knownData = await knownRes.json().catch(() => null);
+
     const matches = (propsData.properties || []).filter((p: { displayName: string }) =>
       p.displayName.toLowerCase().includes(search)
     );
@@ -54,7 +58,7 @@ export async function GET(req: NextRequest) {
       })
     );
 
-    return NextResponse.json({ matches: withStreams });
+    return NextResponse.json({ matches: withStreams, propertiesListRaw: propsData, knownProperty: knownData });
   } catch (e) {
     console.error('find-duplicates error:', e);
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
