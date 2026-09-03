@@ -594,9 +594,8 @@ export default function WebsiteDetailPage() {
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {website.suggested_keywords.map((kw, i) => {
-              const hasArticle = articles.some(a => a.keyword === kw.keyword);
-              const freeLimitReached = website.plan === 'free' && articles.length > 0 && !hasArticle;
+            {website.suggested_keywords.filter(kw => !articles.some(a => a.keyword === kw.keyword)).map((kw, i) => {
+              const freeLimitReached = website.plan === 'free' && articles.length > 0;
               return (
                 <div key={i} className="card" style={{ padding: '1.1rem 1.4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: 220 }}>
@@ -606,15 +605,13 @@ export default function WebsiteDetailPage() {
                   </div>
                   <button
                     onClick={() => handleGenerateArticle(kw)}
-                    disabled={generatingKeyword === kw.keyword || hasArticle || freeLimitReached}
+                    disabled={generatingKeyword === kw.keyword || freeLimitReached}
                     className="btn-outline"
-                    style={{ padding: '0.5rem 1.1rem', fontSize: '0.82rem', opacity: hasArticle || freeLimitReached ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+                    style={{ padding: '0.5rem 1.1rem', fontSize: '0.82rem', opacity: freeLimitReached ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
                   >
                     {generatingKeyword === kw.keyword && <span className="spinner" />}
                     {generatingKeyword === kw.keyword
                       ? generateMessage
-                      : hasArticle
-                      ? 'Artikel vorhanden'
                       : freeLimitReached
                       ? 'Nur im Basic/Pro-Tarif'
                       : 'Artikel generieren'}
