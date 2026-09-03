@@ -51,6 +51,38 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
+      // Prefer publishing an existing unpublished draft (e.g. one generated manually and
+      // never confirmed) over writing a brand new article — otherwise that draft's keyword
+      // silently counts as "used" forever and the draft never goes live (see chat 03.09.26).
+      const { data: pendingDrafts } = await supabase
+        .from('sq_articles')
+        .select('*')
+        .eq('website_id', website.id)
+        .eq('status', 'draft')
+        .order('created_at', { ascending: true })
+        .limit(1);
+      const pendingDraft = pendingDrafts?.[0];
+
+      if (pendingDraft) {
+        const publishResult = await publishArticle(website, pendingDraft);
+
+        await supabase
+          .from('sq_articles')
+          .update({
+            status: 'published',
+            published_at: new Date().toISOString(),
+            published_url: publishResult.url,
+            ...(publishResult.githubPath ? { github_path: publishResult.githubPath } : {}),
+          })
+          .eq('id', pendingDraft.id);
+
+        await supabase.from('sq_websites').update({ last_auto_published_at: new Date().toISOString() }).eq('id', website.id);
+        await publishNewsIndex(website, supabase).catch(e => console.error('publishNewsIndex failed', e));
+
+        results.push({ domain: website.domain, status: 'published-pending-draft', detail: publishResult.url });
+        continue;
+      }
+
       // Determine which suggested keywords are still unused.
       const { data: existingArticles } = await supabase
         .from('sq_articles')
