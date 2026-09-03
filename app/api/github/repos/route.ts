@@ -41,7 +41,18 @@ export async function GET() {
     }
 
     repos.sort((a, b) => a.full_name.localeCompare(b.full_name));
-    return NextResponse.json({ repos });
+
+    // Hide repos already linked to a registered website (any user's, since the repo
+    // list itself is Harry's own GitHub account, not per-customer) — no point offering
+    // a repo that's already taken (see chat 03.09.26).
+    const { data: usedRows } = await supabase
+      .from('sq_websites')
+      .select('github_repo')
+      .not('github_repo', 'is', null);
+    const used = new Set((usedRows || []).map(r => r.github_repo));
+    const available = repos.filter(r => !used.has(r.full_name));
+
+    return NextResponse.json({ repos: available });
   } catch {
     return NextResponse.json({ error: 'GitHub-Repos konnten nicht geladen werden.' }, { status: 500 });
   }
