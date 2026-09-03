@@ -100,7 +100,7 @@ export async function GET() {
             method: 'POST',
             headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              dateRanges: [{ startDate: '2015-01-01', endDate: 'today' }],
+              dateRanges: [{ startDate: '2016-01-01', endDate: 'today' }],
               dimensions: [{ name: 'date' }],
               metrics: [{ name: 'sessions' }],
               limit: 1,
