@@ -110,6 +110,17 @@ export async function submitSitemap(accessToken: string, siteUrl: string, sitema
   }
 }
 
+export async function deleteSitemap(accessToken: string, siteUrl: string, sitemapUrl: string): Promise<void> {
+  const res = await fetch(
+    `${SC_API}/sites/${encodeURIComponent(siteUrl)}/sitemaps/${encodeURIComponent(sitemapUrl)}`,
+    { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok && res.status !== 404) {
+    const text = await res.text();
+    throw new Error(`Sitemap-Löschung fehlgeschlagen (${res.status}): ${text}`);
+  }
+}
+
 // URL Inspection API — ground truth for a single URL's actual Google index status,
 // independent of (and more reliable than) the sitemap resource's own "indexed" counter
 // (see chat 03.09.26 — used to sanity-check the network-wide sitemap scan).
