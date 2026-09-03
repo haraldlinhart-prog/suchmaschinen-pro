@@ -19,16 +19,16 @@ export async function GET(req: NextRequest) {
 
   const search = (req.nextUrl.searchParams.get('q') || '').toLowerCase();
 
-  const service = createServiceClient();
-  const { data: website } = await service
-    .from('sq_websites')
-    .select('domain, ga_refresh_token')
-    .not('ga_refresh_token', 'is', null)
-    .limit(1)
-    .single();
-  if (!website?.ga_refresh_token) return NextResponse.json({ error: 'Kein verbundener GA-Zugang.' }, { status: 404 });
-
   try {
+    const service = createServiceClient();
+    const { data: website } = await service
+      .from('sq_websites')
+      .select('domain, ga_refresh_token')
+      .not('ga_refresh_token', 'is', null)
+      .limit(1)
+      .single();
+    if (!website?.ga_refresh_token) return NextResponse.json({ error: 'Kein verbundener GA-Zugang.' }, { status: 404 });
+
     const accessToken = await refreshAccessToken(website.ga_refresh_token);
 
     const propsRes = await fetch(`${GA_ADMIN_API}/${MAIN_GA_ACCOUNT}/properties?filter=parent:${MAIN_GA_ACCOUNT}&pageSize=200`, {
@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ matches: withStreams });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'Fehler.' }, { status: 500 });
+    console.error('find-duplicates error:', e);
+    return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 }
