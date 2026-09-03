@@ -32,6 +32,7 @@ export async function POST() {
     .from('sq_websites')
     .select('ga_refresh_token')
     .not('ga_refresh_token', 'is', null)
+    .order('ga_connected_at', { ascending: false })
     .limit(1)
     .single();
   if (!website?.ga_refresh_token) return NextResponse.json({ error: 'Kein verbundener GA-Zugang.' }, { status: 404 });
