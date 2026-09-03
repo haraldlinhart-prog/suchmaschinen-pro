@@ -5,6 +5,7 @@ import { isAdminEmail } from '@/lib/supabase/admin';
 import { refreshAccessToken, MAIN_GA_ACCOUNT } from '@/lib/google/analytics';
 
 const GA_ADMIN_API = 'https://analyticsadmin.googleapis.com/v1beta';
+const TARGET_ACCOUNT = 'accounts/253306588';
 
 // Temporary diagnostic route (see chat 03.09.26) — lists every property in the main
 // account whose display name matches a search term, with its data streams, so we can
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
     let pageToken: string | undefined;
     do {
       const url = new URL(`${GA_ADMIN_API}/properties`);
-      url.searchParams.set('filter', `parent:${MAIN_GA_ACCOUNT}`);
+      url.searchParams.set('filter', `parent:${TARGET_ACCOUNT}`);
       url.searchParams.set('pageSize', '200');
       if (pageToken) url.searchParams.set('pageToken', pageToken);
       const pRes = await fetch(url.toString(), { headers: { Authorization: `Bearer ${accessToken}` } });
