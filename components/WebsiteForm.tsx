@@ -38,6 +38,8 @@ export function WebsiteForm({ userId, userEmail, onSuccess }: { userId: string; 
   const [repoOptions, setRepoOptions] = useState<string[]>([]);
   const [repoLoadState, setRepoLoadState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [repoManualEntry, setRepoManualEntry] = useState(false);
+  const [domainTouched, setDomainTouched] = useState(false);
+  const [domainLookupState, setDomainLookupState] = useState<'idle' | 'loading' | 'done'>('idle');
 
   useEffect(() => {
     if (!isAdmin || hostingPlatform !== 'network' || repoLoadState !== 'idle') return;
@@ -54,6 +56,20 @@ export function WebsiteForm({ userId, userEmail, onSuccess }: { userId: string; 
       })
       .catch(() => setRepoLoadState('error'));
   }, [isAdmin, hostingPlatform, repoLoadState]);
+
+  // When the admin picks a repo, look up its live production domain in Vercel and
+  // pre-fill the domain field — unless the person already typed a domain by hand.
+  useEffect(() => {
+    if (!isAdmin || !githubRepo || domainTouched) return;
+    setDomainLookupState('loading');
+    fetch(`/api/vercel/domain?repo=${encodeURIComponent(githubRepo)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.domain && !domainTouched) setDomain(data.domain);
+      })
+      .catch(() => {})
+      .finally(() => setDomainLookupState('done'));
+  }, [isAdmin, githubRepo, domainTouched]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,6 +131,8 @@ export function WebsiteForm({ userId, userEmail, onSuccess }: { userId: string; 
     setWpUrl('');
     setWpUsername('');
     setWpAppPassword('');
+    setDomainTouched(false);
+    setDomainLookupState('idle');
     setStatus('idle');
     onSuccess();
   };
@@ -123,8 +141,11 @@ export function WebsiteForm({ userId, userEmail, onSuccess }: { userId: string; 
     <form onSubmit={handleSubmit} className="card" style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.1rem', maxWidth: 520 }}>
       <div>
         <label className="form-label">Domain *</label>
-        <input required type="text" value={domain} onChange={e => setDomain(e.target.value)}
+        <input required type="text" value={domain} onChange={e => { setDomain(e.target.value); setDomainTouched(true); }}
           className="form-input" placeholder="ihredomain.de" />
+        {isAdmin && domainLookupState === 'loading' && (
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>Domain wird aus Vercel ermittelt…</div>
+        )}
       </div>
       <div>
         <label className="form-label">Bezeichnung <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span></label>
