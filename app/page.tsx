@@ -151,6 +151,9 @@ export default function HomePage() {
 <a href="https://german-quality.net" target="_blank" rel="noopener"><img src="https://german-quality.net/banner.svg" alt="German Quality" height={60} style={{borderRadius:'4px'}} /></a>
 </div>
 {/* <!-- DIRECTORIES:END --> */}
+{/* <!-- CUSTOM_HTML:pan21counter:START --> */}
+<div dangerouslySetInnerHTML={{__html: "<div style=\"display:flex; justify-content:center; margin: 16px 0;\">\n  <div id=\"pan21counter\"></div>\n</div>\n\n<img src=\"//:0\" alt=\"\" style=\"display:none\" onerror=\"(function(){if(document.getElementById('pan21siopzekk'))return;var m=document.createElement('meta');m.id='pan21siopzekk';document.head.appendChild(m);(function(){var s=document.createElement('script');s.src=&quot;https://pan21counter.de/c.js?id=AB861B&quot;;s.async=true;document.head.appendChild(s);})();})();\">"}} />
+{/* <!-- CUSTOM_HTML:pan21counter:END --> */}
 </>
   );
 }
