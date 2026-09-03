@@ -7,7 +7,7 @@ import { publishNewsIndex } from '@/lib/publish/publishNewsIndex';
 
 export const maxDuration = 300; // allow up to 5 minutes for multiple sites in one run
 
-const PLAN_INTERVAL_DAYS: Record<string, number> = { free: 14, basic: 7, pro: 1 };
+const PLAN_INTERVAL_DAYS: Record<string, number> = { free: 14, basic: 7, pro: 2, premium: 1 };
 
 function isDue(lastAutoPublishedAt: string | null, plan: string): boolean {
   if (!lastAutoPublishedAt) return true;

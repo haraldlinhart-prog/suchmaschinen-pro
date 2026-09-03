@@ -16,7 +16,8 @@ export async function GET(req: NextRequest) {
     }
 
     // metadata.plan isn't on the light session type above; read it back explicitly.
-    const plan = (session as unknown as { metadata?: { plan?: string } }).metadata?.plan === 'pro' ? 'pro' : 'basic';
+    const rawPlan = (session as unknown as { metadata?: { plan?: string } }).metadata?.plan;
+    const plan = rawPlan === 'pro' || rawPlan === 'premium' ? rawPlan : 'basic';
 
     const supabase = createServiceClient();
     const { error } = await supabase

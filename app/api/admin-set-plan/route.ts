@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const websiteId = body?.website_id;
   const plan = body?.plan;
-  if (!websiteId || !['free', 'basic', 'pro'].includes(plan)) {
-    return NextResponse.json({ error: 'website_id und plan (free|basic|pro) sind erforderlich.' }, { status: 400 });
+  if (!websiteId || !['free', 'basic', 'pro', 'premium'].includes(plan)) {
+    return NextResponse.json({ error: 'website_id und plan (free|basic|pro|premium) sind erforderlich.' }, { status: 400 });
   }
 
   const { error } = await supabase

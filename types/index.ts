@@ -19,7 +19,7 @@ export interface Website {
   wp_url: string | null;
   wp_username: string | null;
   wp_app_password: string | null;
-  plan: 'free' | 'basic' | 'pro';
+  plan: 'free' | 'basic' | 'pro' | 'premium';
   auto_publish: boolean;
   last_auto_published_at: string | null;
   badge_required: boolean;

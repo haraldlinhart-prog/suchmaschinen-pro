@@ -185,7 +185,7 @@ export default function WebsiteDetailPage() {
     if (user) await loadData(user.id);
   };
 
-  const handleUpgrade = async (plan: 'free' | 'basic' | 'pro') => {
+  const handleUpgrade = async (plan: 'free' | 'basic' | 'pro' | 'premium') => {
     setSavingAutomation(true);
     try {
       // Admin account: set the plan directly, no Stripe charge (see chat 02.09.26 —
@@ -439,7 +439,11 @@ export default function WebsiteDetailPage() {
               </button>
               <button onClick={() => handleUpgrade('pro')} disabled={savingAutomation || website.plan === 'pro'}
                 className={website.plan === 'pro' ? 'btn-emerald' : 'btn-outline'} style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
-                Pro — täglich · 29 €/Monat
+                Pro — alle 2 Tage · 29 €/Monat
+              </button>
+              <button onClick={() => handleUpgrade('premium')} disabled={savingAutomation || website.plan === 'premium'}
+                className={website.plan === 'premium' ? 'btn-emerald' : 'btn-outline'} style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                Premium — täglich · 49 €/Monat
               </button>
             </div>
             {website.plan !== 'free' && (

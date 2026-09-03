@@ -7,8 +7,8 @@ export async function POST(req: NextRequest) {
   const websiteId = body?.website_id;
   const plan = body?.plan;
 
-  if (!websiteId || (plan !== 'basic' && plan !== 'pro')) {
-    return NextResponse.json({ error: 'website_id and plan (basic|pro) are required' }, { status: 400 });
+  if (!websiteId || (plan !== 'basic' && plan !== 'pro' && plan !== 'premium')) {
+    return NextResponse.json({ error: 'website_id and plan (basic|pro|premium) are required' }, { status: 400 });
   }
 
   const supabase = createServiceClient();

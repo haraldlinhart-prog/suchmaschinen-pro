@@ -132,9 +132,19 @@ export default function EnglishHomePage() {
               €29<span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-muted)' }}> / month</span>
             </div>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-              1 article every day. Maximum publishing speed.
+              1 article every 2 days.
             </p>
             <Link href="/auth?mode=register" className="btn-outline" style={{ width: '100%', justifyContent: 'center' }}>Get started</Link>
+          </div>
+          <div className="card" style={{ padding: '2rem', textAlign: 'center', borderColor: 'var(--emerald)', borderWidth: 1.5 }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--emerald)', fontWeight: 600, marginBottom: '0.5rem' }}>PREMIUM</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '0.5rem' }}>
+              €49<span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-muted)' }}> / month</span>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+              1 article every day. Maximum publishing speed.
+            </p>
+            <Link href="/auth?mode=register" className="btn-emerald" style={{ width: '100%', justifyContent: 'center' }}>Get started</Link>
           </div>
         </div>
         <p style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '1.5rem' }}>

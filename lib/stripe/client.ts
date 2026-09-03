@@ -69,14 +69,15 @@ export interface StripeSubscription {
   customer: string;
 }
 
-const PRICE_IDS: Record<'basic' | 'pro', string> = {
+const PRICE_IDS: Record<'basic' | 'pro' | 'premium', string> = {
   basic: 'price_1UB3BUAsdgtV2iVLVGMHHAQc',
   pro: 'price_1UB3BUAsdgtV2iVLbmQRetBy',
+  premium: 'price_1UBcUQAsdgtV2iVLHoe1KSIj',
 };
 
 export async function createCheckoutSession(opts: {
   websiteId: string;
-  plan: 'basic' | 'pro';
+  plan: 'basic' | 'pro' | 'premium';
   domain: string;
   successUrl: string;
   cancelUrl: string;
