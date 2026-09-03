@@ -85,9 +85,12 @@ export async function GET() {
     const dupMembers = dupGroups.flat();
 
     // 3. Check each duplicate-group member for whether it EVER had any data (wide range).
+    // Deliberately slow (low concurrency + delay) — a burst of ~85 concurrent Data API
+    // calls hit Google's rate limit almost entirely on the first attempt (see chat 03.09.26).
     const hasData = new Map<string, boolean>();
     let apiErrorCount = 0;
-    const CONCURRENCY = 6;
+    const errorSamples: string[] = [];
+    const CONCURRENCY = 2;
     let cursor = 0;
     async function worker() {
       while (cursor < dupMembers.length) {
@@ -104,12 +107,19 @@ export async function GET() {
             }),
           });
           const data = await res.json().catch(() => ({}));
-          if (!res.ok) { apiErrorCount++; hasData.set(p.name, true); continue; } // API error -> don't risk deleting
-          hasData.set(p.name, (data.rowCount || 0) > 0);
-        } catch {
+          if (!res.ok) {
+            apiErrorCount++;
+            if (errorSamples.length < 5) errorSamples.push(`${res.status}: ${data.error?.message || 'unknown'}`);
+            hasData.set(p.name, true);
+          } else {
+            hasData.set(p.name, (data.rowCount || 0) > 0);
+          }
+        } catch (err) {
           apiErrorCount++;
+          if (errorSamples.length < 5) errorSamples.push(err instanceof Error ? err.message : String(err));
           hasData.set(p.name, true); // unknown -> treat as "has data" so we never delete it by mistake
         }
+        await new Promise(r => setTimeout(r, 250));
       }
     }
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
@@ -143,6 +153,7 @@ export async function GET() {
       totalPropertiesScanned: allProps.length,
       duplicateGroupsFound: dupGroups.length,
       apiErrorCount,
+      errorSamples,
       deleteCandidates,
       ambiguousGroups: ambiguous,
     });
