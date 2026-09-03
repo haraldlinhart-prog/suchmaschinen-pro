@@ -523,39 +523,30 @@ export default function WebsiteDetailPage() {
         )}
       </div>
 
-      {articles.length > 0 && (
+      {articles.some(a => a.status === 'draft') && (
         <div style={{ marginBottom: '2.5rem' }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginBottom: '1rem' }}>Generierte Artikel</h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginBottom: '1rem' }}>Zu veröffentlichen</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {[...articles].sort((a, b) => (a.status === 'draft' ? 0 : 1) - (b.status === 'draft' ? 0 : 1)).map(article => (
+            {articles.filter(a => a.status === 'draft').map(article => (
               <div key={article.id} className="card" style={{ padding: '1.1rem 1.4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: 220 }}>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.3rem' }}>
-                    <span className={`badge ${article.status === 'published' ? 'badge-active' : 'badge-pending'}`}>
-                      {article.status === 'published' ? 'Veröffentlicht' : 'Entwurf — noch zu veröffentlichen'}
-                    </span>
+                    <span className="badge badge-pending">Entwurf — noch zu veröffentlichen</span>
                   </div>
                   <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)' }}>{article.title}</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Keyword: {article.keyword}</div>
-                  {(article.status === 'published') && article.published_url && (
-                    <div style={{ fontSize: '0.78rem', color: 'var(--emerald)', marginTop: '0.2rem' }}>
-                      {article.published_url}
-                    </div>
-                  )}
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button onClick={() => setPreviewArticle(article)} className="btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.82rem' }}>
                     Vorschau
                   </button>
-                  {article.status === 'draft' && (
-                    <button
-                      onClick={() => { setPublishModal(article); setPublishError(''); }}
-                      className="btn-emerald"
-                      style={{ padding: '0.5rem 1rem', fontSize: '0.82rem' }}
-                    >
-                      Veröffentlichen
-                    </button>
-                  )}
+                  <button
+                    onClick={() => { setPublishModal(article); setPublishError(''); }}
+                    className="btn-emerald"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.82rem' }}
+                  >
+                    Veröffentlichen
+                  </button>
                 </div>
               </div>
             ))}
@@ -658,6 +649,35 @@ export default function WebsiteDetailPage() {
               </>
             );
           })()}
+        </div>
+      )}
+
+      {articles.some(a => a.status === 'published') && (
+        <div style={{ marginBottom: '2.5rem' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginBottom: '1rem' }}>Veröffentlichte Artikel</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {articles.filter(a => a.status === 'published').map(article => (
+              <div key={article.id} className="card" style={{ padding: '1.1rem 1.4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 220 }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.3rem' }}>
+                    <span className="badge badge-active">Veröffentlicht</span>
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)' }}>{article.title}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Keyword: {article.keyword}</div>
+                  {article.published_url && (
+                    <div style={{ fontSize: '0.78rem', color: 'var(--emerald)', marginTop: '0.2rem' }}>
+                      {article.published_url}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={() => setPreviewArticle(article)} className="btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.82rem' }}>
+                    Vorschau
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
