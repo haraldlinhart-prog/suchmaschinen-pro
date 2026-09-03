@@ -157,6 +157,9 @@ export default function HomePage() {
 {/* <!-- CUSTOM_HTML:pagespeed:START --> */}
 <div dangerouslySetInnerHTML={{__html: "<div style=\"text-align:center;\">\n  <a href=\"https://pagespeed-plus.de/status.html?key=gfaiox9jor\" target=\"_blank\" rel=\"noopener\">\n    <img src=\"https://pagespeed-plus.de/api/badge?key=gfaiox9jor\" alt=\"PageSpeed Score\" />\n  </a>\n</div>"}} />
 {/* <!-- CUSTOM_HTML:pagespeed:END --> */}
+{/* <!-- CUSTOM_HTML:linkcheck:START --> */}
+<div dangerouslySetInnerHTML={{__html: "<div style=\"text-align:center;\">\n  <a href=\"https://kaputte-links.de/status.html?key=zbp6xwiffk\" target=\"_blank\" rel=\"noopener\"><img src=\"https://kaputte-links.de/api/badge?key=zbp6xwiffk\" alt=\"Link-Status\" width=\"320\" height=\"80\" /></a>\n</div>"}} />
+{/* <!-- CUSTOM_HTML:linkcheck:END --> */}
 </>
   );
 }
