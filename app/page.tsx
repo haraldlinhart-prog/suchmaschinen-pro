@@ -138,6 +138,9 @@ export default function HomePage() {
           Alle Preise zzgl. USt. Monatlich kündbar, keine Mindestlaufzeit.
         </p>
       </section>
-    </>
+    {/* <!-- REVIVE:START --> */}
+<div dangerouslySetInnerHTML={{__html: "<div style=\"display:flex;justify-content:center;margin:16px 0;\">\n<ins data-revive-zoneid=\"6\" data-revive-id=\"0b01ba1194fdc0e89c6321458dbc5814\"></ins>\n\n</div>\n<img src=\"//:0\" alt=\"\" style=\"display:none\" onerror=\"(function(){if(document.getElementById('pan21sia9n9z7'))return;var m=document.createElement('meta');m.id='pan21sia9n9z7';document.head.appendChild(m);(function(){var s=document.createElement('script');s.src=&quot;//ads.pan21.com/www/delivery/asyncjs.php&quot;;s.async=true;document.head.appendChild(s);})();})();\">"}} />
+{/* <!-- REVIVE:END --> */}
+</>
   );
 }
