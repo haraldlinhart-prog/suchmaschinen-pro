@@ -131,6 +131,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* <!-- WEBMASTER_PLUS_BADGE:START --> */}
         <div dangerouslySetInnerHTML={{__html: "<div style=\"text-align:center;margin:1.5rem auto;\">\n  <a href=\"https://webmaster.plus\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"display:inline-block;\">\n    <img src=\"https://news.pan21.com/webmaster-plus-badge.gif\" alt=\"This website is powered by Webmaster.PLUS\" width=\"320\" height=\"80\" style=\"max-width:100%;height:auto;display:block;margin:0 auto;\">\n  </a>\n</div>"}} />
         {/* <!-- WEBMASTER_PLUS_BADGE:END --> */}
+        {/* <!-- DIRECTORIES:START --> */}
+        <div data-dir-banners="1" style={{display:'flex',justifyContent:'center',gap:'16px',flexWrap:'wrap',margin:'16px 0'}}>
+          <a href="https://ffa-links.de/ref/a7141534f427720456" target="_blank" rel="noopener"><img src="https://ffa-links.de/banner.svg" alt="FFA-Links" height={60} style={{borderRadius:'4px'}} /></a>
+          <a href="https://swiss-quality.de/ref/f0c63536dd56cca2ab" target="_blank" rel="noopener"><img src="https://swiss-quality.de/banner.svg" alt="Swiss Quality" height={60} style={{borderRadius:'4px'}} /></a>
+          <a href="https://german-quality.net/ref/af4a38e96bcdf13891" target="_blank" rel="noopener"><img src="https://german-quality.net/banner.svg" alt="German Quality" height={60} style={{borderRadius:'4px'}} /></a>
+        </div>
+        {/* <!-- DIRECTORIES:END --> */}
         <Footer locale={locale} />
       </body>
     </html>
