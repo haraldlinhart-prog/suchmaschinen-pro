@@ -33,7 +33,7 @@ function AuthContent() {
   const router = useRouter();
   const isRegister = searchParams.get('mode') === 'register';
 
-  const [mode, setMode] = useState<'login' | 'register'>(isRegister ? 'register' : 'login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>(isRegister ? 'register' : 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
@@ -54,6 +54,12 @@ function AuthContent() {
     });
   }, [hcaptchaReady]);
 
+  function switchMode(m: 'login' | 'register' | 'forgot') {
+    setMode(m);
+    setStatus('idle');
+    setMessage('');
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('loading');
@@ -73,6 +79,17 @@ function AuthContent() {
         setCaptchaToken('');
       }
       else { setStatus('ok'); setMessage('Bitte bestätigen Sie Ihre E-Mail-Adresse. Wir haben Ihnen eine Bestätigungsmail gesendet.'); }
+    } else if (mode === 'forgot') {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+        captchaToken,
+      });
+      if (error) {
+        setStatus('error'); setMessage(error.message);
+        if (window.hcaptcha && widgetIdRef.current !== undefined) window.hcaptcha.reset(widgetIdRef.current);
+        setCaptchaToken('');
+      }
+      else { setStatus('ok'); setMessage('Falls ein Konto mit dieser E-Mail-Adresse existiert, haben wir Ihnen einen Link zum Zurücksetzen des Passworts gesendet.'); }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
       if (error) {
@@ -102,20 +119,31 @@ function AuthContent() {
         </div>
 
         <div className="card" style={{ padding: '2.25rem' }}>
-          <div style={{ display: 'flex', marginBottom: '1.75rem', borderBottom: '2px solid var(--border)' }}>
-            {(['login', 'register'] as const).map(m => (
-              <button key={m} onClick={() => { setMode(m); setStatus('idle'); setMessage(''); }} style={{
-                flex: 1, padding: '0.7rem', background: 'transparent', border: 'none',
-                borderBottom: mode === m ? '3px solid var(--emerald)' : '3px solid transparent',
-                fontFamily: 'var(--font-body)', fontSize: '0.9rem',
-                fontWeight: mode === m ? 700 : 500,
-                color: mode === m ? 'var(--ink)' : 'var(--text-muted)',
-                cursor: 'pointer', marginBottom: '-2px', transition: 'all 0.2s',
+          {mode === 'forgot' ? (
+            <div style={{ marginBottom: '1.75rem' }}>
+              <button onClick={() => switchMode('login')} style={{
+                background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+                fontFamily: 'var(--font-body)', fontSize: '0.85rem', fontWeight: 600, color: 'var(--emerald)',
               }}>
-                {m === 'login' ? 'Anmelden' : 'Registrieren'}
+                ← Zurück zum Login
               </button>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', marginBottom: '1.75rem', borderBottom: '2px solid var(--border)' }}>
+              {(['login', 'register'] as const).map(m => (
+                <button key={m} onClick={() => switchMode(m)} style={{
+                  flex: 1, padding: '0.7rem', background: 'transparent', border: 'none',
+                  borderBottom: mode === m ? '3px solid var(--emerald)' : '3px solid transparent',
+                  fontFamily: 'var(--font-body)', fontSize: '0.9rem',
+                  fontWeight: mode === m ? 700 : 500,
+                  color: mode === m ? 'var(--ink)' : 'var(--text-muted)',
+                  cursor: 'pointer', marginBottom: '-2px', transition: 'all 0.2s',
+                }}>
+                  {m === 'login' ? 'Anmelden' : 'Registrieren'}
+                </button>
+              ))}
+            </div>
+          )}
 
           {status === 'ok' ? (
             <div style={{ background: 'var(--emerald-pale)', border: '1px solid var(--emerald)', padding: '1.5rem', textAlign: 'center', borderRadius: 8 }}>
@@ -127,19 +155,36 @@ function AuthContent() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+              {mode === 'forgot' && (
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                  Geben Sie Ihre E-Mail-Adresse ein. Wir senden Ihnen einen Link, mit dem Sie ein neues Passwort festlegen können.
+                </p>
+              )}
               <div>
                 <label className="form-label">E-Mail-Adresse *</label>
                 <input required type="email" value={email}
                   onChange={e => setEmail(e.target.value)}
                   className="form-input" placeholder="ihre@email.de" />
               </div>
-              <div>
-                <label className="form-label">Passwort *</label>
-                <input required type="password" value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="form-input" placeholder="Mindestens 8 Zeichen"
-                  minLength={8} />
-              </div>
+              {mode !== 'forgot' && (
+                <div>
+                  <label className="form-label">Passwort *</label>
+                  <input required type="password" value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="form-input" placeholder="Mindestens 8 Zeichen"
+                    minLength={8} />
+                </div>
+              )}
+
+              {mode === 'login' && (
+                <button type="button" onClick={() => switchMode('forgot')} style={{
+                  background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+                  alignSelf: 'flex-end', marginTop: '-0.6rem',
+                  fontFamily: 'var(--font-body)', fontSize: '0.8rem', fontWeight: 600, color: 'var(--emerald)',
+                }}>
+                  Passwort vergessen?
+                </button>
+              )}
 
               <div ref={captchaRef} style={{ display: 'flex', justifyContent: 'center' }} />
 
@@ -153,7 +198,7 @@ function AuthContent() {
                 justifyContent: 'center', opacity: status === 'loading' ? 0.7 : 1,
                 cursor: status === 'loading' ? 'not-allowed' : 'pointer',
               }}>
-                {status === 'loading' ? '...' : mode === 'login' ? 'Anmelden' : 'Konto erstellen'}
+                {status === 'loading' ? '...' : mode === 'login' ? 'Anmelden' : mode === 'register' ? 'Konto erstellen' : 'Link zum Zurücksetzen senden'}
               </button>
 
               {mode === 'register' && (
