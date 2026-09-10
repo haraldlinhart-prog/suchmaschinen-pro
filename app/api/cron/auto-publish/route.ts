@@ -5,7 +5,7 @@ import { generateArticleContent } from '@/lib/ai/generateArticle';
 import { publishArticle } from '@/lib/publish/publishArticle';
 import { publishNewsIndex } from '@/lib/publish/publishNewsIndex';
 
-export const maxDuration = 300; // allow up to 5 minutes for multiple sites in one run
+export const maxDuration = 800; // Vercel Pro/Fluid Compute ceiling - was 300s, raised as the number of sites grew
 
 const PLAN_INTERVAL_DAYS: Record<string, number> = { free: 14, basic: 7, pro: 2, premium: 1 };
 

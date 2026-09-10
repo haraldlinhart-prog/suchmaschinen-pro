@@ -9,12 +9,16 @@ import type { Website } from '@/types';
 import { STATUS_LABELS } from '@/types';
 import { WebsiteForm } from '@/components/WebsiteForm';
 
+const PAGE_SIZE = 30;
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [websites, setWebsites] = useState<Website[]>([]);
   const [view, setView] = useState<'list' | 'new'>('list');
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     const supabase = createClient();
@@ -47,6 +51,15 @@ export default function DashboardPage() {
   };
 
   if (!user) return <div style={{ padding: '4rem', textAlign: 'center' }}>Wird geladen...</div>;
+
+  const filteredWebsites = search.trim()
+    ? websites.filter(w =>
+        w.domain.toLowerCase().includes(search.trim().toLowerCase()) ||
+        (w.label || '').toLowerCase().includes(search.trim().toLowerCase())
+      )
+    : websites;
+  const visibleWebsites = filteredWebsites.slice(0, visibleCount);
+  const hasMore = filteredWebsites.length > visibleWebsites.length;
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '3rem 1.5rem' }}>
@@ -90,7 +103,26 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {websites.map(w => (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => { setSearch(e.target.value); setVisibleCount(PAGE_SIZE); }}
+                  className="form-input"
+                  placeholder="Domain suchen …"
+                  style={{ maxWidth: 320 }}
+                />
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                  {filteredWebsites.length} {filteredWebsites.length === 1 ? 'Website' : 'Websites'}
+                  {search.trim() ? ` (gefiltert von ${websites.length})` : ''}
+                </div>
+              </div>
+              {filteredWebsites.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  Keine Website gefunden für &quot;{search}&quot;.
+                </div>
+              )}
+              {visibleWebsites.map(w => (
                 <Link key={w.id} href={`/dashboard/${w.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                   <div style={{ flex: 1 }}>
@@ -119,6 +151,11 @@ export default function DashboardPage() {
                 </div>
                 </Link>
               ))}
+              {hasMore && (
+                <button onClick={() => setVisibleCount(c => c + PAGE_SIZE)} className="btn-outline" style={{ alignSelf: 'center', padding: '0.6rem 1.5rem' }}>
+                  Weitere laden ({filteredWebsites.length - visibleWebsites.length} übrig)
+                </button>
+              )}
             </div>
           )}
         </>
