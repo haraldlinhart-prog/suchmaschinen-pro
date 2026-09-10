@@ -60,6 +60,18 @@ function AuthContent() {
     setMessage('');
   }
 
+  function resetCaptcha() {
+    if (window.hcaptcha && widgetIdRef.current !== undefined) window.hcaptcha.reset(widgetIdRef.current);
+    setCaptchaToken('');
+  }
+
+  function withTimeout<T>(promise: Promise<T>, ms = 15000): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Zeitüberschreitung. Bitte versuchen Sie es erneut.')), ms)),
+    ]);
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('loading');
@@ -67,37 +79,31 @@ function AuthContent() {
     if (!captchaToken) { setStatus('error'); setMessage('Bitte bestätigen Sie das Captcha.'); return; }
     const supabase = createClient();
 
-    if (mode === 'register') {
-      if (isSpamEmail(email)) { setStatus('error'); setMessage('Registrierung nicht möglich.'); return; }
-      const { error } = await supabase.auth.signUp({
-        email, password,
-        options: { emailRedirectTo: `${window.location.origin}/dashboard`, captchaToken },
-      });
-      if (error) {
-        setStatus('error'); setMessage(error.message);
-        if (window.hcaptcha && widgetIdRef.current !== undefined) window.hcaptcha.reset(widgetIdRef.current);
-        setCaptchaToken('');
+    try {
+      if (mode === 'register') {
+        if (isSpamEmail(email)) { setStatus('error'); setMessage('Registrierung nicht möglich.'); return; }
+        const { error } = await withTimeout(supabase.auth.signUp({
+          email, password,
+          options: { emailRedirectTo: `${window.location.origin}/dashboard`, captchaToken },
+        }));
+        if (error) { setStatus('error'); setMessage(error.message); resetCaptcha(); }
+        else { setStatus('ok'); setMessage('Bitte bestätigen Sie Ihre E-Mail-Adresse. Wir haben Ihnen eine Bestätigungsmail gesendet.'); }
+      } else if (mode === 'forgot') {
+        const { error } = await withTimeout(supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth/reset-password`,
+          captchaToken,
+        }));
+        if (error) { setStatus('error'); setMessage(error.message); resetCaptcha(); }
+        else { setStatus('ok'); setMessage('Falls ein Konto mit dieser E-Mail-Adresse existiert, haben wir Ihnen einen Link zum Zurücksetzen des Passworts gesendet.'); }
+      } else {
+        const { error } = await withTimeout(supabase.auth.signInWithPassword({ email, password, options: { captchaToken } }));
+        if (error) { setStatus('error'); setMessage('Ungültige Zugangsdaten. Bitte überprüfen Sie E-Mail und Passwort.'); resetCaptcha(); }
+        else { router.push('/dashboard'); }
       }
-      else { setStatus('ok'); setMessage('Bitte bestätigen Sie Ihre E-Mail-Adresse. Wir haben Ihnen eine Bestätigungsmail gesendet.'); }
-    } else if (mode === 'forgot') {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-        captchaToken,
-      });
-      if (error) {
-        setStatus('error'); setMessage(error.message);
-        if (window.hcaptcha && widgetIdRef.current !== undefined) window.hcaptcha.reset(widgetIdRef.current);
-        setCaptchaToken('');
-      }
-      else { setStatus('ok'); setMessage('Falls ein Konto mit dieser E-Mail-Adresse existiert, haben wir Ihnen einen Link zum Zurücksetzen des Passworts gesendet.'); }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
-      if (error) {
-        setStatus('error'); setMessage('Ungültige Zugangsdaten. Bitte überprüfen Sie E-Mail und Passwort.');
-        if (window.hcaptcha && widgetIdRef.current !== undefined) window.hcaptcha.reset(widgetIdRef.current);
-        setCaptchaToken('');
-      }
-      else { router.push('/dashboard'); }
+    } catch (err) {
+      setStatus('error');
+      setMessage(err instanceof Error ? err.message : 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+      resetCaptcha();
     }
   };
 
