@@ -86,6 +86,20 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow): 
     const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain);
     const contentBase64 = Buffer.from(html, 'utf-8').toString('base64');
 
+    // GitHub rejects a PUT to an already-existing path with 422 "sha wasn't supplied"
+    // unless the current sha is included. This happens whenever the same article gets
+    // republished (e.g. a prior run wrote the file but failed to mark it published in
+    // Supabase, so the next cron run retries the same slug). See publishNewsIndex.ts,
+    // which already does this correctly. Recurring failure for ug-miete.de since 2026-09-04.
+    let sha: string | undefined;
+    const existingRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+      headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github+json' },
+    });
+    if (existingRes.ok) {
+      const existing = await existingRes.json();
+      sha = existing.sha;
+    }
+
     const ghRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
       method: 'PUT',
       headers: {
@@ -93,7 +107,11 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow): 
         Accept: 'application/vnd.github+json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ message: `suchmaschinen.pro: publish article "${article.title}"`, content: contentBase64 }),
+      body: JSON.stringify({
+        message: `suchmaschinen.pro: publish article "${article.title}"`,
+        content: contentBase64,
+        ...(sha ? { sha } : {}),
+      }),
     });
 
     if (!ghRes.ok) {
