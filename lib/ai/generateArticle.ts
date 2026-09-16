@@ -62,9 +62,14 @@ Requirements:
 - Include a short concluding paragraph
 - Output as clean semantic HTML body content only (h1, h2, h3, p, ul/li as needed) — no <html>, <head>, or <body> tags, no inline styles, no markdown
 
-Respond ONLY with a JSON object, no other text, in this exact shape:
-{"title": "the H1 text as plain string", "meta_description": "a compelling 140-160 char meta description", "content_html": "the full HTML body content as a single string", "image_query": "2-4 English keywords describing a fitting stock photo for this article, e.g. \\"business handshake office\\""}`;
+Call the output_article tool with the finished article.`;
 
+  // Use tool-use (structured output) instead of asking the model to hand-write an
+  // escaped JSON string: when content_html contains quotes/backslashes (common in
+  // <a href="..."> attributes or quoted text), a model-authored JSON string
+  // occasionally comes out mis-escaped and JSON.parse throws. The Anthropic API
+  // encodes tool_use.input itself, so this failure mode goes away entirely.
+  // See recurring "SyntaxError ... in JSON" cron failures from 2026-09-12.
   const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -76,6 +81,26 @@ Respond ONLY with a JSON object, no other text, in this exact shape:
       model: 'claude-sonnet-4-5',
       max_tokens: 4000,
       messages: [{ role: 'user', content: prompt }],
+      tools: [
+        {
+          name: 'output_article',
+          description: 'Submit the finished article.',
+          input_schema: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', description: 'The H1 text as plain string' },
+              meta_description: { type: 'string', description: 'A compelling 140-160 char meta description' },
+              content_html: { type: 'string', description: 'The full HTML body content as a single string' },
+              image_query: {
+                type: 'string',
+                description: '2-4 English keywords describing a fitting stock photo for this article, e.g. "business handshake office"',
+              },
+            },
+            required: ['title', 'meta_description', 'content_html', 'image_query'],
+          },
+        },
+      ],
+      tool_choice: { type: 'tool', name: 'output_article' },
     }),
   });
 
@@ -86,9 +111,12 @@ Respond ONLY with a JSON object, no other text, in this exact shape:
   }
 
   const claudeData = await claudeRes.json();
-  const textBlock = claudeData.content?.find((c: { type: string }) => c.type === 'text');
-  const raw = textBlock.text.trim().replace(/^```json\s*/i, '').replace(/```$/, '');
-  const article = JSON.parse(raw);
+  const toolBlock = claudeData.content?.find((c: { type: string }) => c.type === 'tool_use');
+  if (!toolBlock) {
+    console.error('Claude API error (generateArticleContent): no tool_use block in response', JSON.stringify(claudeData));
+    throw new Error('Artikel-Generierung fehlgeschlagen.');
+  }
+  const article = toolBlock.input as { title: string; meta_description: string; content_html: string; image_query?: string };
 
   const slug = slugify(article.title);
   let imageUrl: string | null = null;
