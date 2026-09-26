@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { publishArticle } from '@/lib/publish/publishArticle';
 import { publishNewsIndex } from '@/lib/publish/publishNewsIndex';
+import { ensureDiscoverability } from '@/lib/publish/ensureDiscoverability';
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,6 +45,7 @@ export async function POST(req: NextRequest) {
     if (updateError) return NextResponse.json({ error: 'Veröffentlicht, aber Status konnte nicht aktualisiert werden.' }, { status: 500 });
 
     await publishNewsIndex(website, supabase).catch(e => console.error('publishNewsIndex failed', e));
+    await ensureDiscoverability(website, supabase).catch(e => console.error('ensureDiscoverability failed', e));
 
     return NextResponse.json({ success: true, mode: result.mode, url: result.url });
   } catch (err) {

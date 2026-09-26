@@ -4,6 +4,7 @@ import { fetchSiteText, suggestKeywords, type SuggestedKeyword } from '@/lib/ai/
 import { generateArticleContent } from '@/lib/ai/generateArticle';
 import { publishArticle } from '@/lib/publish/publishArticle';
 import { publishNewsIndex } from '@/lib/publish/publishNewsIndex';
+import { ensureDiscoverability } from '@/lib/publish/ensureDiscoverability';
 
 export const maxDuration = 800; // Vercel Pro/Fluid Compute ceiling - was 300s, raised as the number of sites grew
 
@@ -40,6 +41,10 @@ export async function GET(req: NextRequest) {
 
   for (const website of websites || []) {
     try {
+      // Runs every day for every site, not just on publish days, so sites that already
+      // have articles get their sitemap/robots/homepage link fixed (idempotent).
+      await ensureDiscoverability(website, supabase).catch(e => console.error(`ensureDiscoverability failed for ${website.domain}`, e));
+
       if (!isDue(website.last_auto_published_at, website.plan)) {
         results.push({ domain: website.domain, status: 'skipped-not-due' });
         continue;
@@ -78,6 +83,7 @@ export async function GET(req: NextRequest) {
 
         await supabase.from('sq_websites').update({ last_auto_published_at: new Date().toISOString() }).eq('id', website.id);
         await publishNewsIndex(website, supabase).catch(e => console.error('publishNewsIndex failed', e));
+        await ensureDiscoverability(website, supabase).catch(e => console.error('ensureDiscoverability failed', e));
 
         results.push({ domain: website.domain, status: 'published-pending-draft', detail: publishResult.url });
         continue;
@@ -152,6 +158,7 @@ export async function GET(req: NextRequest) {
       await supabase.from('sq_websites').update({ last_auto_published_at: new Date().toISOString() }).eq('id', website.id);
 
       await publishNewsIndex(website, supabase).catch(e => console.error('publishNewsIndex failed', e));
+        await ensureDiscoverability(website, supabase).catch(e => console.error('ensureDiscoverability failed', e));
 
       results.push({ domain: website.domain, status: 'published', detail: publishResult.url });
     } catch (siteErr) {

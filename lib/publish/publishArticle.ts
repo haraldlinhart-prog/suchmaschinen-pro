@@ -62,6 +62,7 @@ function buildHtmlPage(title: string, metaDescription: string, contentHtml: stri
 <body>
 <a class="back" href="https://${domain}/">&larr; Zurück zu ${escapeHtml(domain)}</a>
 ${contentHtml}
+<p style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid #eee"><a href="../">Weitere Artikel &rarr;</a></p>
 </body>
 </html>
 `;
