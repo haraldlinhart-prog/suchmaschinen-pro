@@ -10,6 +10,7 @@ import { rewriteInstructions } from '@/lib/rewriteInstructions';
 import { isAdminEmail } from '@/lib/supabase/admin';
 import { GA_FOR_CUSTOMERS } from '@/lib/features';
 import { AnalyticsChart } from '@/components/AnalyticsChart';
+import { KeywordWorkbench, useKeywordVolumes, VolumeLabel } from '@/components/KeywordWorkbench';
 
 const ANALYZE_MESSAGES = [
   'Website wird geladen…',
@@ -321,6 +322,17 @@ export default function WebsiteDetailPage() {
       setGaSetupResult('Fehler bei der Einrichtung.');
     }
     setGaSetupState('idle');
+  };
+
+  const suggestedVolumes = useKeywordVolumes((website?.suggested_keywords || []).map(k => k.keyword));
+
+  const handleQueueKeyword = async (kw: SuggestedKeyword) => {
+    const res = await fetch('/api/keywords/queue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ websiteId, keyword: kw.keyword, rationale: kw.rationale, intent: kw.intent }),
+    });
+    if (res.ok && user) await loadData(user.id);
   };
 
   if (loading || !website) return <div style={{ padding: '4rem', textAlign: 'center' }}>Wird geladen...</div>;
@@ -646,6 +658,17 @@ export default function WebsiteDetailPage() {
         </div>
       )}
 
+      <KeywordWorkbench
+        websiteId={websiteId}
+        isAdmin={isAdminEmail(user?.email)}
+        usedKeywords={articles.map(a => a.keyword)}
+        generatingKeyword={generatingKeyword}
+        generateMessage={generateMessage}
+        freeLimitReached={website.plan === 'free' && articles.length > 0}
+        onGenerate={handleGenerateArticle}
+        onQueued={() => { if (user) loadData(user.id); }}
+      />
+
       {website.suggested_keywords && (
         <div style={{ marginBottom: '2.5rem' }}>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginBottom: '0.25rem' }}>Vorgeschlagene Suchbegriffe</h2>
@@ -667,8 +690,18 @@ export default function WebsiteDetailPage() {
                   <div style={{ flex: 1, minWidth: 220 }}>
                     <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)' }}>{kw.keyword}</div>
                     <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{kw.rationale}</div>
-                    <span className="badge badge-pending" style={{ marginTop: '0.4rem', display: 'inline-block' }}>{kw.intent}</span>
+                    <div style={{ marginTop: '0.4rem', display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span className="badge badge-pending">{kw.intent}</span>
+                      <VolumeLabel info={suggestedVolumes.get(kw.keyword)} />
+                      {i === 0 && website.auto_publish && <span style={{ fontSize: '0.76rem', color: 'var(--emerald)' }}>Nächster automatischer Artikel</span>}
+                    </div>
                   </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {i > 0 && website.auto_publish && (
+                    <button onClick={() => handleQueueKeyword(kw)} className="btn-outline" style={{ padding: '0.5rem 0.9rem', fontSize: '0.82rem' }}>
+                      Als Nächstes
+                    </button>
+                  )}
                   <button
                     onClick={() => handleGenerateArticle(kw)}
                     disabled={generatingKeyword === kw.keyword || freeLimitReached}
@@ -682,6 +715,7 @@ export default function WebsiteDetailPage() {
                       ? 'Nur im Basic/Pro-Tarif'
                       : 'Artikel generieren'}
                   </button>
+                  </div>
                 </div>
               );
             })}
