@@ -106,13 +106,18 @@ export default function HomePage() {
       </section>
 
       {/* SEO-Hydra */}
-      <section style={{ padding: '4rem 1.5rem', maxWidth: 860, margin: '0 auto' }}>
+      <section style={{ padding: '4rem 1.5rem', maxWidth: 960, margin: '0 auto' }}>
         <div style={{ textAlign: 'center' }}>
           <div className="section-label">Alles aus einer Hand</div>
           <div className="divider-emerald" style={{ margin: '0.75rem auto' }} />
           <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', color: 'var(--ink)' }}>Schluss mit der SEO-Hydra</h2>
         </div>
-        <div className="card" style={{ padding: '2rem 2.25rem', marginTop: '2rem', lineHeight: 1.75, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
+        <div className="card" style={{ padding: 0, overflow: 'hidden', marginTop: '2rem', lineHeight: 1.75, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/seo-hydra.webp" srcSet="/seo-hydra-768.webp 768w, /seo-hydra.webp 1536w" sizes="(max-width: 960px) 100vw, 960px"
+            width={1536} height={1024} loading="lazy" alt="Eine vielköpfige Hydra aus verknoteten Kabeln, jeder Kopf mit Preisschild für ein weiteres SEO-Tool – daneben ein einziges, aufgeräumtes Dashboard"
+            style={{ display: 'block', width: '100%', height: 'auto' }} />
+          <div style={{ padding: '2rem 2.25rem' }}>
           <p style={{ margin: '0 0 1rem' }}>
             Die Arbeit mit Suchmaschinen und SEO ist wie eine Art Hydra: Je mehr man macht und je mehr vermeintliche Erfolge man hat, desto mehr
             Anbieter wollen für zusätzliche Optionen noch mehr Geld. Am Ende sieht man sich mit einem Haufen „nützlicher“ Services verbunden, die
@@ -123,6 +128,7 @@ export default function HomePage() {
             brauchen: Sie sehen, wo sich Ihre Website bei Google befindet – und Sie sehen, wie sie mit unseren KI-Services in der Regel nach ein paar
             Wochen immer mehr Impressionen bekommt.
           </p>
+          </div>
         </div>
       </section>
 

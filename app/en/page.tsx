@@ -98,13 +98,18 @@ export default function EnglishHomePage() {
       </section>
 
       {/* SEO hydra */}
-      <section style={{ padding: '4rem 1.5rem', maxWidth: 860, margin: '0 auto' }}>
+      <section style={{ padding: '4rem 1.5rem', maxWidth: 960, margin: '0 auto' }}>
         <div style={{ textAlign: 'center' }}>
           <div className="section-label">Everything in one place</div>
           <div className="divider-emerald" style={{ margin: '0.75rem auto' }} />
           <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', color: 'var(--ink)' }}>Stop feeding the SEO hydra</h2>
         </div>
-        <div className="card" style={{ padding: '2rem 2.25rem', marginTop: '2rem', lineHeight: 1.75, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
+        <div className="card" style={{ padding: 0, overflow: 'hidden', marginTop: '2rem', lineHeight: 1.75, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/seo-hydra.webp" srcSet="/seo-hydra-768.webp 768w, /seo-hydra.webp 1536w" sizes="(max-width: 960px) 100vw, 960px"
+            width={1536} height={1024} loading="lazy" alt="A many-headed hydra of tangled cables, each head carrying a price tag for another SEO tool – next to a single, tidy dashboard"
+            style={{ display: 'block', width: '100%', height: 'auto' }} />
+          <div style={{ padding: '2rem 2.25rem' }}>
           <p style={{ margin: '0 0 1rem' }}>
             Working with search engines and SEO is like fighting a hydra: the more you do and the more apparent success you have, the more providers
             want even more money for yet another add-on. In the end you are tied to a pile of “useful” services that together cost as much as the
@@ -114,6 +119,7 @@ export default function EnglishHomePage() {
             With <strong>search-engines.pro</strong> you don&apos;t just get a strong service for less than elsewhere – you get everything you need:
             you see where your website stands on Google, and you can watch it typically gain more and more impressions within a few weeks thanks to our AI services.
           </p>
+          </div>
         </div>
       </section>
 
