@@ -97,6 +97,11 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+          <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+            <Link href="/rundgang" className="btn-emerald" style={{ padding: '0.85rem 1.9rem', fontSize: '0.95rem' }}>
+              Rundgang mit Screenshots ansehen →
+            </Link>
+          </div>
         </div>
       </section>
 

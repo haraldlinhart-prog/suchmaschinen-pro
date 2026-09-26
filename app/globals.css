@@ -107,3 +107,8 @@ h1,h2,h3,h4 { font-family: var(--font-display); line-height: 1.2; }
   50% { opacity: 1; }
 }
 .progress-message { animation: pulse-fade 1.8s ease-in-out infinite; }
+
+/* Mobile: only logo + main button in the header (the text links overflowed the viewport) */
+@media (max-width: 640px) {
+  .nav-link-desktop { display: none !important; }
+}

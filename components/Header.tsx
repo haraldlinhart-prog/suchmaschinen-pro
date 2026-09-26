@@ -38,7 +38,7 @@ export function Header({ locale = 'de' }: { locale?: 'de' | 'en' }) {
             </>
           ) : (
             <>
-              <Link href="/#so-funktionierts" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">So funktioniert&apos;s</Link>
+              <Link href="/rundgang" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">So funktioniert&apos;s</Link>
               <Link href="/#preise" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Preise</Link>
               <Link href="/kontakt" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Kontakt</Link>
               <Link href={loggedIn ? '/dashboard' : '/auth'} className="btn-emerald" style={{ padding: '.55rem 1.2rem', fontSize: '.85rem' }}>

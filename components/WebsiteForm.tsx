@@ -27,7 +27,9 @@ export function WebsiteForm({ userId, userEmail, onSuccess }: { userId: string; 
   const [label, setLabel] = useState('');
   const [notes, setNotes] = useState('');
   const [githubRepo, setGithubRepo] = useState('');
-  const [hostingPlatform, setHostingPlatform] = useState<HostingPlatform>('network');
+  // The PAN21 network option is internal (our own GitHub/Vercel setup); customers never see it.
+  const platformOptions = isAdmin ? PLATFORM_OPTIONS : PLATFORM_OPTIONS.filter(p => p !== 'network');
+  const [hostingPlatform, setHostingPlatform] = useState<HostingPlatform>(isAdmin ? 'network' : 'wordpress');
   const [publishPath, setPublishPath] = useState('/blog/');
   const [wpUrl, setWpUrl] = useState('');
   const [wpUsername, setWpUsername] = useState('');
@@ -155,7 +157,7 @@ export function WebsiteForm({ userId, userEmail, onSuccess }: { userId: string; 
       <div>
         <label className="form-label">Wo läuft die Website?</label>
         <select value={hostingPlatform} onChange={e => setHostingPlatform(e.target.value as HostingPlatform)} className="form-input">
-          {PLATFORM_OPTIONS.map(p => <option key={p} value={p}>{HOSTING_LABELS[p]}</option>)}
+          {platformOptions.map(p => <option key={p} value={p}>{HOSTING_LABELS[p]}</option>)}
         </select>
       </div>
       {hostingPlatform === 'network' && (
