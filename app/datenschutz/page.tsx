@@ -23,7 +23,14 @@ export default function DatenschutzPage() {
       <h2 style={section}>5. Hosting</h2>
       <p style={p}>Diese Website wird über Vercel Inc. gehostet. Beim Aufruf werden automatisch technisch notwendige Informationen (u. a. IP-Adresse, Datum und Uhrzeit) in Server-Logfiles erfasst. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO.</p>
 
-      <h2 style={section}>6. Ihre Rechte</h2>
+      <h2 style={section}>6. Google Analytics-Anbindung (Google API Services)</h2>
+      <p style={p}>Wenn Sie im Dashboard Ihre Website freiwillig mit Google Analytics verbinden, erhalten wir über die Google-Anmeldung (OAuth) einen ausschließlich lesenden Zugriff auf Ihre Google Analytics-Daten (Berechtigung „analytics.readonly“). Wir speichern dafür ein Zugriffstoken sowie die Kennung der von Ihnen ausgewählten Analytics-Property.</p>
+      <p style={p}>Abgerufen werden ausschließlich aggregierte Kennzahlen Ihrer Website (Anzahl der Sitzungen und aktiven Nutzer pro Tag). Diese werden nur in Ihrem eigenen Dashboard angezeigt, um die Wirkung der veröffentlichten Artikel sichtbar zu machen. Die Daten werden nicht an Dritte weitergegeben, nicht verkauft, nicht für Werbung verwendet und nicht zum Training von KI-Modellen genutzt. Mitarbeiter haben keinen Zugriff darauf, außer mit Ihrer ausdrücklichen Zustimmung, zur Sicherheit oder aufgrund gesetzlicher Pflichten.</p>
+      <p style={p}>Die Nutzung und Weitergabe von Informationen, die wir von Google-APIs erhalten, erfolgt in Übereinstimmung mit der <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener" style={{ color: 'var(--emerald)' }}>Google API Services User Data Policy</a>, einschließlich der Anforderungen zur eingeschränkten Nutzung (Limited Use).</p>
+      <p style={p}><em>suchmaschinen.pro&apos;s use and transfer of information received from Google APIs to any other app will adhere to the Google API Services User Data Policy, including the Limited Use requirements.</em></p>
+      <p style={p}>Sie können die Verbindung jederzeit unter <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener" style={{ color: 'var(--emerald)' }}>myaccount.google.com/permissions</a> widerrufen oder uns per E-Mail um Löschung bitten; das gespeicherte Token wird dann gelöscht. Rechtsgrundlage ist Ihre Einwilligung, Art. 6 Abs. 1 lit. a DSGVO.</p>
+
+      <h2 style={section}>7. Ihre Rechte</h2>
       <p style={p}>Sie haben das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung Ihrer personenbezogenen Daten sowie ein Widerspruchsrecht und ein Recht auf Datenübertragbarkeit. Wenden Sie sich hierzu an <a href="mailto:suchmaschinen@pan21.com" style={{ color: 'var(--emerald)' }}>suchmaschinen@pan21.com</a>.</p>
     </div>
   );

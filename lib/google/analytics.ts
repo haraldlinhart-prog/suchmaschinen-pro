@@ -3,11 +3,12 @@ const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GA_ADMIN_API = 'https://analyticsadmin.googleapis.com/v1beta';
 const GA_DATA_API = 'https://analyticsdata.googleapis.com/v1beta';
 
-const SCOPES = [
-  'https://www.googleapis.com/auth/analytics.readonly',
-  // Needed to create GA4 properties/data streams programmatically (see chat 03.09.26).
-  'https://www.googleapis.com/auth/analytics.edit',
-];
+// Customers only ever need to read their own stats. The edit scope (create GA4
+// properties/data streams, chat 03.09.26) is requested for the admin only, so the
+// customer-facing consent screen stays on a single, easily verifiable read-only scope.
+const READ_SCOPES = ['https://www.googleapis.com/auth/analytics.readonly'];
+const ADMIN_SCOPES = [...READ_SCOPES, 'https://www.googleapis.com/auth/analytics.edit'];
+
 
 // The one GA4 account all future auto-created properties should live under —
 // see chat 03.09.26 (previously scattered across 25 accounts by accident).
@@ -27,14 +28,15 @@ function redirectUri(): string {
   return process.env.GOOGLE_OAUTH_REDIRECT_URI || 'https://www.suchmaschinen.pro/api/analytics/callback';
 }
 
-export function buildAuthUrl(state: string): string {
+export function buildAuthUrl(state: string, withEdit = false): string {
   const params = new URLSearchParams({
     client_id: clientId(),
     redirect_uri: redirectUri(),
     response_type: 'code',
     access_type: 'offline',
     prompt: 'consent',
-    scope: SCOPES.join(' '),
+    scope: (withEdit ? ADMIN_SCOPES : READ_SCOPES).join(' '),
+    include_granted_scopes: 'true',
     state,
   });
   return `${GOOGLE_AUTH_URL}?${params.toString()}`;

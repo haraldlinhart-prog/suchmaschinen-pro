@@ -8,6 +8,7 @@ import type { User } from '@supabase/supabase-js';
 import type { Website, Article, SuggestedKeyword } from '@/types';
 import { rewriteInstructions } from '@/lib/rewriteInstructions';
 import { isAdminEmail } from '@/lib/supabase/admin';
+import { GA_FOR_CUSTOMERS } from '@/lib/features';
 import { AnalyticsChart } from '@/components/AnalyticsChart';
 
 const ANALYZE_MESSAGES = [
@@ -499,6 +500,7 @@ export default function WebsiteDetailPage() {
         )}
       </div>
 
+      {(GA_FOR_CUSTOMERS || isAdminEmail(user?.email)) && (
       <div className="card" style={{ padding: '1.5rem', marginBottom: '2.5rem' }}>
         <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)', marginBottom: '0.75rem' }}>Google Analytics</div>
 
@@ -611,6 +613,7 @@ export default function WebsiteDetailPage() {
           </>
         )}
       </div>
+      )}
 
       {articles.some(a => a.status === 'draft') && (
         <div style={{ marginBottom: '2.5rem' }}>
