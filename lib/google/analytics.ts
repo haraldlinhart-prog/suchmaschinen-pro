@@ -28,7 +28,7 @@ function redirectUri(): string {
   return process.env.GOOGLE_OAUTH_REDIRECT_URI || 'https://www.suchmaschinen.pro/api/analytics/callback';
 }
 
-export function buildAuthUrl(state: string, withEdit = false): string {
+export function buildAuthUrl(state: string, withEdit = false, hl?: string): string {
   const params = new URLSearchParams({
     client_id: clientId(),
     redirect_uri: redirectUri(),
@@ -38,6 +38,7 @@ export function buildAuthUrl(state: string, withEdit = false): string {
     scope: (withEdit ? ADMIN_SCOPES : READ_SCOPES).join(' '),
     include_granted_scopes: 'true',
     state,
+    ...(hl ? { hl } : {}),
   });
   return `${GOOGLE_AUTH_URL}?${params.toString()}`;
 }

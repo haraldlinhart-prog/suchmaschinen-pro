@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   const state = Buffer.from(JSON.stringify({ websiteId, uid: user.id })).toString('base64url');
 
   try {
-    return NextResponse.redirect(buildAuthUrl(state, isAdmin && req.nextUrl.searchParams.get('scope') !== 'read'));
+    return NextResponse.redirect(buildAuthUrl(state, isAdmin && req.nextUrl.searchParams.get('scope') !== 'read', req.nextUrl.searchParams.get('hl') || undefined));
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Google-OAuth ist nicht konfiguriert.' }, { status: 500 });
   }
