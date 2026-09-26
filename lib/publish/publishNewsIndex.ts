@@ -1,4 +1,5 @@
 import { escapeHtml } from '@/lib/ai/generateArticle';
+import { resolveOrigin } from '@/lib/publish/origin';
 
 // Intentionally untyped (not matched structurally against the real generated Supabase
 // client) — that structural match is what caused "Type instantiation is excessively deep"
@@ -13,7 +14,7 @@ interface PublishedArticle {
   published_at: string;
 }
 
-function buildIndexHtml(domain: string, articles: PublishedArticle[]): string {
+function buildIndexHtml(domain: string, origin: string, canonical: string, articles: PublishedArticle[]): string {
   const items = articles
     .map(
       a => `  <li>
@@ -30,6 +31,7 @@ function buildIndexHtml(domain: string, articles: PublishedArticle[]): string {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>News – ${escapeHtml(domain)}</title>
 <meta name="robots" content="index, follow">
+<link rel="canonical" href="${canonical}">
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 720px; margin: 0 auto; padding: 40px 20px; line-height: 1.7; color: #1a1a1a; }
   h1 { font-size: 1.8rem; margin-bottom: 1.5rem; }
@@ -42,7 +44,7 @@ function buildIndexHtml(domain: string, articles: PublishedArticle[]): string {
 </style>
 </head>
 <body>
-<a class="back" href="https://${domain}/">&larr; Zurück zu ${escapeHtml(domain)}</a>
+<a class="back" href="${origin}/">&larr; Zurück zu ${escapeHtml(domain)}</a>
 <h1>News</h1>
 <ul>
 ${items}
@@ -85,7 +87,8 @@ export async function publishNewsIndex(
   const publishPrefix = isNextJs ? `public/${cleanPublishPath}` : cleanPublishPath;
   const indexPath = `${publishPrefix}/index.html`;
 
-  const html = buildIndexHtml(website.domain, articles);
+  const origin = await resolveOrigin(website.domain);
+  const html = buildIndexHtml(website.domain, origin, `${origin}/${cleanPublishPath}/`, articles);
   const contentBase64 = Buffer.from(html, 'utf-8').toString('base64');
 
   // Need the current sha if the file already exists, otherwise GitHub rejects the PUT.

@@ -1,4 +1,5 @@
 import { escapeHtml } from '@/lib/ai/generateArticle';
+import { resolveOrigin } from '@/lib/publish/origin';
 
 interface WebsiteRow {
   domain: string;
@@ -41,7 +42,7 @@ async function repoIsNextJs(owner: string, repo: string, githubToken: string): P
   }
 }
 
-function buildHtmlPage(title: string, metaDescription: string, contentHtml: string, domain: string): string {
+function buildHtmlPage(title: string, metaDescription: string, contentHtml: string, domain: string, origin: string, canonical: string): string {
   return `<!DOCTYPE html>
 <html lang="de">
 <head>
@@ -50,6 +51,7 @@ function buildHtmlPage(title: string, metaDescription: string, contentHtml: stri
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(metaDescription)}">
 <meta name="robots" content="index, follow">
+<link rel="canonical" href="${canonical}">
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 720px; margin: 0 auto; padding: 40px 20px; line-height: 1.7; color: #1a1a1a; }
   h1 { font-size: 2rem; margin-bottom: 0.5rem; }
@@ -60,7 +62,7 @@ function buildHtmlPage(title: string, metaDescription: string, contentHtml: stri
 </style>
 </head>
 <body>
-<a class="back" href="https://${domain}/">&larr; Zurück zu ${escapeHtml(domain)}</a>
+<a class="back" href="${origin}/">&larr; Zurück zu ${escapeHtml(domain)}</a>
 ${contentHtml}
 <p style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid #eee"><a href="../">Weitere Artikel &rarr;</a></p>
 </body>
@@ -84,7 +86,9 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow): 
     const isNextJs = await repoIsNextJs(owner, repo, githubToken);
     const publishPrefix = isNextJs ? `public/${cleanPublishPath}` : cleanPublishPath;
     const path = `${publishPrefix}/${article.slug}/index.html`;
-    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain);
+    const origin = await resolveOrigin(website.domain);
+    const articleUrl = `${origin}/${cleanPublishPath}/${article.slug}/`;
+    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl);
     const contentBase64 = Buffer.from(html, 'utf-8').toString('base64');
 
     // GitHub rejects a PUT to an already-existing path with 422 "sha wasn't supplied"
@@ -121,7 +125,7 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow): 
       throw new Error(`GitHub-Veröffentlichung fehlgeschlagen (${ghRes.status}).`);
     }
 
-    return { mode: 'github', url: `https://${website.domain}/${cleanPublishPath}/${article.slug}/`, githubPath: path };
+    return { mode: 'github', url: articleUrl, githubPath: path };
   }
 
   // Path B: WordPress via Application Password.

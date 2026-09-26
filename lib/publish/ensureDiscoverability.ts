@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service';
+import { resolveOrigin } from '@/lib/publish/origin';
 import { refreshAccessToken, submitSitemap } from '@/lib/google/searchconsole';
 
 // Publishing an article into a repo is not enough: if nothing links to it and no sitemap
@@ -64,16 +65,6 @@ function gh(token: string) {
   };
 }
 
-// Sitemap URLs must use the host the site actually serves on (apex vs. www) —
-// otherwise every entry is a redirect and Search Console reports it as an error.
-async function resolveOrigin(domain: string): Promise<string> {
-  try {
-    const res = await fetch(`https://${domain}/`, { redirect: 'follow' });
-    return new URL(res.url).origin;
-  } catch {
-    return `https://${domain}`;
-  }
-}
 
 function xmlEscape(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

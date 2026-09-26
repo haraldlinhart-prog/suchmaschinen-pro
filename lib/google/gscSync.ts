@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service';
+import { resolveOrigin } from '@/lib/publish/origin';
 import { refreshAccessToken, searchAnalyticsByPage, inspectUrlIndex } from '@/lib/google/searchconsole';
 
 // Daily: pull Search Console performance per published article and check whether Google
@@ -24,14 +25,6 @@ function isoDay(offsetDays: number): string {
   return new Date(Date.now() - offsetDays * 86400000).toISOString().slice(0, 10);
 }
 
-async function resolveOrigin(domain: string): Promise<string> {
-  try {
-    const res = await fetch(`https://${domain}/`, { redirect: 'follow' });
-    return new URL(res.url).origin;
-  } catch {
-    return `https://${domain}`;
-  }
-}
 
 function indexStatusFrom(verdict: string, coverage?: string): string {
   if (verdict === 'PASS') return 'indexed';
