@@ -63,7 +63,12 @@ export async function refreshAccessToken(refreshToken: string): Promise<string> 
     }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error_description || data.error || 'Google-Token-Refresh fehlgeschlagen.');
+  if (!res.ok) {
+    if (data.error === 'invalid_grant') {
+      throw new Error('Die Search-Console-Verbindung ist abgelaufen oder wurde entzogen. Bitte unter /api/searchconsole/connect neu verbinden.');
+    }
+    throw new Error(data.error_description || data.error || 'Google-Token-Refresh fehlgeschlagen.');
+  }
   return data.access_token;
 }
 
