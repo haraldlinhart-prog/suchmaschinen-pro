@@ -1,6 +1,6 @@
-import { createServiceClient } from '@/lib/supabase/service';
+import { getScAccessToken } from '@/lib/google/scToken';
 import { resolveOrigin } from '@/lib/publish/origin';
-import { refreshAccessToken, submitSitemap } from '@/lib/google/searchconsole';
+import { submitSitemap } from '@/lib/google/searchconsole';
 
 // Publishing an article into a repo is not enough: if nothing links to it and no sitemap
 // lists it, neither visitors nor Google ever find it (firmenabwicklung.de, chat 26.09.26 —
@@ -12,6 +12,7 @@ import { refreshAccessToken, submitSitemap } from '@/lib/google/searchconsole';
 type SupabaseLike = any;
 
 interface WebsiteLike {
+  user_id?: string;
   id: string;
   domain: string;
   github_repo: string | null;
@@ -127,12 +128,10 @@ export function insertBlogLink(html: string, publishPath: string): string {
   return html;
 }
 
-async function submitToSearchConsole(domain: string, sitemapUrl: string): Promise<'submitted' | 'error' | 'not-connected'> {
+async function submitToSearchConsole(domain: string, sitemapUrl: string, userId?: string): Promise<'submitted' | 'error' | 'not-connected'> {
   try {
-    const service = createServiceClient();
-    const { data: tokenRow } = await service.from('sq_admin_tokens').select('refresh_token').eq('key', 'search_console').single();
-    if (!tokenRow?.refresh_token) return 'not-connected';
-    const accessToken = await refreshAccessToken(tokenRow.refresh_token);
+    const accessToken = userId ? await getScAccessToken(userId) : null;
+    if (!accessToken) return 'not-connected';
     await submitSitemap(accessToken, `sc-domain:${domain.replace(/^www\./, '')}`, sitemapUrl);
     return 'submitted';
   } catch (e) {
@@ -228,7 +227,7 @@ export async function ensureDiscoverability(website: WebsiteLike, supabase: Supa
   }
 
   // 4. Tell Google about the new sitemap once, when it first appears.
-  if (result.sitemap === 'created') result.gsc = await submitToSearchConsole(website.domain, sitemapUrl);
+  if (result.sitemap === 'created') result.gsc = await submitToSearchConsole(website.domain, sitemapUrl, website.user_id);
 
   return result;
 }

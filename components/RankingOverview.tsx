@@ -229,6 +229,7 @@ function PageStrip({ row }: { row: PageRow }) {
 export function RankingOverview({ websiteId }: { websiteId: string }) {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState('');
+  const [needsConnect, setNeedsConnect] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showTable, setShowTable] = useState(false);
   const [showAllPages, setShowAllPages] = useState(false);
@@ -237,7 +238,7 @@ export function RankingOverview({ websiteId }: { websiteId: string }) {
     let cancelled = false;
     fetch(`/api/keywords/rankings?websiteId=${websiteId}&days=90`)
       .then(r => r.json())
-      .then(d => { if (cancelled) return; if (d.buckets) setData(d); else setError(d.error || 'Ranking konnte nicht geladen werden.'); })
+      .then(d => { if (cancelled) return; if (d.buckets) setData(d); else { setError(d.error || 'Ranking konnte nicht geladen werden.'); if (d.connect) setNeedsConnect(true); } })
       .catch(() => { if (!cancelled) setError('Ranking konnte nicht geladen werden.'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
@@ -257,6 +258,11 @@ export function RankingOverview({ websiteId }: { websiteId: string }) {
       <div className="card" style={{ padding: '1.4rem', position: 'relative' }}>
         {loading && <span className="spinner" style={{ color: 'var(--emerald)' }} />}
         {error && <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>{error}</p>}
+        {needsConnect && (
+          <a href="/api/searchconsole/connect" className="btn-emerald" style={{ display: 'inline-block', marginTop: '0.75rem', padding: '0.5rem 1.1rem', fontSize: '0.82rem' }}>
+            Google Search Console verbinden
+          </a>
+        )}
         {data && data.totals.keywords === 0 && (
           <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>Google hat diese Website in den letzten 90 Tagen noch zu keinem Suchbegriff angezeigt.</p>
         )}

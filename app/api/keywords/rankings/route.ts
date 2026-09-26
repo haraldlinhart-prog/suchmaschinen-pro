@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createServiceClient } from '@/lib/supabase/service';
+import { getScAccessToken } from '@/lib/google/scToken';
 import { isAdminEmail } from '@/lib/supabase/admin';
-import { refreshAccessToken, searchAnalyticsQuery } from '@/lib/google/searchconsole';
+import { searchAnalyticsQuery } from '@/lib/google/searchconsole';
 
 export const maxDuration = 60;
 
@@ -31,16 +31,15 @@ export async function GET(req: NextRequest) {
   const { data: website } = await supabase.from('sq_websites').select('domain').eq('id', websiteId).eq('user_id', user.id).single();
   if (!website) return NextResponse.json({ error: 'Website nicht gefunden.' }, { status: 404 });
 
-  const service = createServiceClient();
-  const { data: tokenRow } = await service.from('sq_admin_tokens').select('refresh_token').eq('key', 'search_console').single();
-  if (!tokenRow?.refresh_token) return NextResponse.json({ error: 'Search Console ist nicht verbunden.' }, { status: 400 });
+  const accessTokenPromise = getScAccessToken(user.id);
 
   const day = (d: number) => new Date(Date.now() - d * 86400000).toISOString().slice(0, 10);
   const range = { startDate: day(days + 2), endDate: day(2) };
   const siteUrl = `sc-domain:${website.domain.replace(/^www\./, '')}`;
 
   try {
-    const accessToken = await refreshAccessToken(tokenRow.refresh_token);
+    const accessToken = await accessTokenPromise;
+    if (!accessToken) return NextResponse.json({ error: 'Ihre Google Search Console ist noch nicht verbunden.', connect: true }, { status: 400 });
     const [queryRows, dateRows, pageQueryRows] = await Promise.all([
       searchAnalyticsQuery(accessToken, siteUrl, { ...range, dimensions: ['query'], rowLimit: 1000 }),
       searchAnalyticsQuery(accessToken, siteUrl, { ...range, dimensions: ['date'], rowLimit: 1000 }),

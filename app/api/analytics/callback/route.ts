@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { exchangeCodeForTokens } from '@/lib/google/analytics';
 import { exchangeCodeForTokens as exchangeSearchConsoleCode } from '@/lib/google/searchconsole';
+import { createClient } from '@/lib/supabase/server';
+import { ADMIN_EMAIL, isAdminEmail } from '@/lib/supabase/admin';
+import { scKey } from '@/lib/google/scToken';
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code');
@@ -27,10 +30,17 @@ export async function GET(req: NextRequest) {
       if (!tokens.refresh_token) {
         return NextResponse.redirect(`${origin}/dashboard?sc_error=no_refresh_token`);
       }
+      // The token belongs to whoever is logged in right now — never trust a uid from state.
+      const { data: { user } } = await (await createClient()).auth.getUser();
+      if (!user || !isAdminEmail(user.email)) {
+        return NextResponse.redirect(`${origin}/dashboard?sc_error=not_allowed`);
+      }
       const supabase = createServiceClient();
-      await supabase
-        .from('sq_admin_tokens')
-        .upsert({ key: 'search_console', refresh_token: tokens.refresh_token, connected_at: new Date().toISOString() });
+      const now = new Date().toISOString();
+      await supabase.from('sq_admin_tokens').upsert({ key: scKey(user.id), refresh_token: tokens.refresh_token, connected_at: now });
+      if (user.email === ADMIN_EMAIL) {
+        await supabase.from('sq_admin_tokens').upsert({ key: 'search_console', refresh_token: tokens.refresh_token, connected_at: now });
+      }
       return NextResponse.redirect(`${origin}/dashboard?sc_connected=1`);
     } catch (e) {
       console.error('Search Console OAuth callback error:', e);

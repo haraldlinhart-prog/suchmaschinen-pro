@@ -311,6 +311,11 @@ export function KeywordWorkbench({ websiteId, isAdmin, usedKeywords, generatingK
           </div>
           {googleLoading && <div style={{ padding: '1rem' }}><span className="spinner" style={{ color: 'var(--emerald)' }} /></div>}
           {googleError && <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{googleError}</p>}
+          {googleError.includes('nicht verbunden') && (
+            <a href="/api/searchconsole/connect" className="btn-emerald" style={{ display: 'inline-block', marginBottom: '1rem', padding: '0.5rem 1.1rem', fontSize: '0.82rem' }}>
+              Google Search Console verbinden
+            </a>
+          )}
           {googleQueries && googleQueries.length === 0 && (
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Google hat diese Website bisher zu keinem Suchbegriff angezeigt.</p>
           )}

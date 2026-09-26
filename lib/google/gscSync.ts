@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service';
+import { getScAccessToken } from '@/lib/google/scToken';
 import { resolveOrigin } from '@/lib/publish/origin';
-import { refreshAccessToken, searchAnalyticsByPage, inspectUrlIndex } from '@/lib/google/searchconsole';
+import { searchAnalyticsByPage, inspectUrlIndex } from '@/lib/google/searchconsole';
 
 // Daily: pull Search Console performance per published article and check whether Google
 // has indexed it (chat 26.09.26 — proof that the articles actually pay off, and an early
@@ -34,22 +35,25 @@ function indexStatusFrom(verdict: string, coverage?: string): string {
 
 export async function runGscSync() {
   const supabase = createServiceClient();
-  const { data: tokenRow } = await supabase.from('sq_admin_tokens').select('refresh_token').eq('key', 'search_console').single();
-  if (!tokenRow?.refresh_token) throw new Error('Search Console nicht verbunden.');
-  const accessToken = await refreshAccessToken(tokenRow.refresh_token);
+  // Each site is read with its owner's own Search Console connection.
+  const tokenCache = new Map<string, string | null>();
+  const tokenFor = async (userId: string) => {
+    if (!tokenCache.has(userId)) tokenCache.set(userId, await getScAccessToken(userId).catch(() => null));
+    return tokenCache.get(userId) || null;
+  };
 
   const { data: articles } = await supabase
     .from('sq_articles')
-    .select('id, website_id, published_url, index_status, index_checked_at, gsc_best_position, sq_websites!inner(domain)')
+    .select('id, website_id, published_url, index_status, index_checked_at, gsc_best_position, sq_websites!inner(domain, user_id)')
     .eq('status', 'published')
     .not('published_url', 'is', null);
 
   // Group by website.
-  type Row = { id: string; website_id: string; published_url: string; index_status: string | null; index_checked_at: string | null; gsc_best_position: number | null; sq_websites: { domain: string } | { domain: string }[] };
-  const bySite = new Map<string, { domain: string; items: Row[] }>();
+  type Row = { id: string; website_id: string; published_url: string; index_status: string | null; index_checked_at: string | null; gsc_best_position: number | null; sq_websites: { domain: string; user_id: string } | { domain: string; user_id: string }[] };
+  const bySite = new Map<string, { domain: string; userId: string; items: Row[] }>();
   for (const a of (articles || []) as Row[]) {
     const site = Array.isArray(a.sq_websites) ? a.sq_websites[0] : a.sq_websites;
-    if (!bySite.has(a.website_id)) bySite.set(a.website_id, { domain: site.domain, items: [] });
+    if (!bySite.has(a.website_id)) bySite.set(a.website_id, { domain: site.domain, userId: site.user_id, items: [] });
     bySite.get(a.website_id)!.items.push(a);
   }
 
@@ -57,7 +61,12 @@ export async function runGscSync() {
   const results: Array<{ domain: string; articles: number; withData: number; inspected: number; indexed: number; error?: string }> = [];
   const now = new Date().toISOString();
 
-  for (const { domain, items } of bySite.values()) {
+  for (const { domain, userId, items } of bySite.values()) {
+    const accessToken = await tokenFor(userId);
+    if (!accessToken) {
+      results.push({ domain, articles: items.length, withData: 0, inspected: 0, indexed: 0, error: 'Search Console des Inhabers nicht verbunden' });
+      continue;
+    }
     const siteUrl = `sc-domain:${domain.replace(/^www\./, '')}`;
     const summary = { domain, articles: items.length, withData: 0, inspected: 0, indexed: 0 } as (typeof results)[number];
     try {
