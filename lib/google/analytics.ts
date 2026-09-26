@@ -69,8 +69,20 @@ export async function refreshAccessToken(refreshToken: string): Promise<string> 
     }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error_description || data.error || 'Google-Token-Refresh fehlgeschlagen.');
+  if (!res.ok) {
+    // invalid_grant = the stored refresh token is dead. Google words this either as
+    // "Token has been expired or revoked." or just "Bad Request" (chat 26.09.26).
+    if (data.error === 'invalid_grant') throw new GoogleTokenInvalidError(data.error_description || data.error);
+    throw new Error(data.error_description || data.error || 'Google-Token-Refresh fehlgeschlagen.');
+  }
   return data.access_token;
+}
+
+export class GoogleTokenInvalidError extends Error {
+  constructor(detail: string) {
+    super(`Google-Verbindung abgelaufen (${detail})`);
+    this.name = 'GoogleTokenInvalidError';
+  }
 }
 
 export interface GaProperty {

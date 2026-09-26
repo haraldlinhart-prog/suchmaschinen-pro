@@ -68,6 +68,7 @@ export default function WebsiteDetailPage() {
   const [gaChartData, setGaChartData] = useState<{ date: string; sessions: number; activeUsers: number }[] | null>(null);
   const [gaChartLoading, setGaChartLoading] = useState(false);
   const [gaError, setGaError] = useState('');
+  const [gaNeedsReconnect, setGaNeedsReconnect] = useState(false);
   const [gaSetupState, setGaSetupState] = useState<'idle' | 'loading'>('idle');
   const [gaSetupResult, setGaSetupResult] = useState<string>('');
 
@@ -259,6 +260,7 @@ export default function WebsiteDetailPage() {
           setGaPropertyFilter(website.domain.split('.')[0]);
         } else {
           setGaError(data.error || 'Properties konnten nicht geladen werden.');
+          if (data.reconnect) setGaNeedsReconnect(true);
         }
       })
       .catch(() => setGaError('Properties konnten nicht geladen werden.'))
@@ -271,7 +273,11 @@ export default function WebsiteDetailPage() {
     setGaChartLoading(true);
     fetch(`/api/analytics/data?websiteId=${websiteId}&days=30`)
       .then(res => res.json())
-      .then(data => { if (data.rows) setGaChartData(data.rows); else setGaError(data.error || 'Daten konnten nicht geladen werden.'); })
+      .then(data => {
+        if (data.rows) { setGaChartData(data.rows); return; }
+        setGaError(data.error || 'Daten konnten nicht geladen werden.');
+        if (data.reconnect) setGaNeedsReconnect(true);
+      })
       .catch(() => setGaError('Daten konnten nicht geladen werden.'))
       .finally(() => setGaChartLoading(false));
   }, [website?.ga_property_id, websiteId]);
@@ -295,7 +301,12 @@ export default function WebsiteDetailPage() {
         body: JSON.stringify({ websiteId }),
       });
       const data = await res.json();
-      if (!res.ok) { setGaSetupResult(`Fehler: ${data.error || 'unbekannt'}`); setGaSetupState('idle'); return; }
+      if (!res.ok) {
+        if (data.reconnect) { setGaError(data.error); setGaNeedsReconnect(true); setGaSetupResult(''); }
+        else setGaSetupResult(`Fehler: ${data.error || 'unbekannt'}`);
+        setGaSetupState('idle');
+        return;
+      }
 
       const propertyMsg = data.propertyAction === 'created' ? 'Neue Property angelegt.' : 'Bestehende Property übernommen.';
       const snippetMsg =
@@ -494,6 +505,13 @@ export default function WebsiteDetailPage() {
         {gaError && (
           <div style={{ background: '#fce8e8', border: '1px solid #f5a5a5', padding: '0.7rem 0.9rem', fontSize: '0.82rem', color: '#b02020', borderRadius: 8, marginBottom: '1rem' }}>
             {gaError}
+            {gaNeedsReconnect && (
+              <div style={{ marginTop: '0.6rem' }}>
+                <a href={`/api/analytics/connect?websiteId=${websiteId}`} className="btn-emerald" style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', display: 'inline-block' }}>
+                  Mit Google neu verbinden
+                </a>
+              </div>
+            )}
           </div>
         )}
 

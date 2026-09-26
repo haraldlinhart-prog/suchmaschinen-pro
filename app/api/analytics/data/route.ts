@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { refreshAccessToken, runDailyReport } from '@/lib/google/analytics';
+import { getGaAccessToken, RECONNECT_MESSAGE } from '@/lib/google/gaAccess';
+import { GoogleTokenInvalidError } from '@/lib/google/analytics';
+import { runDailyReport } from '@/lib/google/analytics';
 
 export async function GET(req: NextRequest) {
   const websiteId = req.nextUrl.searchParams.get('websiteId');
@@ -23,11 +25,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const accessToken = await refreshAccessToken(website.ga_refresh_token);
+    const accessToken = await getGaAccessToken({ id: websiteId, ga_refresh_token: website.ga_refresh_token }, user.id);
     const rows = await runDailyReport(accessToken, website.ga_property_id, days);
     return NextResponse.json({ rows });
   } catch (e) {
     console.error('GA data error:', e);
+    if (e instanceof GoogleTokenInvalidError) return NextResponse.json({ error: RECONNECT_MESSAGE, reconnect: true }, { status: 401 });
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Daten konnten nicht geladen werden.' }, { status: 500 });
   }
 }

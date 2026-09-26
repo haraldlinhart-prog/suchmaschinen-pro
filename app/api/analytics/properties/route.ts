@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { refreshAccessToken, listGa4Properties, enrichWithDomains } from '@/lib/google/analytics';
+import { getGaAccessToken, RECONNECT_MESSAGE } from '@/lib/google/gaAccess';
+import { GoogleTokenInvalidError } from '@/lib/google/analytics';
+import { listGa4Properties, enrichWithDomains } from '@/lib/google/analytics';
 
 // ~200 properties enriched with 8-way concurrency can take a while; default function
 // timeout would cut it off (see chat 02.09.26).
@@ -24,12 +26,13 @@ export async function GET(req: NextRequest) {
   if (!website?.ga_refresh_token) return NextResponse.json({ error: 'Google Analytics ist nicht verbunden.' }, { status: 400 });
 
   try {
-    const accessToken = await refreshAccessToken(website.ga_refresh_token);
+    const accessToken = await getGaAccessToken({ id: websiteId, ga_refresh_token: website.ga_refresh_token }, user.id);
     const properties = await listGa4Properties(accessToken);
     const enriched = await enrichWithDomains(accessToken, properties);
     return NextResponse.json({ properties: enriched });
   } catch (e) {
     console.error('GA properties error:', e);
+    if (e instanceof GoogleTokenInvalidError) return NextResponse.json({ error: RECONNECT_MESSAGE, reconnect: true }, { status: 401 });
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Properties konnten nicht geladen werden.' }, { status: 500 });
   }
 }
