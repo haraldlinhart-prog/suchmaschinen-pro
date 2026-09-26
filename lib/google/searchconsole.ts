@@ -196,3 +196,31 @@ export async function inspectUrlIndex(accessToken: string, siteUrl: string, insp
   const r = data.inspectionResult?.indexStatusResult || {};
   return { verdict: r.verdict || 'VERDICT_UNSPECIFIED', coverageState: r.coverageState, lastCrawlTime: r.lastCrawlTime };
 }
+
+export interface ScRow {
+  keys: string[];
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
+/** Generic Search Analytics query (single page of up to 25,000 rows). */
+export async function searchAnalyticsQuery(
+  accessToken: string,
+  siteUrl: string,
+  body: { startDate: string; endDate: string; dimensions: string[]; rowLimit?: number }
+): Promise<ScRow[]> {
+  const res = await fetch(`${SC_API}/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const err = new Error(data.error?.message || `Search-Analytics-Abfrage fehlgeschlagen (${res.status}).`) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
+  }
+  return data.rows || [];
+}

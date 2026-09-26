@@ -10,6 +10,7 @@ import { rewriteInstructions } from '@/lib/rewriteInstructions';
 import { isAdminEmail } from '@/lib/supabase/admin';
 import { GA_FOR_CUSTOMERS } from '@/lib/features';
 import { AnalyticsChart } from '@/components/AnalyticsChart';
+import { RankingOverview } from '@/components/RankingOverview';
 import { KeywordWorkbench, useKeywordVolumes, VolumeLabel, AdsPriceNote } from '@/components/KeywordWorkbench';
 
 const ANALYZE_MESSAGES = [
@@ -657,6 +658,8 @@ export default function WebsiteDetailPage() {
           </div>
         </div>
       )}
+
+      {isAdminEmail(user?.email) && <RankingOverview websiteId={websiteId} />}
 
       <KeywordWorkbench
         websiteId={websiteId}
