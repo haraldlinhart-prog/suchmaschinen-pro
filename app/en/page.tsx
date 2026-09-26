@@ -112,7 +112,7 @@ export default function EnglishHomePage() {
           </p>
           <p style={{ margin: 0 }}>
             With <strong>search-engines.pro</strong> you don&apos;t just get a strong service for less than elsewhere – you get everything you need:
-            you see where your website stands on Google, and you watch it gain more and more impressions within a few weeks thanks to our AI services.
+            you see where your website stands on Google, and you can watch it typically gain more and more impressions within a few weeks thanks to our AI services.
           </p>
         </div>
       </section>

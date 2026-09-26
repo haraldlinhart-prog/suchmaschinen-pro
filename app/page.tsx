@@ -115,8 +115,8 @@ export default function HomePage() {
           </p>
           <p style={{ margin: 0 }}>
             Bei <strong>suchmaschinen.pro</strong> bekommen Sie nicht nur einen starken Service für weniger Geld als anderswo, sondern alles, was Sie
-            brauchen: Sie sehen, wo sich Ihre Website bei Google befindet – und Sie sehen, wie sie mit unseren KI-Services nach ein paar Wochen
-            immer mehr Impressionen bekommt.
+            brauchen: Sie sehen, wo sich Ihre Website bei Google befindet – und Sie sehen, wie sie mit unseren KI-Services in der Regel nach ein paar
+            Wochen immer mehr Impressionen bekommt.
           </p>
         </div>
       </section>
