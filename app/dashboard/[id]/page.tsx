@@ -10,7 +10,7 @@ import { rewriteInstructions } from '@/lib/rewriteInstructions';
 import { isAdminEmail } from '@/lib/supabase/admin';
 import { GA_FOR_CUSTOMERS } from '@/lib/features';
 import { AnalyticsChart } from '@/components/AnalyticsChart';
-import { KeywordWorkbench, useKeywordVolumes, VolumeLabel } from '@/components/KeywordWorkbench';
+import { KeywordWorkbench, useKeywordVolumes, VolumeLabel, AdsPriceNote } from '@/components/KeywordWorkbench';
 
 const ANALYZE_MESSAGES = [
   'Website wird geladen…',
@@ -672,6 +672,7 @@ export default function WebsiteDetailPage() {
       {website.suggested_keywords && (
         <div style={{ marginBottom: '2.5rem' }}>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginBottom: '0.25rem' }}>Vorgeschlagene Suchbegriffe</h2>
+          {suggestedVolumes.available && <div style={{ marginBottom: '0.5rem' }}><AdsPriceNote /></div>}
           {website.last_analyzed_at && (
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
               Zuletzt analysiert: {new Date(website.last_analyzed_at).toLocaleString('de-DE')}

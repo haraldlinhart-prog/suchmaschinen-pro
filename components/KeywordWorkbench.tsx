@@ -54,13 +54,23 @@ export function VolumeLabel({ info }: { info?: KeywordVolumeInfo }) {
       </span>
       {cpc !== null && cpc > 0 && (
         <span
-          title="So viel zahlen Werbetreibende bei Google Ads für einen einzigen Klick auf diesen Suchbegriff. Jeder Besucher, der über Ihren Artikel kommt, ist diesen Betrag wert – ohne dass Sie dafür bezahlen."
+          title="So viel zahlen Werbetreibende bei Google Ads (Anzeigen über den Suchergebnissen) für einen einzigen Klick auf diesen Suchbegriff. Wer über Ihren Artikel kommt, kommt kostenlos – diesen Betrag sparen Sie also pro Besucher an Werbekosten."
           style={{ fontSize: '0.78rem', color: 'var(--emerald)', fontWeight: 600, cursor: 'help' }}
         >
-          Wert pro Besucher: {cpc.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+          Google-Ads-Preis: {cpc.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })} pro Klick
         </span>
       )}
     </>
+  );
+}
+
+export function AdsPriceNote() {
+  return (
+    <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '0.4rem 0 0' }}>
+      <strong style={{ color: 'var(--emerald)' }}>Google-Ads-Preis</strong> = was Werbetreibende bei Google Ads für einen einzigen Klick auf eine
+      Anzeige zu diesem Suchbegriff bezahlen. Besucher, die über Ihren Artikel kommen, kosten Sie nichts – pro Besucher sparen Sie also diesen
+      Betrag an Werbekosten. Ein hoher Preis zeigt außerdem, dass der Begriff kaufbereite Interessenten anzieht.
+    </p>
   );
 }
 
@@ -194,6 +204,7 @@ export function KeywordWorkbench({ websiteId, isAdmin, usedKeywords, generatingK
               <>
                 <VolumeLabel info={ownInfo} />
                 <RelevanceVerdict info={ownInfo} />
+                {ownInfo.cpc ? <AdsPriceNote /> : null}
               </>
             ) : (
               <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
@@ -211,6 +222,7 @@ export function KeywordWorkbench({ websiteId, isAdmin, usedKeywords, generatingK
           <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
             Begriffe, zu denen Google Ihre Website in den letzten 90 Tagen angezeigt hat (Search Console)
             {vol.available ? ', mit monatlichem Suchvolumen in Deutschland' : ''}.
+            {vol.available && <AdsPriceNote />}
           </div>
           {googleLoading && <div style={{ padding: '1rem' }}><span className="spinner" style={{ color: 'var(--emerald)' }} /></div>}
           {googleError && <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{googleError}</p>}
