@@ -46,10 +46,21 @@ export function useKeywordVolumes(keywords: string[]) {
 
 export function VolumeLabel({ info }: { info?: KeywordVolumeInfo }) {
   if (!info || info.volume === null || info.volume === undefined) return null;
+  const cpc = info.cpc !== null && info.cpc !== undefined ? Number(info.cpc) : null;
   return (
-    <span style={{ fontSize: '0.78rem', color: 'var(--ink)', fontWeight: 600 }}>
-      {info.volume === 0 ? 'kaum Suchen' : `≈ ${info.volume.toLocaleString('de-DE')} Suchen/Monat`}
-    </span>
+    <>
+      <span style={{ fontSize: '0.78rem', color: 'var(--ink)', fontWeight: 600 }}>
+        {info.volume === 0 ? 'kaum Suchen' : `≈ ${info.volume.toLocaleString('de-DE')} Suchen/Monat`}
+      </span>
+      {cpc !== null && cpc > 0 && (
+        <span
+          title="So viel zahlen Werbetreibende bei Google Ads für einen einzigen Klick auf diesen Suchbegriff. Jeder Besucher, der über Ihren Artikel kommt, ist diesen Betrag wert – ohne dass Sie dafür bezahlen."
+          style={{ fontSize: '0.78rem', color: 'var(--emerald)', fontWeight: 600, cursor: 'help' }}
+        >
+          Wert pro Besucher: {cpc.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+        </span>
+      )}
+    </>
   );
 }
 
