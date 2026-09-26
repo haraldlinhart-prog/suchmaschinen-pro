@@ -35,7 +35,7 @@ async function resolveOrigin(domain: string): Promise<string> {
 
 function indexStatusFrom(verdict: string, coverage?: string): string {
   if (verdict === 'PASS') return 'indexed';
-  if (coverage && /unknown to google|unbekannt/i.test(coverage)) return 'unknown';
+  if (coverage && /unknown to google|unbekannt|nicht bekannt/i.test(coverage)) return 'unknown';
   return 'not_indexed';
 }
 
