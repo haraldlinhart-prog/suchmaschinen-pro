@@ -64,6 +64,29 @@ export function VolumeLabel({ info }: { info?: KeywordVolumeInfo }) {
   );
 }
 
+/** Plain-language verdict whether a keyword is worth an article, from volume and ad value. */
+export function RelevanceVerdict({ info }: { info: KeywordVolumeInfo }) {
+  const volume = info.volume ?? 0;
+  const cpc = info.cpc !== null && info.cpc !== undefined ? Number(info.cpc) : 0;
+  const monthlyValue = volume * cpc * 0.1; // rough: ~10 % of searches click a page-1 result
+  let text: string;
+  let color: string;
+  if (volume === 0) {
+    text = 'Wird bei Google kaum gesucht – besser einen verwandten Begriff wählen.';
+    color = '#b02020';
+  } else if (volume >= 100 || monthlyValue >= 50) {
+    text = 'Lohnt sich: spürbare Nachfrage' + (cpc >= 3 ? ' und hoher Wert pro Besucher.' : '.');
+    color = 'var(--emerald)';
+  } else if (volume >= 20 || cpc >= 5) {
+    text = cpc >= 5 ? 'Kleine Nische, aber wertvolle Besucher – lohnt sich.' : 'Kleine Nische – lohnt sich als Ergänzung.';
+    color = 'var(--emerald)';
+  } else {
+    text = 'Sehr geringe Nachfrage – nur sinnvoll, wenn der Begriff genau Ihr Angebot trifft.';
+    color = '#8a6a1a';
+  }
+  return <span style={{ fontSize: '0.78rem', color, fontWeight: 600 }}>{text}</span>;
+}
+
 interface Props {
   websiteId: string;
   isAdmin: boolean;
@@ -100,6 +123,13 @@ export function KeywordWorkbench({ websiteId, isAdmin, usedKeywords, generatingK
   }, [isAdmin, websiteId]);
 
   const vol = useKeywordVolumes((googleQueries || []).slice(0, 100).map(q => q.keyword));
+  const [debouncedOwn, setDebouncedOwn] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedOwn(ownKeyword.trim().length >= 3 ? ownKeyword.trim() : ''), 700);
+    return () => clearTimeout(t);
+  }, [ownKeyword]);
+  const ownVol = useKeywordVolumes(debouncedOwn ? [debouncedOwn] : []);
+  const ownInfo = debouncedOwn ? ownVol.get(debouncedOwn) : undefined;
   const used = new Set(usedKeywords.map(k => k.toLowerCase()));
 
   const queue = async (keyword: string, source: string, rationale?: string) => {
@@ -158,6 +188,20 @@ export function KeywordWorkbench({ websiteId, isAdmin, usedKeywords, generatingK
             {queueing === own && <span className="spinner" />}Als Nächstes vormerken
           </button>
         </div>
+        {debouncedOwn && debouncedOwn === own && ownVol.available && (
+          <div style={{ marginTop: '0.7rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            {ownInfo ? (
+              <>
+                <VolumeLabel info={ownInfo} />
+                <RelevanceVerdict info={ownInfo} />
+              </>
+            ) : (
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
+                <span className="spinner" /> Suchvolumen wird ermittelt…
+              </span>
+            )}
+          </div>
+        )}
         {queuedMsg && <p style={{ fontSize: '0.8rem', color: 'var(--emerald)', margin: '0.6rem 0 0' }}>{queuedMsg}</p>}
       </div>
 
