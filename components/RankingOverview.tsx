@@ -90,15 +90,28 @@ function Buckets({ buckets }: { buckets: Bucket[] }) {
   );
 }
 
-function Trend({ trend }: { trend: TrendPoint[] }) {
+function smooth(trend: TrendPoint[], window = 7): TrendPoint[] {
+  // Impression-weighted rolling average: single days with 1–2 impressions otherwise make
+  // the line jump between position 5 and 90.
+  return trend.map((t, i) => {
+    const slice = trend.slice(Math.max(0, i - window + 1), i + 1);
+    const w = slice.reduce((n, d) => n + d.impressions, 0);
+    const position = w ? slice.reduce((n, d) => n + d.position * d.impressions, 0) / w : t.position;
+    return { ...t, position: Math.round(position * 10) / 10 };
+  });
+}
+
+function Trend({ trend: raw }: { trend: TrendPoint[] }) {
   const [hover, setHover] = useState<number | null>(null);
-  if (trend.length < 2) return null;
-  const W = 640, H = 180, L = 34, R = 10, T = 10, B = 24;
-  const maxPos = Math.max(10, Math.ceil(Math.max(...trend.map(t => t.position)) / 10) * 10);
+  if (raw.length < 2) return null;
+  const trend = smooth(raw);
+  const W = 900, H = 220, L = 44, R = 12, T = 12, B = 26;
+  const maxPos = Math.min(100, Math.max(20, Math.ceil(Math.max(...trend.map(t => t.position)) / 10) * 10));
   const x = (i: number) => L + (i / (trend.length - 1)) * (W - L - R);
   const y = (p: number) => T + ((p - 1) / (maxPos - 1)) * (H - T - B); // position 1 at the top
   const path = trend.map((t, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(t.position).toFixed(1)}`).join('');
-  const ticks = [1, 10, ...[20, 30, 50, 75, 100].filter(v => v < maxPos), maxPos].filter((v, i, a) => a.indexOf(v) === i);
+  const ticks = [1, 10, 20, 30, 50, 75, 100].filter(v => v <= maxPos).filter((v, i, a) => i === 0 || y(v) - y(a[i - 1]) >= 18);
+  const xTicks = trend.map((t, i) => i).filter(i => i % Math.ceil(trend.length / 7) === 0);
 
   const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -107,38 +120,48 @@ function Trend({ trend }: { trend: TrendPoint[] }) {
     setHover(Math.min(trend.length - 1, Math.max(0, i)));
   };
   const h = hover !== null ? trend[hover] : null;
+  const first = trend[0].position, last = trend[trend.length - 1].position;
+  const delta = Math.round((first - last) * 10) / 10;
 
   return (
     <div>
-      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '0.4rem' }}>Durchschnittliche Position im Zeitverlauf</div>
-      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Je höher die Linie, desto weiter vorne bei Google (Platz 1 oben).</div>
-      <div style={{ position: 'relative' }}>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', touchAction: 'none' }} onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
-        <rect x={L} y={y(1)} width={W - L - R} height={y(10) - y(1)} fill="var(--emerald-pale)" />
-        <text x={W - R - 4} y={y(1) + 12} fontSize={10} fill={PAGE1} textAnchor="end">Seite 1</text>
-        {ticks.map(t => (
-          <g key={t}>
-            <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--border)" strokeWidth={1} />
-            <text x={L - 6} y={y(t) + 3} fontSize={10} fill="var(--text-muted)" textAnchor="end">{t}</text>
-          </g>
-        ))}
-        {trend.map((t, i) => (i % Math.ceil(trend.length / 6) === 0 ? (
-          <text key={t.date} x={x(i)} y={H - 6} fontSize={10} fill="var(--text-muted)" textAnchor="middle">{shortDate(t.date)}</text>
-        ) : null))}
-        <path d={path} fill="none" stroke={PAGE1} strokeWidth={2} strokeLinejoin="round" />
-        {h && hover !== null && (
-          <>
-            <line x1={x(hover)} x2={x(hover)} y1={T} y2={H - B} stroke="var(--ink)" strokeWidth={1} strokeOpacity={0.35} />
-            <circle cx={x(hover)} cy={y(h.position)} r={4.5} fill={PAGE1} stroke="white" strokeWidth={2} />
-          </>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
+        <div>
+          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink)' }}>Durchschnittliche Position im Zeitverlauf</div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Gleitender 7-Tage-Durchschnitt · Platz 1 oben · grüner Bereich = Seite 1</div>
+        </div>
+        {delta !== 0 && (
+          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: delta > 0 ? PAGE1 : 'var(--text-muted)' }}>
+            {delta > 0 ? `▲ ${pf(delta)} Plätze besser` : `▼ ${pf(-delta)} Plätze schlechter`} als vor {raw.length} Tagen
+          </div>
         )}
-      </svg>
-      {h && hover !== null && (
-        <Tooltip x={`${(x(hover) / W) * 100}%`} y={`${(y(h.position) / H) * 100}%`}>
-          <div style={{ fontWeight: 700 }}>Ø Platz {pf(h.position)}</div>
-          <div style={{ opacity: 0.8 }}>{shortDate(h.date)} · {nf(h.impressions)} × angezeigt · {nf(h.clicks)} Klicks</div>
-        </Tooltip>
-      )}
+      </div>
+      <div style={{ position: 'relative' }}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', touchAction: 'none' }} onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
+          <rect x={L} y={y(1)} width={W - L - R} height={y(10) - y(1)} fill="var(--emerald-pale)" />
+          {ticks.map(t => (
+            <g key={t}>
+              <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--border)" strokeWidth={1} />
+              <text x={L - 8} y={y(t) + 4} fontSize={12} fill="var(--text-muted)" textAnchor="end">{t}</text>
+            </g>
+          ))}
+          {xTicks.map(i => (
+            <text key={i} x={x(i)} y={H - 6} fontSize={12} fill="var(--text-muted)" textAnchor="middle">{shortDate(trend[i].date)}</text>
+          ))}
+          <path d={path} fill="none" stroke={PAGE1} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+          {h && hover !== null && (
+            <>
+              <line x1={x(hover)} x2={x(hover)} y1={T} y2={H - B} stroke="var(--ink)" strokeWidth={1} strokeOpacity={0.35} />
+              <circle cx={x(hover)} cy={y(h.position)} r={5} fill={PAGE1} stroke="white" strokeWidth={2} />
+            </>
+          )}
+        </svg>
+        {h && hover !== null && (
+          <Tooltip x={`${(x(hover) / W) * 100}%`} y={`${(y(h.position) / H) * 100}%`}>
+            <div style={{ fontWeight: 700 }}>Ø Platz {pf(h.position)}</div>
+            <div style={{ opacity: 0.8 }}>Woche bis {shortDate(h.date)} · am Tag: {nf(h.impressions)} × angezeigt, {nf(h.clicks)} Klicks</div>
+          </Tooltip>
+        )}
       </div>
     </div>
   );
@@ -147,9 +170,10 @@ function Trend({ trend }: { trend: TrendPoint[] }) {
 function PageStrip({ row }: { row: PageRow }) {
   const [hover, setHover] = useState<number | null>(null);
   const MAX = 100;
-  const pos = (p: number) => ((Math.min(p, MAX) - 1) / (MAX - 1)) * 100;
+  // Square-root scale: gives the decisive range (page 1–2) more room than 50–100.
+  const pos = (p: number) => ((Math.sqrt(Math.min(p, MAX)) - 1) / (Math.sqrt(MAX) - 1)) * 100;
   let path = row.page;
-  try { path = new URL(row.page).pathname || '/'; } catch { /* keep raw */ }
+  try { const u = new URL(row.page); path = `${u.host}${u.pathname}`; } catch { /* keep raw */ }
   const best = row.keywords.reduce((m, k) => Math.min(m, k.position), Infinity);
   const h = hover !== null ? row.keywords[hover] : null;
 
@@ -191,8 +215,12 @@ function PageStrip({ row }: { row: PageRow }) {
           </Tooltip>
         )}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: 'var(--text-muted)' }}>
-        <span>Platz 1</span><span>10</span><span>50</span><span>100+</span>
+      <div style={{ position: 'relative', height: 14, fontSize: '0.66rem', color: 'var(--text-muted)' }}>
+        {[1, 10, 20, 50, 100].map(t => (
+          <span key={t} style={{ position: 'absolute', left: `${pos(t)}%`, transform: t === 1 ? 'none' : t === 100 ? 'translateX(-100%)' : 'translateX(-50%)' }}>
+            {t === 1 ? 'Platz 1' : t === 100 ? '100+' : t}
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -241,8 +269,10 @@ export function RankingOverview({ websiteId }: { websiteId: string }) {
               {stat(nf(data.totals.clicks), 'Klicks aus Google')}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '1.5rem' }}>
+            <div style={{ marginBottom: '1.75rem', maxWidth: 520 }}>
               <Buckets buckets={data.buckets} />
+            </div>
+            <div style={{ marginBottom: '1.75rem' }}>
               <Trend trend={data.trend} />
             </div>
 
@@ -278,7 +308,7 @@ export function RankingOverview({ websiteId }: { websiteId: string }) {
                       <tbody>
                         {data.pages.flatMap(p => p.keywords.map(k => (
                           <tr key={p.page + k.keyword} style={{ borderTop: '1px solid var(--border)' }}>
-                            <td style={{ padding: '0.35rem 0.5rem', wordBreak: 'break-all' }}>{(() => { try { return new URL(p.page).pathname; } catch { return p.page; } })()}</td>
+                            <td style={{ padding: '0.35rem 0.5rem', wordBreak: 'break-all' }}>{(() => { try { const u = new URL(p.page); return `${u.host}${u.pathname}`; } catch { return p.page; } })()}</td>
                             <td style={{ padding: '0.35rem 0.5rem' }}>{k.keyword}</td>
                             <td style={{ padding: '0.35rem 0.5rem', textAlign: 'right' }}>{pf(k.position)}</td>
                             <td style={{ padding: '0.35rem 0.5rem', textAlign: 'right' }}>{nf(k.impressions)}</td>
