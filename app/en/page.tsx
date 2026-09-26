@@ -97,6 +97,26 @@ export default function EnglishHomePage() {
         </div>
       </section>
 
+      {/* SEO hydra */}
+      <section style={{ padding: '4rem 1.5rem', maxWidth: 860, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="section-label">Everything in one place</div>
+          <div className="divider-emerald" style={{ margin: '0.75rem auto' }} />
+          <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', color: 'var(--ink)' }}>Stop feeding the SEO hydra</h2>
+        </div>
+        <div className="card" style={{ padding: '2rem 2.25rem', marginTop: '2rem', lineHeight: 1.75, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
+          <p style={{ margin: '0 0 1rem' }}>
+            Working with search engines and SEO is like fighting a hydra: the more you do and the more apparent success you have, the more providers
+            want even more money for yet another add-on. In the end you are tied to a pile of “useful” services that together cost as much as the
+            lease on a sports car – and still don&apos;t really deliver.
+          </p>
+          <p style={{ margin: 0 }}>
+            With <strong>search-engines.pro</strong> you don&apos;t just get a strong service for less than elsewhere – you get everything you need:
+            you see where your website stands on Google, and you watch it gain more and more impressions within a few weeks thanks to our AI services.
+          </p>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section id="pricing" style={{ padding: '4rem 1.5rem', maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>

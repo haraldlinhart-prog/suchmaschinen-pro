@@ -100,6 +100,27 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* SEO-Hydra */}
+      <section style={{ padding: '4rem 1.5rem', maxWidth: 860, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="section-label">Alles aus einer Hand</div>
+          <div className="divider-emerald" style={{ margin: '0.75rem auto' }} />
+          <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', color: 'var(--ink)' }}>Schluss mit der SEO-Hydra</h2>
+        </div>
+        <div className="card" style={{ padding: '2rem 2.25rem', marginTop: '2rem', lineHeight: 1.75, fontSize: '0.98rem', color: 'var(--text-primary)' }}>
+          <p style={{ margin: '0 0 1rem' }}>
+            Die Arbeit mit Suchmaschinen und SEO ist wie eine Art Hydra: Je mehr man macht und je mehr vermeintliche Erfolge man hat, desto mehr
+            Anbieter wollen für zusätzliche Optionen noch mehr Geld. Am Ende sieht man sich mit einem Haufen „nützlicher“ Services verbunden, die
+            zusammen die Leasingrate eines Sportwagens kosten – aber eigentlich nach wie vor nicht wirklich etwas bringen.
+          </p>
+          <p style={{ margin: 0 }}>
+            Bei <strong>suchmaschinen.pro</strong> bekommen Sie nicht nur einen starken Service für weniger Geld als anderswo, sondern alles, was Sie
+            brauchen: Sie sehen, wo sich Ihre Website bei Google befindet – und Sie sehen, wie sie mit unseren KI-Services nach ein paar Wochen
+            immer mehr Impressionen bekommt.
+          </p>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section id="preise" style={{ padding: '4rem 1.5rem', maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
