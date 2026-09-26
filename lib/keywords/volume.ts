@@ -143,16 +143,19 @@ export async function analyzeKeyword(keyword: string): Promise<KeywordAnalysis> 
   } else if (volume === 0) {
     verdict = { level: 'none', text: 'Wird bei Google praktisch nicht gesucht – ein Artikel dazu bringt kaum Besucher. Nehmen Sie besser einen der Alternativbegriffe.' };
   } else {
-    const top3Value = (volume * CTR_BY_POSITION[3]) * (cpc || 0);
-    if (volume >= 100 || top3Value >= 50) {
-      verdict = { level: 'good', text: 'Lohnt sich: spürbare Nachfrage' + ((cpc || 0) >= 3 ? ' und wertvolle Besucher.' : '.') };
-    } else if (volume >= 20 || (cpc || 0) >= 5) {
-      verdict = { level: 'niche', text: (cpc || 0) >= 5 ? 'Kleine Nische, aber wertvolle Besucher – lohnt sich.' : 'Kleine Nische – lohnt sich als Ergänzung.' };
+    const c = cpc || 0;
+    const top3Value = volume * CTR_BY_POSITION[3] * c; // € per month at position 3
+    if (volume >= 100) {
+      verdict = { level: 'good', text: 'Lohnt sich: spürbare Nachfrage' + (c >= 3 ? ' und wertvolle Besucher.' : '.') };
+    } else if (volume >= 20 && top3Value >= 30) {
+      verdict = { level: 'good', text: `Kleine Nische mit sehr wertvollen Besuchern – schon wenige Besucher entsprechen rund ${Math.round(top3Value)} € Werbebudget im Monat.` };
+    } else if (volume >= 20 || c >= 5) {
+      verdict = { level: 'niche', text: c >= 5 ? 'Kleine Nische, aber wertvolle Besucher – lohnt sich.' : 'Kleine Nische – lohnt sich als Ergänzung.' };
     } else {
       verdict = { level: 'weak', text: 'Sehr geringe Nachfrage – nur sinnvoll, wenn der Begriff genau Ihr Angebot trifft. Prüfen Sie die Alternativen.' };
     }
   }
 
-  const related = verdict.level === 'good' ? [] : (await getRelatedKeywords(keyword)).slice(0, 6);
+  const related = verdict.level === 'good' && (volume || 0) >= 100 ? [] : (await getRelatedKeywords(keyword)).slice(0, 6);
   return { keyword, volume, cpc, scenarios, verdict, related };
 }
