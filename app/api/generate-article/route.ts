@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateArticleContent } from '@/lib/ai/generateArticle';
+import { featuresFor } from '@/lib/content/planFeatures';
+import { linkTargets } from '@/lib/content/premiumJobs';
+import { relatedArticles } from '@/lib/content/internalLinks';
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,7 +39,10 @@ export async function POST(req: NextRequest) {
 
     let generated;
     try {
-      generated = await generateArticleContent(website.domain, website.notes, keyword, rationale, intent);
+      const related = featuresFor(website.plan).internalLinks
+        ? relatedArticles(keyword, keyword, await linkTargets(website.id, supabase), 3).map(t => ({ title: t.title, url: t.url }))
+        : [];
+      generated = await generateArticleContent(website.domain, website.notes, keyword, rationale, intent, related);
     } catch (e) {
       console.error('generateArticleContent error:', e);
       return NextResponse.json({ error: 'Artikel-Generierung fehlgeschlagen.' }, { status: 500 });

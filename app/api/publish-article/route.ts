@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { publishArticle } from '@/lib/publish/publishArticle';
 import { publishNewsIndex } from '@/lib/publish/publishNewsIndex';
 import { ensureDiscoverability } from '@/lib/publish/ensureDiscoverability';
+import { featuresFor } from '@/lib/content/planFeatures';
+import { backlinkOlderArticles } from '@/lib/content/premiumJobs';
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,6 +48,10 @@ export async function POST(req: NextRequest) {
 
     await publishNewsIndex(website, supabase).catch(e => console.error('publishNewsIndex failed', e));
     await ensureDiscoverability(website, supabase).catch(e => console.error('ensureDiscoverability failed', e));
+    if (featuresFor(website.plan).backlinkOlder) {
+      await backlinkOlderArticles(website, { id: articleId, title: article.title, keyword: article.keyword, url: result.url }, supabase)
+        .catch(e => console.error('backlinkOlderArticles failed', e));
+    }
 
     return NextResponse.json({ success: true, mode: result.mode, url: result.url });
   } catch (err) {

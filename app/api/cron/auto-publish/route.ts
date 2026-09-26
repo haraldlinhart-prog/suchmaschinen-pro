@@ -4,6 +4,10 @@ import { fetchSiteText, suggestKeywords, type SuggestedKeyword } from '@/lib/ai/
 import { generateArticleContent } from '@/lib/ai/generateArticle';
 import { publishArticle } from '@/lib/publish/publishArticle';
 import { publishNewsIndex } from '@/lib/publish/publishNewsIndex';
+import { featuresFor } from '@/lib/content/planFeatures';
+import { linkTargets, backlinkOlderArticles, maybeRefreshOne } from '@/lib/content/premiumJobs';
+import { relatedArticles } from '@/lib/content/internalLinks';
+import { getKeywordVolumes } from '@/lib/keywords/volume';
 import { ensureDiscoverability } from '@/lib/publish/ensureDiscoverability';
 
 export const maxDuration = 800; // Vercel Pro/Fluid Compute ceiling - was 300s, raised as the number of sites grew
@@ -44,6 +48,16 @@ export async function GET(req: NextRequest) {
       // Runs every day for every site, not just on publish days, so sites that already
       // have articles get their sitemap/robots/homepage link fixed (idempotent).
       await ensureDiscoverability(website, supabase).catch(e => console.error(`ensureDiscoverability failed for ${website.domain}`, e));
+
+      // Premium: refresh one article that lost positions or stalls on page 2–4 (chat 26.09.26).
+      if (featuresFor(website.plan).refresh) {
+        try {
+          const refreshed = await maybeRefreshOne(website, supabase);
+          if (refreshed) results.push({ domain: website.domain, status: 'refreshed', detail: refreshed });
+        } catch (e) {
+          console.error(`Cron: refresh failed for ${website.domain}`, e);
+        }
+      }
 
       if (!isDue(website.last_auto_published_at, website.plan)) {
         results.push({ domain: website.domain, status: 'skipped-not-due' });
@@ -116,13 +130,30 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      // Don't write filler: skip suggested keywords that Google data shows nobody searches
+      // for. Keywords the customer picked or queued themselves are always kept (chat 26.09.26).
+      try {
+        const vols = await getKeywordVolumes(pool.slice(0, 30).map(k => k.keyword));
+        pool = pool.filter((k: SuggestedKeyword & { source?: string }) => {
+          if (k.source === 'manual' || k.source === 'search_console') return true;
+          const v = vols[k.keyword.trim().toLowerCase().replace(/\s+/g, ' ')];
+          return !v || v.volume === null || v.volume > 0;
+        });
+      } catch (volErr) {
+        console.error(`Cron: volume check failed for ${website.domain}`, volErr);
+      }
+
       if (pool.length === 0) {
-        results.push({ domain: website.domain, status: 'no-keywords-available' });
+        results.push({ domain: website.domain, status: 'no-worthwhile-keywords' });
         continue;
       }
 
       const next = pool[0];
-      const generated = await generateArticleContent(website.domain, website.notes, next.keyword, next.rationale, next.intent);
+      const features = featuresFor(website.plan);
+      const related = features.internalLinks
+        ? relatedArticles(next.keyword, next.keyword, await linkTargets(website.id, supabase), 3).map(t => ({ title: t.title, url: t.url }))
+        : [];
+      const generated = await generateArticleContent(website.domain, website.notes, next.keyword, next.rationale, next.intent, related);
 
       const { data: articleRow, error: insertError } = await supabase
         .from('sq_articles')
@@ -158,7 +189,12 @@ export async function GET(req: NextRequest) {
       await supabase.from('sq_websites').update({ last_auto_published_at: new Date().toISOString() }).eq('id', website.id);
 
       await publishNewsIndex(website, supabase).catch(e => console.error('publishNewsIndex failed', e));
-        await ensureDiscoverability(website, supabase).catch(e => console.error('ensureDiscoverability failed', e));
+      await ensureDiscoverability(website, supabase).catch(e => console.error('ensureDiscoverability failed', e));
+
+      if (features.backlinkOlder) {
+        await backlinkOlderArticles(website, { id: articleRow.id, title: generated.title, keyword: next.keyword, url: publishResult.url }, supabase)
+          .catch(e => console.error('backlinkOlderArticles failed', e));
+      }
 
       results.push({ domain: website.domain, status: 'published', detail: publishResult.url });
     } catch (siteErr) {

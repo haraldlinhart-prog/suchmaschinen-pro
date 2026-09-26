@@ -74,6 +74,10 @@ export interface Article {
   index_coverage?: string | null;
   index_last_crawl?: string | null;
   index_checked_at?: string | null;
+  gsc_best_position?: number | null;
+  refreshed_at?: string | null;
+  refresh_count?: number;
+  refresh_reason?: string | null;
 }
 
 export const STATUS_LABELS: Record<WebsiteStatus, string> = {

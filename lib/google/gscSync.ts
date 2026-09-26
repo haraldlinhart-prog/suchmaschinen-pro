@@ -40,12 +40,12 @@ export async function runGscSync() {
 
   const { data: articles } = await supabase
     .from('sq_articles')
-    .select('id, website_id, published_url, index_status, index_checked_at, sq_websites!inner(domain)')
+    .select('id, website_id, published_url, index_status, index_checked_at, gsc_best_position, sq_websites!inner(domain)')
     .eq('status', 'published')
     .not('published_url', 'is', null);
 
   // Group by website.
-  type Row = { id: string; website_id: string; published_url: string; index_status: string | null; index_checked_at: string | null; sq_websites: { domain: string } | { domain: string }[] };
+  type Row = { id: string; website_id: string; published_url: string; index_status: string | null; index_checked_at: string | null; gsc_best_position: number | null; sq_websites: { domain: string } | { domain: string }[] };
   const bySite = new Map<string, { domain: string; items: Row[] }>();
   for (const a of (articles || []) as Row[]) {
     const site = Array.isArray(a.sq_websites) ? a.sq_websites[0] : a.sq_websites;
@@ -79,10 +79,13 @@ export async function runGscSync() {
       for (const a of items) {
         const r = perf.get(norm(a.published_url));
         if (r) summary.withData++;
+        const pos = r ? Math.round(r.position * 10) / 10 : null;
+        const best = pos === null ? a.gsc_best_position : a.gsc_best_position === null ? pos : Math.min(Number(a.gsc_best_position), pos);
         await supabase.from('sq_articles').update({
           gsc_impressions: r ? Math.round(r.impressions) : 0,
           gsc_clicks: r ? Math.round(r.clicks) : 0,
-          gsc_position: r ? Math.round(r.position * 10) / 10 : null,
+          gsc_position: pos,
+          gsc_best_position: best,
           gsc_updated_at: now,
         }).eq('id', a.id);
       }

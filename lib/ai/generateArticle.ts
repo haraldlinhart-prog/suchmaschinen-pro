@@ -46,7 +46,8 @@ export async function generateArticleContent(
   notes: string | null,
   keyword: string,
   rationale?: string,
-  intent?: string
+  intent?: string,
+  relatedLinks?: { title: string; url: string }[]
 ): Promise<GeneratedArticle> {
   if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY fehlt.');
 
@@ -60,7 +61,7 @@ Requirements:
 - Use a clear H1 title, then structured with H2/H3 subheadings
 - Natural, non-spammy use of the keyword and closely related terms
 - Include a short concluding paragraph
-- Output as clean semantic HTML body content only (h1, h2, h3, p, ul/li as needed) — no <html>, <head>, or <body> tags, no inline styles, no markdown
+${relatedLinks && relatedLinks.length ? `- Where it genuinely fits the text, link 1–3 times to these related articles on the same site (use exactly these URLs, natural anchor text, no link list):\n${relatedLinks.map(r => `  - ${r.title}: ${r.url}`).join('\n')}\n` : ''}- Output as clean semantic HTML body content only (h1, h2, h3, p, ul/li as needed) — no <html>, <head>, or <body> tags, no inline styles, no markdown
 
 Call the output_article tool with the finished article.`;
 

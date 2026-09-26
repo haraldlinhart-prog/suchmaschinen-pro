@@ -135,7 +135,7 @@ export default function HomePage() {
               29 €<span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-muted)' }}> / Monat</span>
             </div>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-              1 Artikel alle 2 Tage.
+              1 Artikel alle 2 Tage, mit interner Verlinkung zu Ihren bisherigen Artikeln.
             </p>
             <Link href="/auth?mode=register" className="btn-outline" style={{ width: '100%', justifyContent: 'center' }}>Jetzt starten</Link>
           </div>
@@ -156,13 +156,14 @@ export default function HomePage() {
           }}
         >
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: '0.8rem', color: 'var(--emerald-light)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.4rem' }}>PREMIUM · MAXIMALES TEMPO</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--emerald-light)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.4rem' }}>PREMIUM · MAXIMALE WIRKUNG</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.4rem' }}>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: '2.4rem', fontWeight: 700, color: 'white' }}>49 €</span>
               <span style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.65)' }}>/ Monat</span>
             </div>
             <p style={{ fontSize: '0.92rem', color: 'rgba(255,255,255,0.75)', margin: 0 }}>
-              1 Artikel täglich — die schnellste Kadenz, die wir anbieten.
+              1 Artikel täglich – plus: Artikel, die bei Google an Position verlieren oder auf Seite 2 hängen, werden automatisch überarbeitet
+              und aktualisiert, und neue Artikel werden in Ihre bestehenden Artikel eingebunden.
             </p>
           </div>
           <Link href="/auth?mode=register" className="btn-emerald" style={{ padding: '0.9rem 2.2rem', fontSize: '0.95rem', whiteSpace: 'nowrap' }}>

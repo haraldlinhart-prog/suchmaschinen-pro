@@ -777,6 +777,11 @@ export default function WebsiteDetailPage() {
                 <div style={{ flex: 1, minWidth: 220 }}>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.3rem' }}>
                     <span className="badge badge-active">Veröffentlicht</span>
+                    {article.refreshed_at && (
+                      <span className="badge badge-active" title={article.refresh_reason ? `Grund: ${article.refresh_reason}` : undefined}>
+                        Aufgefrischt {new Date(article.refreshed_at).toLocaleDateString('de-DE')}
+                      </span>
+                    )}
                     {article.index_status === 'indexed' && (
                       <span className="badge badge-active" title={article.index_last_crawl ? `Zuletzt von Google gecrawlt: ${new Date(article.index_last_crawl).toLocaleDateString('de-DE')}` : undefined}>Bei Google indexiert</span>
                     )}
