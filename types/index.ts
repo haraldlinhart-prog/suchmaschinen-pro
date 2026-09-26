@@ -66,6 +66,14 @@ export interface Article {
   published_url: string | null;
   image_url: string | null;
   image_alt: string | null;
+  gsc_impressions?: number | null;
+  gsc_clicks?: number | null;
+  gsc_position?: number | null;
+  gsc_updated_at?: string | null;
+  index_status?: 'indexed' | 'not_indexed' | 'unknown' | 'no_access' | null;
+  index_coverage?: string | null;
+  index_last_crawl?: string | null;
+  index_checked_at?: string | null;
 }
 
 export const STATUS_LABELS: Record<WebsiteStatus, string> = {

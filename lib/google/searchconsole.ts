@@ -134,3 +134,60 @@ export async function inspectUrl(accessToken: string, siteUrl: string, inspectio
   if (!res.ok) throw new Error(data.error?.message || 'URL-Inspektion fehlgeschlagen.');
   return data.inspectionResult;
 }
+
+export interface ScPageRow {
+  page: string;
+  clicks: number;
+  impressions: number;
+  position: number;
+}
+
+/** Clicks/impressions/avg. position per page for a date range (YYYY-MM-DD). */
+export async function searchAnalyticsByPage(
+  accessToken: string,
+  siteUrl: string,
+  startDate: string,
+  endDate: string
+): Promise<ScPageRow[]> {
+  const rows: ScPageRow[] = [];
+  let startRow = 0;
+  const pageSize = 5000;
+  // Paginate — a site with many articles can exceed a single response.
+  for (;;) {
+    const res = await fetch(`${SC_API}/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startDate, endDate, dimensions: ['page'], rowLimit: pageSize, startRow }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || `Search-Analytics-Abfrage fehlgeschlagen (${res.status}).`);
+    const batch: Array<{ keys: string[]; clicks: number; impressions: number; position: number }> = data.rows || [];
+    for (const r of batch) rows.push({ page: r.keys[0], clicks: r.clicks, impressions: r.impressions, position: r.position });
+    if (batch.length < pageSize) break;
+    startRow += pageSize;
+  }
+  return rows;
+}
+
+export interface UrlInspection {
+  verdict: string; // PASS | NEUTRAL | FAIL | VERDICT_UNSPECIFIED
+  coverageState?: string;
+  lastCrawlTime?: string;
+}
+
+/** URL Inspection API — whether Google has this exact URL in its index. Quota ~2000/day per property. */
+export async function inspectUrlIndex(accessToken: string, siteUrl: string, inspectionUrl: string): Promise<UrlInspection> {
+  const res = await fetch('https://searchconsole.googleapis.com/v1/urlInspection/index:inspect', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ inspectionUrl, siteUrl, languageCode: 'de' }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const err = new Error(data.error?.message || `URL-Prüfung fehlgeschlagen (${res.status}).`) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
+  }
+  const r = data.inspectionResult?.indexStatusResult || {};
+  return { verdict: r.verdict || 'VERDICT_UNSPECIFIED', coverageState: r.coverageState, lastCrawlTime: r.lastCrawlTime };
+}

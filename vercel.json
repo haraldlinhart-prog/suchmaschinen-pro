@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/reconcile-billing",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/gsc-sync",
+      "schedule": "30 7 * * *"
     }
   ]
 }

@@ -717,19 +717,48 @@ export default function WebsiteDetailPage() {
 
       {articles.some(a => a.status === 'published') && (
         <div style={{ marginBottom: '2.5rem' }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginBottom: '1rem' }}>Veröffentlichte Artikel</h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginBottom: '0.5rem' }}>Veröffentlichte Artikel</h2>
+          {(() => {
+            const pub = articles.filter(a => a.status === 'published');
+            const checked = pub.filter(a => a.index_status && a.index_status !== 'no_access');
+            if (checked.length === 0 && !pub.some(a => a.gsc_updated_at)) return null;
+            const indexed = pub.filter(a => a.index_status === 'indexed').length;
+            const impressions = pub.reduce((n, a) => n + (a.gsc_impressions || 0), 0);
+            const clicks = pub.reduce((n, a) => n + (a.gsc_clicks || 0), 0);
+            return (
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                Bei Google indexiert: <strong style={{ color: 'var(--ink)' }}>{indexed} von {pub.length}</strong>
+                {' · '}letzte 28 Tage: <strong style={{ color: 'var(--ink)' }}>{impressions.toLocaleString('de-DE')}</strong> Impressionen,{' '}
+                <strong style={{ color: 'var(--ink)' }}>{clicks.toLocaleString('de-DE')}</strong> Klicks
+              </p>
+            );
+          })()}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {articles.filter(a => a.status === 'published').map(article => (
               <div key={article.id} className="card" style={{ padding: '1.1rem 1.4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: 220 }}>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.3rem' }}>
                     <span className="badge badge-active">Veröffentlicht</span>
+                    {article.index_status === 'indexed' && (
+                      <span className="badge badge-active" title={article.index_last_crawl ? `Zuletzt von Google gecrawlt: ${new Date(article.index_last_crawl).toLocaleDateString('de-DE')}` : undefined}>Bei Google indexiert</span>
+                    )}
+                    {(article.index_status === 'not_indexed' || article.index_status === 'unknown') && (
+                      <span className="badge badge-pending" title={article.index_coverage || undefined}>
+                        {article.index_status === 'unknown' ? 'Google noch unbekannt' : 'Noch nicht indexiert'}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)' }}>{article.title}</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Keyword: {article.keyword}</div>
                   {article.published_url && (
                     <div style={{ fontSize: '0.78rem', color: 'var(--emerald)', marginTop: '0.2rem' }}>
                       {article.published_url}
+                    </div>
+                  )}
+                  {article.gsc_updated_at && (
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                      Google, letzte 28 Tage: {(article.gsc_impressions || 0).toLocaleString('de-DE')} Impressionen · {(article.gsc_clicks || 0).toLocaleString('de-DE')} Klicks
+                      {article.gsc_position ? ` · Ø Position ${String(article.gsc_position).replace('.', ',')}` : ''}
                     </div>
                   )}
                 </div>
