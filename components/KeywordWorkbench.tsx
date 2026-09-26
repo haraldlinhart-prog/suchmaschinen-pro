@@ -74,27 +74,29 @@ export function AdsPriceNote() {
   );
 }
 
-/** Plain-language verdict whether a keyword is worth an article, from volume and ad value. */
-export function RelevanceVerdict({ info }: { info: KeywordVolumeInfo }) {
-  const volume = info.volume ?? 0;
-  const cpc = info.cpc !== null && info.cpc !== undefined ? Number(info.cpc) : 0;
-  const monthlyValue = volume * cpc * 0.1; // rough: ~10 % of searches click a page-1 result
-  let text: string;
-  let color: string;
-  if (volume === 0) {
-    text = 'Wird bei Google kaum gesucht – besser einen verwandten Begriff wählen.';
-    color = '#b02020';
-  } else if (volume >= 100 || monthlyValue >= 50) {
-    text = 'Lohnt sich: spürbare Nachfrage' + (cpc >= 3 ? ' und hoher Wert pro Besucher.' : '.');
-    color = 'var(--emerald)';
-  } else if (volume >= 20 || cpc >= 5) {
-    text = cpc >= 5 ? 'Kleine Nische, aber wertvolle Besucher – lohnt sich.' : 'Kleine Nische – lohnt sich als Ergänzung.';
-    color = 'var(--emerald)';
-  } else {
-    text = 'Sehr geringe Nachfrage – nur sinnvoll, wenn der Begriff genau Ihr Angebot trifft.';
-    color = '#8a6a1a';
-  }
-  return <span style={{ fontSize: '0.78rem', color, fontWeight: 600 }}>{text}</span>;
+export interface KeywordAnalysisResult {
+  keyword: string;
+  volume: number | null;
+  cpc: number | null;
+  scenarios: Array<{ position: number; clicks: number; adsValue: number | null }>;
+  verdict: { level: 'good' | 'niche' | 'weak' | 'none' | 'unknown'; text: string };
+  related: Array<{ keyword: string; volume: number; cpc: number | null }>;
+}
+
+function VerdictBox({ verdict }: { verdict: KeywordAnalysisResult['verdict'] }) {
+  const tone = {
+    good: { bg: 'var(--emerald-pale)', fg: 'var(--emerald)', icon: '✓', label: 'Empfehlenswert' },
+    niche: { bg: 'var(--emerald-pale)', fg: 'var(--emerald)', icon: '✓', label: 'Sinnvoll' },
+    weak: { bg: '#fdf3dc', fg: '#8a6a1a', icon: '!', label: 'Eher schwach' },
+    none: { bg: '#fce8e8', fg: '#b02020', icon: '✕', label: 'Nicht empfehlenswert' },
+    unknown: { bg: 'var(--paper-dark)', fg: 'var(--text-muted)', icon: '?', label: 'Keine Daten' },
+  }[verdict.level];
+  return (
+    <div style={{ background: tone.bg, color: tone.fg, padding: '0.6rem 0.8rem', borderRadius: 8, fontSize: '0.82rem', display: 'flex', gap: '0.55rem', alignItems: 'flex-start' }}>
+      <strong aria-hidden style={{ width: 18, textAlign: 'center' }}>{tone.icon}</strong>
+      <span><strong>{tone.label}:</strong> {verdict.text}</span>
+    </div>
+  );
 }
 
 interface Props {
@@ -110,6 +112,10 @@ interface Props {
 
 export function KeywordWorkbench({ websiteId, isAdmin, usedKeywords, generatingKeyword, generateMessage, freeLimitReached, onGenerate, onQueued }: Props) {
   const [ownKeyword, setOwnKeyword] = useState('');
+  const [analysis, setAnalysis] = useState<KeywordAnalysisResult | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState('');
+  const [override, setOverride] = useState(false);
   const [queueing, setQueueing] = useState<string | null>(null);
   const [queuedMsg, setQueuedMsg] = useState('');
   const [googleQueries, setGoogleQueries] = useState<GoogleQuery[] | null>(null);
@@ -133,13 +139,6 @@ export function KeywordWorkbench({ websiteId, isAdmin, usedKeywords, generatingK
   }, [isAdmin, websiteId]);
 
   const vol = useKeywordVolumes((googleQueries || []).slice(0, 100).map(q => q.keyword));
-  const [debouncedOwn, setDebouncedOwn] = useState('');
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedOwn(ownKeyword.trim().length >= 3 ? ownKeyword.trim() : ''), 700);
-    return () => clearTimeout(t);
-  }, [ownKeyword]);
-  const ownVol = useKeywordVolumes(debouncedOwn ? [debouncedOwn] : []);
-  const ownInfo = debouncedOwn ? ownVol.get(debouncedOwn) : undefined;
   const used = new Set(usedKeywords.map(k => k.toLowerCase()));
 
   const queue = async (keyword: string, source: string, rationale?: string) => {
@@ -163,6 +162,32 @@ export function KeywordWorkbench({ websiteId, isAdmin, usedKeywords, generatingK
   };
 
   const own = ownKeyword.trim();
+
+  const analyze = async (kw: string) => {
+    const k = kw.trim();
+    if (k.length < 3) return;
+    setOwnKeyword(k);
+    setAnalyzing(true);
+    setAnalyzeError('');
+    setAnalysis(null);
+    setOverride(false);
+    try {
+      const res = await fetch('/api/keywords/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword: k }),
+      });
+      const d = await res.json();
+      if (!res.ok) setAnalyzeError(d.error || 'Prüfung fehlgeschlagen.');
+      else setAnalysis(d);
+    } catch {
+      setAnalyzeError('Prüfung fehlgeschlagen.');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+  const analysed = analysis && analysis.keyword.toLowerCase() === own.toLowerCase() ? analysis : null;
+  const sensible = !!analysed && (['good', 'niche', 'unknown'].includes(analysed.verdict.level) || override);
   const btn = { padding: '0.45rem 0.9rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' } as const;
 
   const sorted = (googleQueries || [])
@@ -175,42 +200,102 @@ export function KeywordWorkbench({ websiteId, isAdmin, usedKeywords, generatingK
       <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--ink)', marginBottom: '0.75rem' }}>Eigener Suchbegriff</h2>
       <div className="card" style={{ padding: '1.1rem 1.4rem', marginBottom: '2rem' }}>
         <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 0.75rem' }}>
-          Sie wissen, wonach Ihre Kunden suchen? Geben Sie den Suchbegriff ein und lassen Sie sofort einen Artikel dazu schreiben – oder merken Sie ihn für die nächste automatische Veröffentlichung vor.
+          Sie wissen, wonach Ihre Kunden suchen? Geben Sie den Suchbegriff ein und prüfen Sie zuerst, wie viele Besucher ein Artikel dazu bringen kann und was diese Besucher über Google Ads kosten würden. Ist der Begriff sinnvoll, können Sie den Artikel sofort schreiben lassen oder für die nächste automatische Veröffentlichung vormerken.
         </p>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <form
+          onSubmit={e => { e.preventDefault(); analyze(own); }}
+          style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}
+        >
           <input
             value={ownKeyword}
             onChange={e => setOwnKeyword(e.target.value)}
             placeholder="z. B. GmbH liquidieren Kosten"
-            maxLength={120}
+            maxLength={80}
             style={{ flex: 1, minWidth: 220, padding: '0.55rem 0.8rem', border: '1px solid var(--border)', borderRadius: 8, fontSize: '0.9rem' }}
           />
-          <button
-            className="btn-emerald"
-            style={btn}
-            disabled={!own || freeLimitReached || generatingKeyword !== null}
-            onClick={() => { onGenerate({ keyword: own, rationale: 'Selbst gewählter Suchbegriff', intent: 'informational' }); }}
-          >
-            {generatingKeyword === own && <span className="spinner" />}
-            {generatingKeyword === own ? generateMessage : 'Artikel jetzt erstellen'}
+          <button type="submit" className="btn-emerald" style={btn} disabled={own.length < 3 || analyzing}>
+            {analyzing && <span className="spinner" />}
+            {analyzing ? 'Wird geprüft…' : 'Suchbegriff prüfen'}
           </button>
-          <button className="btn-outline" style={btn} disabled={!own || queueing !== null} onClick={() => queue(own, 'manual')}>
-            {queueing === own && <span className="spinner" />}Als Nächstes vormerken
-          </button>
-        </div>
-        {debouncedOwn && debouncedOwn === own && ownVol.available && (
-          <div style={{ marginTop: '0.7rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            {ownInfo ? (
+        </form>
+        {analyzeError && <p style={{ fontSize: '0.8rem', color: '#b02020', margin: '0.6rem 0 0' }}>{analyzeError}</p>}
+
+        {analysed && (
+          <div style={{ marginTop: '1.1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.9rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+              <strong style={{ fontSize: '0.95rem', color: 'var(--ink)' }}>„{analysed.keyword}“</strong>
+              <VolumeLabel info={{ volume: analysed.volume, cpc: analysed.cpc, competition: null }} />
+            </div>
+            <VerdictBox verdict={analysed.verdict} />
+
+            {analysed.volume ? (
               <>
-                <VolumeLabel info={ownInfo} />
-                <RelevanceVerdict info={ownInfo} />
-                {ownInfo.cpc ? <AdsPriceNote /> : null}
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink)', margin: '1rem 0 0.4rem' }}>Was ein Artikel zu diesem Begriff bringen kann</div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                    <thead>
+                      <tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}>
+                        <th style={{ padding: '0.35rem 0.5rem', fontWeight: 600 }}>Wenn der Artikel bei Google auf …</th>
+                        <th style={{ padding: '0.35rem 0.5rem', fontWeight: 600, textAlign: 'right' }}>Besucher pro Monat (ca.)</th>
+                        <th style={{ padding: '0.35rem 0.5rem', fontWeight: 600, textAlign: 'right' }}>Gleiche Besucher über Google Ads kosten</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {analysed.scenarios.map(sc => (
+                        <tr key={sc.position} style={{ borderTop: '1px solid var(--border)', background: sc.position <= 3 ? 'var(--emerald-pale)' : undefined }}>
+                          <td style={{ padding: '0.4rem 0.5rem' }}>Platz {sc.position}{sc.position <= 10 ? '' : ' (Seite 2)'}</td>
+                          <td style={{ padding: '0.4rem 0.5rem', textAlign: 'right', fontWeight: 600 }}>{sc.clicks < 1 ? 'unter 1' : Math.round(sc.clicks).toLocaleString('de-DE')}</td>
+                          <td style={{ padding: '0.4rem 0.5rem', textAlign: 'right', fontWeight: 600, color: 'var(--emerald)' }}>
+                            {sc.adsValue !== null ? `${sc.adsValue.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })} / Monat` : '–'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0.5rem 0 0' }}>
+                  Schätzung aus dem monatlichen Suchvolumen und den typischen Klickraten je Google-Platz (Platz 1 erhält rund 28 % der Klicks, Platz 10 nur noch rund 2–3 %).
+                  Die rechte Spalte zeigt, was Sie für dieselbe Zahl an Besuchern bei Google Ads bezahlen müssten – über den Artikel kommen sie kostenlos.
+                </p>
               </>
-            ) : (
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
-                <span className="spinner" /> Suchvolumen wird ermittelt…
-              </span>
+            ) : null}
+
+            {analysed.related.length > 0 && (
+              <div style={{ marginTop: '1rem' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '0.4rem' }}>Verwandte Suchbegriffe mit mehr Nachfrage</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {analysed.related.map(r => (
+                    <div key={r.keyword} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', padding: '0.35rem 0', borderTop: '1px solid var(--border)' }}>
+                      <span style={{ flex: 1, minWidth: 180, fontSize: '0.85rem', color: 'var(--ink)' }}>{r.keyword}</span>
+                      <VolumeLabel info={{ volume: r.volume, cpc: r.cpc, competition: null }} />
+                      <button type="button" className="btn-outline" style={{ ...btn, padding: '0.3rem 0.7rem' }} onClick={() => analyze(r.keyword)}>Diesen prüfen</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
+
+            {(analysed.verdict.level === 'weak' || analysed.verdict.level === 'none') && (
+              <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '1rem' }}>
+                <input type="checkbox" checked={override} onChange={e => setOverride(e.target.checked)} />
+                Ich möchte diesen Begriff trotzdem verwenden (z. B. weil er genau mein Angebot beschreibt).
+              </label>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+              <button
+                className="btn-emerald"
+                style={btn}
+                disabled={!sensible || freeLimitReached || generatingKeyword !== null}
+                onClick={() => { onGenerate({ keyword: analysed.keyword, rationale: 'Selbst gewählter Suchbegriff', intent: 'informational' }); }}
+              >
+                {generatingKeyword === analysed.keyword && <span className="spinner" />}
+                {generatingKeyword === analysed.keyword ? generateMessage : 'Artikel jetzt erstellen'}
+              </button>
+              <button className="btn-outline" style={btn} disabled={!sensible || queueing !== null} onClick={() => queue(analysed.keyword, 'manual')}>
+                {queueing === analysed.keyword && <span className="spinner" />}Als Nächstes vormerken
+              </button>
+            </div>
           </div>
         )}
         {queuedMsg && <p style={{ fontSize: '0.8rem', color: 'var(--emerald)', margin: '0.6rem 0 0' }}>{queuedMsg}</p>}
