@@ -6,13 +6,13 @@ import { Footer } from '@/components/Footer';
 
 const metadataByLocale: Record<'de' | 'en', Metadata> = {
   de: {
-    metadataBase: new URL('https://suchmaschinen.pro'),
+    metadataBase: new URL('https://www.suchmaschinen.pro'),
     title: {
       default: 'suchmaschinen.pro — SEO-Content, der wirklich indexiert wird',
       template: '%s | suchmaschinen.pro',
     },
     description: 'Automatisch generierte, thematisch passende Artikel — direkt auf Ihrer eigenen Domain veröffentlicht statt auf einer isolierten Subdomain. Für echte Sichtbarkeit statt leerer Impressionen.',
-    alternates: { canonical: '/' },
+    alternates: { canonical: '/', languages: { de: 'https://www.suchmaschinen.pro/', en: 'https://www.search-engines.pro/', 'x-default': 'https://www.suchmaschinen.pro/' } },
     openGraph: {
       type: 'website',
       locale: 'de_DE',
@@ -30,13 +30,13 @@ const metadataByLocale: Record<'de' | 'en', Metadata> = {
     robots: { index: true, follow: true },
   },
   en: {
-    metadataBase: new URL('https://search-engines.pro'),
+    metadataBase: new URL('https://www.search-engines.pro'),
     title: {
       default: 'search-engines.pro — SEO content that actually gets indexed',
       template: '%s | search-engines.pro',
     },
     description: 'Automatically generated, topically relevant articles — published directly on your own domain instead of an isolated subdomain. Real visibility, not empty impressions.',
-    alternates: { canonical: '/' },
+    alternates: { canonical: '/', languages: { de: 'https://www.suchmaschinen.pro/', en: 'https://www.search-engines.pro/', 'x-default': 'https://www.suchmaschinen.pro/' } },
     openGraph: {
       type: 'website',
       locale: 'en_US',
@@ -67,8 +67,8 @@ const jsonLdByLocale: Record<'de' | 'en', object> = {
       {
         '@type': 'Organization',
         name: 'suchmaschinen.pro',
-        url: 'https://suchmaschinen.pro',
-        logo: 'https://suchmaschinen.pro/og-image.png',
+        url: 'https://www.suchmaschinen.pro',
+        logo: 'https://www.suchmaschinen.pro/og-image.png',
         description: 'Automatisch generierte, thematisch passende SEO-Artikel, veröffentlicht direkt auf der eigenen Domain des Kunden statt auf einer isolierten Subdomain.',
       },
       {
@@ -76,7 +76,7 @@ const jsonLdByLocale: Record<'de' | 'en', object> = {
         name: 'suchmaschinen.pro',
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web',
-        url: 'https://suchmaschinen.pro',
+        url: 'https://www.suchmaschinen.pro',
         description: 'Analysiert Websites, findet relevante Suchbegriffe und veröffentlicht automatisch generierte Artikel nativ auf der eigenen Domain — für echte Indexierbarkeit statt reiner Impressionen ohne Klicks.',
         offers: [
           { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'EUR' },
@@ -93,8 +93,8 @@ const jsonLdByLocale: Record<'de' | 'en', object> = {
       {
         '@type': 'Organization',
         name: 'search-engines.pro',
-        url: 'https://search-engines.pro',
-        logo: 'https://search-engines.pro/og-image.png',
+        url: 'https://www.search-engines.pro',
+        logo: 'https://www.search-engines.pro/og-image.png',
         description: 'Automatically generated, topically relevant SEO articles, published directly on the customer\u2019s own domain instead of an isolated subdomain.',
       },
       {
@@ -102,7 +102,7 @@ const jsonLdByLocale: Record<'de' | 'en', object> = {
         name: 'search-engines.pro',
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web',
-        url: 'https://search-engines.pro',
+        url: 'https://www.search-engines.pro',
         description: 'Analyzes websites, finds relevant search terms, and publishes automatically generated articles natively on the customer\u2019s own domain — for real indexability instead of impressions without clicks.',
         offers: [
           { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'EUR' },

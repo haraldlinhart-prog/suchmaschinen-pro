@@ -5,6 +5,6 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       { userAgent: '*', allow: '/', disallow: ['/dashboard', '/api/'] },
     ],
-    sitemap: 'https://suchmaschinen.pro/sitemap.xml',
+    sitemap: 'https://www.suchmaschinen.pro/sitemap.xml',
   };
 }

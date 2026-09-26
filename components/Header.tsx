@@ -26,12 +26,13 @@ export function Header({ locale = 'de' }: { locale?: 'de' | 'en' }) {
         <Link href={brandHref} style={{ textDecoration: 'none', fontFamily: 'var(--font-display)', fontSize: '1.3rem', fontWeight: 700, color: 'var(--ink)' }}>
           {brandLabel}
         </Link>
-        <nav style={{ display: 'flex', gap: '1.75rem', alignItems: 'center' }}>
+        <nav className="site-nav" style={{ display: 'flex', gap: '1.75rem', alignItems: 'center' }}>
           {isEn ? (
             <>
               <Link href="/en#how-it-works" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">How it works</Link>
               <Link href="/en#pricing" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Pricing</Link>
               <Link href="/kontakt" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Contact</Link>
+              <a href="https://www.suchmaschinen.pro/" hrefLang="de" title="Deutsche Version: suchmaschinen.pro" style={{ fontSize: '.8rem', fontWeight: 700, color: 'var(--ink)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '.3rem .55rem', letterSpacing: '.03em' }}>DE</a>
               <Link href={loggedIn ? '/dashboard' : '/auth'} className="btn-emerald" style={{ padding: '.55rem 1.2rem', fontSize: '.85rem' }}>
                 {loggedIn ? 'Dashboard' : 'Sign in'}
               </Link>
@@ -41,6 +42,7 @@ export function Header({ locale = 'de' }: { locale?: 'de' | 'en' }) {
               <Link href="/rundgang" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">So funktioniert&apos;s</Link>
               <Link href="/#preise" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Preise</Link>
               <Link href="/kontakt" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Kontakt</Link>
+              <a href="https://www.search-engines.pro/" hrefLang="en" title="English version: search-engines.pro" style={{ fontSize: '.8rem', fontWeight: 700, color: 'var(--ink)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '.3rem .55rem', letterSpacing: '.03em' }}>EN</a>
               <Link href={loggedIn ? '/dashboard' : '/auth'} className="btn-emerald" style={{ padding: '.55rem 1.2rem', fontSize: '.85rem' }}>
                 {loggedIn ? 'Zum Dashboard' : 'Anmelden'}
               </Link>

@@ -111,4 +111,5 @@ h1,h2,h3,h4 { font-family: var(--font-display); line-height: 1.2; }
 /* Mobile: only logo + main button in the header (the text links overflowed the viewport) */
 @media (max-width: 640px) {
   .nav-link-desktop { display: none !important; }
+  .site-nav { gap: .75rem !important; }
 }
