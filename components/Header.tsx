@@ -29,7 +29,7 @@ export function Header({ locale = 'de' }: { locale?: 'de' | 'en' }) {
         <nav className="site-nav" style={{ display: 'flex', gap: '1.75rem', alignItems: 'center' }}>
           {isEn ? (
             <>
-              <Link href="/rundgang" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Tour</Link>
+              <Link href="/en/tour" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Tour</Link>
               <Link href="/en#pricing" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Pricing</Link>
               <Link href="/kontakt" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Contact</Link>
               <a href="https://www.suchmaschinen.pro/" hrefLang="de" title="Deutsche Version: suchmaschinen.pro" style={{ fontSize: '.8rem', fontWeight: 700, color: 'var(--ink)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '.3rem .55rem', letterSpacing: '.03em' }}>DE</a>
