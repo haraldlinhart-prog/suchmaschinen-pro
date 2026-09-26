@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { HostingPlatform } from '@/types';
 import { HOSTING_LABELS } from '@/types';
+import { isAdminEmail } from '@/lib/supabase/admin';
 
-const ADMIN_EMAIL = 'haraldlinhart@gmail.com';
 
 function cleanDomain(input: string): string {
   let d = input.trim().toLowerCase();
@@ -22,7 +22,7 @@ function slugifyDomain(domain: string): string {
 const PLATFORM_OPTIONS: HostingPlatform[] = ['network', 'vercel', 'netlify', 'apache', 'wordpress', 'other'];
 
 export function WebsiteForm({ userId, userEmail, onSuccess }: { userId: string; userEmail?: string | null; onSuccess: () => void }) {
-  const isAdmin = userEmail === ADMIN_EMAIL;
+  const isAdmin = isAdminEmail(userEmail);
   const [domain, setDomain] = useState('');
   const [label, setLabel] = useState('');
   const [notes, setNotes] = useState('');
