@@ -29,7 +29,7 @@ export function Header({ locale = 'de' }: { locale?: 'de' | 'en' }) {
         <nav className="site-nav" style={{ display: 'flex', gap: '1.75rem', alignItems: 'center' }}>
           {isEn ? (
             <>
-              <Link href="/en#how-it-works" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">How it works</Link>
+              <Link href="/rundgang" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Tour</Link>
               <Link href="/en#pricing" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Pricing</Link>
               <Link href="/kontakt" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Contact</Link>
               <a href="https://www.suchmaschinen.pro/" hrefLang="de" title="Deutsche Version: suchmaschinen.pro" style={{ fontSize: '.8rem', fontWeight: 700, color: 'var(--ink)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '.3rem .55rem', letterSpacing: '.03em' }}>DE</a>
@@ -39,7 +39,7 @@ export function Header({ locale = 'de' }: { locale?: 'de' | 'en' }) {
             </>
           ) : (
             <>
-              <Link href="/rundgang" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">So funktioniert&apos;s</Link>
+              <Link href="/rundgang" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Rundgang</Link>
               <Link href="/#preise" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Preise</Link>
               <Link href="/kontakt" style={{ fontSize: '.88rem', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }} className="nav-link-desktop">Kontakt</Link>
               <a href="https://www.search-engines.pro/" hrefLang="en" title="English version: search-engines.pro" style={{ fontSize: '.8rem', fontWeight: 700, color: 'var(--ink)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '.3rem .55rem', letterSpacing: '.03em' }}>EN</a>
