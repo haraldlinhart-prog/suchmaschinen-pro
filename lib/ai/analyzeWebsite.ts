@@ -25,7 +25,7 @@ export async function fetchSiteText(domain: string): Promise<{ pageText: string;
   const html = await siteRes.text();
   const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
   const pageTitle = titleMatch ? titleMatch[1].trim() : '';
-  const pageText = stripHtml(html).slice(0, 6000);
+  const pageText = stripHtml(html).replace(/[\uD800-\uDFFF]/g, '').slice(0, 6000);
   return { pageText, pageTitle };
 }
 
