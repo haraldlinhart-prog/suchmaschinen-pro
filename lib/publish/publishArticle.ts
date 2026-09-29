@@ -23,6 +23,8 @@ interface ArticleRow {
   content_html: string;
   image_url: string | null;
   image_alt: string | null;
+  /** Supabase status value — used to skip duplicate Facebook posts on republish. */
+  status?: string | null;
 }
 
 export interface PublishResult {
@@ -73,9 +75,16 @@ ${contentHtml}
 `;
 }
 
-/** Fire-and-forget: post to Facebook if the website has credentials configured. */
+/** Fire-and-forget: post to Facebook if the website has credentials configured.
+ *  Only fires on the FIRST publish (article.status !== 'published') to prevent
+ *  duplicate posts when an article is re-published after a partial failure.
+ */
 async function maybeFacebookPost(website: WebsiteRow, article: ArticleRow, url: string): Promise<void> {
   if (!website.facebook_page_id || !website.facebook_page_token) return;
+  if (article.status === 'published') {
+    console.log(`Facebook post skipped for ${website.domain} — article already published.`);
+    return;
+  }
   const result = await postToFacebook({
     pageId: website.facebook_page_id,
     pageToken: website.facebook_page_token,
