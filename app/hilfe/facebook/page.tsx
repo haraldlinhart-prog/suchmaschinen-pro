@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import VideoTutorial from './VideoTutorial';
 
 export const metadata = { title: 'Facebook-Seite verbinden – Anleitung' };
 
@@ -31,25 +32,7 @@ export default function FacebookHelpPage() {
         Auf <a href="https://www.facebook.com/pages/create" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--emerald)' }}>facebook.com/pages/create</a> eine neue Seite erstellen. Kategorie wählen, Name eintragen, fertig — das dauert unter 5 Minuten. Neue Seiten ohne Follower sind kein Problem; der erste Artikel wird trotzdem gepostet.
       </p>
 
-      <div style={{ background: 'var(--emerald-pale)', border: '1px solid var(--emerald)', borderRadius: 8, padding: '1rem 1.2rem', margin: '1.2rem 0' }}>
-        <strong style={{ fontSize: '0.88rem', color: 'var(--ink)' }}>🎬 Video-Anleitung: Page-ID und Token in 2 Minuten</strong>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.3rem 0 0.8rem' }}>
-          Das folgende Video zeigt die wichtigsten Schritte — wie du den Graph API Explorer öffnest, die Berechtigungen aktivierst und mit <code>me/accounts</code> in einem Schritt sowohl Page-ID als auch Token bekommst.
-        </p>
-        <img
-          src="/facebook-page-token.gif"
-          alt="Facebook Page-ID und Token erstellen — Schritt-für-Schritt"
-          style={{ width: '100%', borderRadius: 6, border: '1px solid var(--border)', display: 'block' }}
-        />
-        <a
-          href="/facebook-page-token.gif"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ display: 'inline-block', marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--emerald)' }}
-        >
-          🔗 Animation in neuem Tab öffnen
-        </a>
-      </div>
+      <VideoTutorial />
 
       <h2 style={sectionStyle}>2. Page-ID herausfinden</h2>
       <p style={pStyle}>
