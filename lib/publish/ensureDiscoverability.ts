@@ -108,7 +108,10 @@ export function insertBlogLink(html: string, publishPath: string): string {
       const anchors = [...nav.matchAll(/<a\b[^>]*>[\s\S]*?<\/a>/gi)];
       const cta = anchors.find(m => /class=["'][^"']*(cta|btn|button)/i.test(m[0]));
       const plain = anchors.filter(m => !/class=["'][^"']*(cta|btn|button|logo|brand)/i.test(m[0]));
-      const link = `${LINK_MARKER}<a href="${href}">${LINK_LABEL}</a>`;
+      // Copy the class of an existing plain <a> so the item picks up the menu styling.
+      const aClassMatch = plain[0]?.[0].match(/class=["']([^"']+)["']/i);
+      const aClass = aClassMatch ? ` class="${aClassMatch[1]}"` : '';
+      const link = `${LINK_MARKER}<a${aClass} href="${href}">${LINK_LABEL}</a>`;
       if (cta && cta.index !== undefined) {
         newNav = `${nav.slice(0, cta.index)}${link}\n      ${nav.slice(cta.index)}`;
       } else if (plain.length > 0) {
