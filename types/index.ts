@@ -33,6 +33,8 @@ export interface Website {
   ga_property_id: string | null;
   ga_property_name: string | null;
   ga_connected_at: string | null;
+  facebook_page_id: string | null;
+  facebook_page_token: string | null;
 }
 
 export const HOSTING_LABELS: Record<HostingPlatform, string> = {

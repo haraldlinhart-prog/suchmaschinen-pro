@@ -62,6 +62,10 @@ export default function WebsiteDetailPage() {
   const [wpUserInput, setWpUserInput] = useState('');
   const [wpPassInput, setWpPassInput] = useState('');
   const [savingWp, setSavingWp] = useState(false);
+  const [editingFb, setEditingFb] = useState(false);
+  const [fbPageIdInput, setFbPageIdInput] = useState('');
+  const [fbTokenInput, setFbTokenInput] = useState('');
+  const [savingFb, setSavingFb] = useState(false);
   const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
   const [savingAutomation, setSavingAutomation] = useState(false);
 
@@ -167,6 +171,20 @@ export default function WebsiteDetailPage() {
     setSavingRepo(false);
     if (error) { alert('Fehler beim Speichern.'); return; }
     setEditingRepo(false);
+    if (user) await loadData(user.id);
+  };
+
+  const handleSaveFb = async () => {
+    setSavingFb(true);
+    const supabase = createClient();
+    const { error } = await supabase.from('sq_websites').update({
+      facebook_page_id: fbPageIdInput.trim() || null,
+      facebook_page_token: fbTokenInput.trim() || null,
+    }).eq('id', websiteId);
+    setSavingFb(false);
+    if (error) { alert('Fehler beim Speichern.'); return; }
+    setEditingFb(false);
+    setFbTokenInput('');
     if (user) await loadData(user.id);
   };
 
@@ -411,6 +429,35 @@ export default function WebsiteDetailPage() {
                 </button>
               </div>
             )
+          )}
+          {editingFb ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem', maxWidth: 320 }}>
+              <a href="/hilfe/facebook" target="_blank" rel="noopener" style={{ fontSize: '0.78rem', color: 'var(--emerald)', fontWeight: 600 }}>📘 Token erstellen →</a>
+              <input type="text" value={fbPageIdInput} onChange={e => setFbPageIdInput(e.target.value)} placeholder="Facebook Page-ID (z. B. 123456789012345)" className="form-input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.7rem' }} />
+              <input type="password" value={fbTokenInput} onChange={e => setFbTokenInput(e.target.value)} placeholder="Page Access Token (EAAxxxxxxx…)" className="form-input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.7rem' }} />
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button onClick={handleSaveFb} disabled={savingFb} className="btn-emerald" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                  {savingFb ? '…' : 'Speichern'}
+                </button>
+                <button onClick={() => setEditingFb(false)} className="btn-outline" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+              {website.facebook_page_id ? (
+                <>📘 Facebook-Seite: {website.facebook_page_id} · </>
+              ) : (
+                <>📘 Keine Facebook-Seite verknüpft · </>
+              )}
+              <button
+                onClick={() => { setFbPageIdInput(website.facebook_page_id || ''); setFbTokenInput(''); setEditingFb(true); }}
+                style={{ background: 'none', border: 'none', color: 'var(--emerald)', fontWeight: 600, cursor: 'pointer', fontSize: '0.8rem', padding: 0, fontFamily: 'var(--font-body)' }}
+              >
+                {website.facebook_page_id ? 'ändern' : 'jetzt verknüpfen'}
+              </button>
+            </div>
           )}
         </div>
         <button onClick={handleAnalyze} disabled={analyzing} className="btn-emerald" style={{ opacity: analyzing ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
