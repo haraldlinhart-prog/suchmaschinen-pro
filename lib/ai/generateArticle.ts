@@ -74,10 +74,21 @@ export async function generateArticleContent(
 ): Promise<GeneratedArticle> {
   if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY fehlt.');
 
+  // Extra legal-caution instruction for sites that write about specific companies
+  // that may have legal counsel monitoring content (e.g. formular-abzocke.de / Phonemotion GmbH).
+  const legalCautionNote = (domain === 'formular-abzocke.de')
+    ? `\nLEGAL CAUTION — this site writes about Gewerbe-Online-Service.de (operated by Phonemotion GmbH). The company has legal representation and monitors published content closely. You MUST:
+- State only verifiable facts; never speculate or imply criminal intent (no "Betrug", no "Abzocke" unless quoting established legal findings)
+- Avoid sweeping generalisations (e.g. "viele Nutzer" without a cited source)
+- Use hedged language where appropriate: "nach Angaben von Betroffenen", "laut Verbraucherbeschwerden", "es wird berichtet"
+- Never recommend filing a criminal complaint (Strafanzeige) — instead recommend consumer advice centres (Verbraucherzentrale) or civil legal counsel
+- Describe the business model factually (private fee-based service, not an official authority) without characterising it as fraudulent\n`
+    : '';
+
   const prompt = `You are an expert German-language SEO content writer. Write a high-quality, genuinely useful blog article targeting the keyword "${keyword}" for the website ${domain}${notes ? ` (context: ${notes})` : ''}.
 ${rationale ? `Why this keyword matters for this site: ${rationale}` : ''}
 ${intent ? `Search intent: ${intent}` : ''}
-
+${legalCautionNote}
 Requirements:
 - Write in German
 - 700-1000 words, genuinely informative (not generic filler)
