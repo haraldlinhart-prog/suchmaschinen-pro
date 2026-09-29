@@ -47,6 +47,14 @@ export default function VideoTutorial() {
         <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginLeft: '0.3rem' }}>
           Klick ins Video zum Pausieren
         </span>
+        <a
+          href="/facebook-page-token.mp4"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--emerald)', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
+          🔗 Video in neuem Tab öffnen
+        </a>
       </div>
     </div>
   );
