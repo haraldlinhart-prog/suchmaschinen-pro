@@ -23,7 +23,7 @@ export default function FacebookHelpPage() {
       <h2 style={sectionStyle}>Was du brauchst</h2>
       <ul style={{ ...pStyle, paddingLeft: '1.2rem' }}>
         <li>Eine Facebook-Seite (Page), die du verwaltest — kein privates Profil</li>
-        <li>Zugang zu <a href="https://developers.facebook.com/tools/explorer" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--emerald)' }}>Meta Graph API Explorer</a> (kostenlos, kein Entwicklerkonto nötig)</li>
+        <li>Ein kostenloses Meta-Entwicklerkonto auf <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--emerald)' }}>developers.facebook.com</a> (Registrierung mit dem bestehenden Facebook-Login, kostenlos)</li>
       </ul>
 
       <h2 style={sectionStyle}>1. Facebook-Seite anlegen (falls noch keine vorhanden)</h2>
@@ -39,18 +39,41 @@ export default function FacebookHelpPage() {
         Alternativ: Im <a href="https://developers.facebook.com/tools/explorer" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--emerald)' }}>Graph API Explorer</a> als Abfrage <code>me/accounts</code> eingeben (nach Schritt 3) — dort werden alle verwalteten Seiten mit ID aufgelistet.
       </p>
 
-      <h2 style={sectionStyle}>3. Page Access Token erstellen</h2>
+      <h2 style={sectionStyle}>3. Meta Developer App erstellen</h2>
+      <p style={pStyle}>
+        Einmalig nötig. Auf <a href="https://developers.facebook.com/apps/create" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--emerald)' }}>developers.facebook.com/apps/create</a> eine neue App anlegen:
+      </p>
+      <ol style={{ ...pStyle, paddingLeft: '1.2rem' }}>
+        <li style={{ marginBottom: '0.5rem' }}>App-Typ: <strong>„Andere"</strong> wählen → weiter → <strong>„Business"</strong> wählen → weiter.</li>
+        <li style={{ marginBottom: '0.5rem' }}>Einen beliebigen App-Namen eingeben (z. B. „meinefirma-posts"), E-Mail-Adresse bestätigen → <strong>„App erstellen"</strong>.</li>
+        <li style={{ marginBottom: '0.5rem' }}>Im App-Dashboard links auf <strong>„Anwendungsfälle"</strong> klicken → <strong>„Content-Management"</strong> auswählen → <strong>„Einrichten"</strong>.</li>
+        <li style={{ marginBottom: '0.5rem' }}>Unter „Berechtigungen und Features" bei <strong><code>pages_manage_posts</code></strong> und <strong><code>pages_read_engagement</code></strong> jeweils auf <strong>„+ Hinzufügen"</strong> klicken.</li>
+      </ol>
+      <div style={{ background: '#fff8e8', border: '1px solid #e8c840', borderRadius: 8, padding: '1rem 1.2rem', margin: '0.8rem 0' }}>
+        <strong style={{ fontSize: '0.88rem', color: 'var(--ink)' }}>⚠️ Wichtig: Anwendungsfall zuerst</strong>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.3rem 0 0' }}>
+          Ohne den Anwendungsfall „Content-Management" erscheinen <code>pages_manage_posts</code> und <code>pages_read_engagement</code> im Graph API Explorer gar nicht. Der Anwendungsfall muss zuerst aktiviert werden.
+        </p>
+      </div>
+
+      <h2 style={sectionStyle}>4. Page Access Token erstellen</h2>
       <p style={pStyle}>
         Den <a href="https://developers.facebook.com/tools/explorer" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--emerald)' }}>Graph API Explorer</a> öffnen (mit Facebook-Account einloggen).
       </p>
       <ol style={{ ...pStyle, paddingLeft: '1.2rem' }}>
-        <li style={{ marginBottom: '0.5rem' }}>Oben rechts auf <strong>„Meta App"</strong> klicken → <strong>„Meta Developer App erstellen"</strong> (einmalig, kostenlos) oder eine bestehende App auswählen.</li>
+        <li style={{ marginBottom: '0.5rem' }}>Oben rechts bei <strong>„Meta App"</strong> die soeben erstellte App auswählen.</li>
         <li style={{ marginBottom: '0.5rem' }}>Auf <strong>„Berechtigungen hinzufügen"</strong> klicken und folgende zwei aktivieren: <code>pages_manage_posts</code> und <code>pages_read_engagement</code>.</li>
         <li style={{ marginBottom: '0.5rem' }}>Auf <strong>„Token generieren"</strong> klicken. Facebook fragt, auf welche Seite(n) Zugriff erlaubt wird — die gewünschte Seite auswählen und bestätigen.</li>
-        <li style={{ marginBottom: '0.5rem' }}>Den angezeigten Token kopieren. <strong>Achtung:</strong> Dieser Token ist zunächst nur 1 Stunde gültig — in Schritt 4 wird er in einen langfristigen Token umgewandelt.</li>
+        <li style={{ marginBottom: '0.5rem' }}>Auf <strong>„Abfragen"</strong> klicken und als Abfrage <code>me/accounts</code> eingeben → ausführen. Die Antwort zeigt alle deine Facebook-Seiten mit <code>id</code> und <code>access_token</code> — beides für die gewünschte Seite notieren.</li>
       </ol>
+      <div style={{ background: 'var(--emerald-pale)', border: '1px solid var(--emerald)', borderRadius: 8, padding: '1rem 1.2rem', margin: '0.8rem 0' }}>
+        <strong style={{ fontSize: '0.88rem', color: 'var(--ink)' }}>💡 me/accounts ist der einfachste Weg</strong>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.3rem 0 0' }}>
+          Die Abfrage <code>me/accounts</code> liefert in einem Schritt sowohl die Page-ID als auch einen gültigen Page Access Token für jede deiner Seiten. Den Token aus der Antwort direkt in Schritt 5 verwenden — er ist bereits ein Long-Lived Page Token und muss nicht mehr umgewandelt werden.
+        </p>
+      </div>
 
-      <h2 style={sectionStyle}>4. Long-Lived Token erzeugen (wichtig!)</h2>
+      <h2 style={sectionStyle}>5. Long-Lived Token erzeugen (wichtig!)</h2>
       <p style={pStyle}>
         Der kurze Token hält nur 1 Stunde. Für den automatischen Dauerbetrieb braucht es einen <strong>Long-Lived Page Access Token</strong>, der 60 Tage gültig ist (und sich bei regelmäßiger Nutzung automatisch verlängert).
       </p>
@@ -82,7 +105,7 @@ export default function FacebookHelpPage() {
         </p>
       </div>
 
-      <h2 style={sectionStyle}>5. Token bei suchmaschinen.pro eintragen</h2>
+      <h2 style={sectionStyle}>6. Token bei suchmaschinen.pro eintragen</h2>
       <p style={pStyle}>
         Im Dashboard die jeweilige Website bearbeiten und in den Feldern <strong>„Facebook Page-ID"</strong> und <strong>„Facebook Page Access Token"</strong> die Werte aus den Schritten 2 und 4 eintragen. Ab dem nächsten veröffentlichten Artikel wird automatisch ein Post auf der Facebook-Seite erstellt.
       </p>
