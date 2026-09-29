@@ -41,6 +41,14 @@ export default function FacebookHelpPage() {
           alt="Facebook Page-ID und Token erstellen — Schritt-für-Schritt"
           style={{ width: '100%', borderRadius: 6, border: '1px solid var(--border)', display: 'block' }}
         />
+        <a
+          href="/facebook-page-token.gif"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: 'inline-block', marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--emerald)' }}
+        >
+          🔗 Animation in neuem Tab öffnen
+        </a>
       </div>
 
       <h2 style={sectionStyle}>2. Page-ID herausfinden</h2>
