@@ -34,6 +34,8 @@ export function WebsiteForm({ userId, userEmail, onSuccess }: { userId: string; 
   const [wpUrl, setWpUrl] = useState('');
   const [wpUsername, setWpUsername] = useState('');
   const [wpAppPassword, setWpAppPassword] = useState('');
+  const [facebookPageId, setFacebookPageId] = useState('');
+  const [facebookPageToken, setFacebookPageToken] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -115,6 +117,8 @@ export function WebsiteForm({ userId, userEmail, onSuccess }: { userId: string; 
       wp_url: hostingPlatform === 'wordpress' ? wpUrl.trim().replace(/\/$/, '') : null,
       wp_username: hostingPlatform === 'wordpress' ? wpUsername.trim() : null,
       wp_app_password: hostingPlatform === 'wordpress' ? wpAppPassword.trim() : null,
+      facebook_page_id: facebookPageId.trim() || null,
+      facebook_page_token: facebookPageToken.trim() || null,
       status: 'pending',
     });
 
@@ -133,6 +137,8 @@ export function WebsiteForm({ userId, userEmail, onSuccess }: { userId: string; 
     setWpUrl('');
     setWpUsername('');
     setWpAppPassword('');
+    setFacebookPageId('');
+    setFacebookPageToken('');
     setDomainTouched(false);
     setDomainLookupState('idle');
     setStatus('idle');
@@ -229,6 +235,24 @@ export function WebsiteForm({ userId, userEmail, onSuccess }: { userId: string; 
             className="form-input" placeholder="/blog/" />
         </div>
       )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', background: 'var(--paper-dark)', padding: '1rem', borderRadius: 8 }}>
+        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+          <strong style={{ color: 'var(--text)' }}>📘 Facebook-Seite (optional)</strong><br />
+          Wenn du hier eine Facebook-Page-ID und einen Page Access Token einträgst, wird jeder neue Artikel automatisch auf deiner Facebook-Seite gepostet.{' '}
+          <a href="/hilfe/facebook" target="_blank" rel="noopener" style={{ color: 'var(--emerald)', fontWeight: 600 }}>Token erstellen →</a>
+        </p>
+        <div>
+          <label className="form-label">Facebook Page-ID</label>
+          <input type="text" value={facebookPageId} onChange={e => setFacebookPageId(e.target.value)}
+            className="form-input" placeholder="z. B. 123456789012345" />
+        </div>
+        <div>
+          <label className="form-label">Facebook Page Access Token</label>
+          <input type="password" value={facebookPageToken} onChange={e => setFacebookPageToken(e.target.value)}
+            className="form-input" placeholder="EAAxxxxxxx…" />
+        </div>
+      </div>
+
       <div>
         <label className="form-label">Notizen <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span></label>
         <textarea value={notes} onChange={e => setNotes(e.target.value)}

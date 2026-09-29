@@ -1,5 +1,6 @@
 import { escapeHtml } from '@/lib/ai/generateArticle';
 import { resolveOrigin } from '@/lib/publish/origin';
+import { postToFacebook } from '@/lib/publish/postToFacebook';
 
 interface WebsiteRow {
   domain: string;
@@ -10,6 +11,8 @@ interface WebsiteRow {
   wp_url: string | null;
   wp_username: string | null;
   wp_app_password: string | null;
+  facebook_page_id: string | null;
+  facebook_page_token: string | null;
 }
 
 interface ArticleRow {
@@ -70,6 +73,23 @@ ${contentHtml}
 `;
 }
 
+/** Fire-and-forget: post to Facebook if the website has credentials configured. */
+async function maybeFacebookPost(website: WebsiteRow, article: ArticleRow, url: string): Promise<void> {
+  if (!website.facebook_page_id || !website.facebook_page_token) return;
+  const result = await postToFacebook({
+    pageId: website.facebook_page_id,
+    pageToken: website.facebook_page_token,
+    articleTitle: article.title,
+    articleUrl: url,
+    teaser: article.meta_description,
+  });
+  if (!result.success) {
+    console.error(`Facebook post failed for ${website.domain}:`, result.error);
+  } else {
+    console.log(`Facebook post created for ${website.domain}: ${result.postId}`);
+  }
+}
+
 export async function publishArticle(website: WebsiteRow, article: ArticleRow): Promise<PublishResult> {
   // Path A: network sites with a linked GitHub repo — commit directly.
   if (website.github_repo) {
@@ -125,6 +145,7 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow): 
       throw new Error(`GitHub-Veröffentlichung fehlgeschlagen (${ghRes.status}).`);
     }
 
+    await maybeFacebookPost(website, article, articleUrl);
     return { mode: 'github', url: articleUrl, githubPath: path };
   }
 
@@ -187,9 +208,12 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow): 
     }
 
     const wpData = await wpRes.json();
+    await maybeFacebookPost(website, article, wpData.link);
     return { mode: 'wordpress', url: wpData.link };
   }
 
   // Path C: no repo/WP credentials — host ourselves at /b/[slug]/[articleSlug].
-  return { mode: 'hosted', url: `https://suchmaschinen.pro/b/${website.public_slug}/${article.slug}` };
+  const hostedUrl = `https://suchmaschinen.pro/b/${website.public_slug}/${article.slug}`;
+  await maybeFacebookPost(website, article, hostedUrl);
+  return { mode: 'hosted', url: hostedUrl };
 }
