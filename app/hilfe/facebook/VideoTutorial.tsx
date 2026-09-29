@@ -30,8 +30,11 @@ export default function VideoTutorial() {
   return (
     <div style={{ background: 'var(--emerald-pale)', border: '1px solid var(--emerald)', borderRadius: 8, padding: '1rem 1.2rem', margin: '1.2rem 0' }}>
       <strong style={{ fontSize: '0.88rem', color: 'var(--ink)' }}>🎬 Video-Anleitung: Page-ID und Token in 2 Minuten</strong>
-      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.3rem 0 0.8rem' }}>
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.3rem 0 0.5rem' }}>
         Das folgende Video zeigt die wichtigsten Schritte — wie du den Graph API Explorer öffnest, die Berechtigungen aktivierst und mit <code>me/accounts</code> in einem Schritt sowohl Page-ID als auch Token bekommst.
+      </p>
+      <p style={{ fontSize: '0.82rem', background: 'rgba(0,0,0,0.04)', borderRadius: 5, padding: '0.45rem 0.7rem', margin: '0 0 0.8rem', color: 'var(--ink)' }}>
+        <strong>Was du im Video siehst:</strong> Den <a href="https://developers.facebook.com/tools/explorer" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--emerald)' }}>Meta Graph API Explorer</a> — ein kostenloses Tool auf developers.facebook.com. Du rufst ihn auf, wählst deine App aus und gibst die Abfrage <code>me/accounts</code> ein. Das Ergebnis zeigt dir direkt Page-ID und Token für jede deiner Facebook-Seiten.
       </p>
       <video
         ref={videoRef}
