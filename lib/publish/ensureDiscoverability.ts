@@ -96,27 +96,33 @@ export function insertBlogLink(html: string, publishPath: string): string {
     const nav = navMatch[0];
     let newNav: string | null = null;
     if (/<li\b/i.test(nav)) {
-      const lastUl = nav.lastIndexOf('</ul>');
-      if (lastUl !== -1) {
-        // Copy the class of an existing <li> so the item picks up the menu styling.
-        const liClass = nav.match(/<li\b([^>]*)>/i)?.[1] ?? '';
-        newNav = `${nav.slice(0, lastUl)}${LINK_MARKER}<li${liClass}><a href="${href}">${LINK_LABEL}</a></li>${nav.slice(lastUl)}`;
+      // Copy the class of an existing <li> so the item picks up the menu styling.
+      const liClass = nav.match(/<li\b([^>]*)>/i)?.[1] ?? '';
+      // Insert after the first </li> so "Ratgeber" lands at position 2.
+      const firstLiEnd = nav.indexOf('</li>');
+      if (firstLiEnd !== -1) {
+        const insertAt = firstLiEnd + 5; // after </li>
+        newNav = `${nav.slice(0, insertAt)}\n      ${LINK_MARKER}<li${liClass}><a href="${href}">${LINK_LABEL}</a></li>${nav.slice(insertAt)}`;
+      } else {
+        // No </li> found: fall back to inserting before the last </ul>.
+        const lastUl = nav.lastIndexOf('</ul>');
+        if (lastUl !== -1) {
+          newNav = `${nav.slice(0, lastUl)}${LINK_MARKER}<li${liClass}><a href="${href}">${LINK_LABEL}</a></li>${nav.slice(lastUl)}`;
+        }
       }
     } else if (/<a\b/i.test(nav)) {
-      // Flat list of <a> tags: put the link before a CTA button if there is one, so the
-      // button stays last; otherwise append it after the last plain link.
+      // Flat list of <a> tags: insert after the first plain link so "Ratgeber" lands at
+      // position 2. CTAs and logo/brand links are not counted as plain links.
       const anchors = [...nav.matchAll(/<a\b[^>]*>[\s\S]*?<\/a>/gi)];
-      const cta = anchors.find(m => /class=["'][^"']*(cta|btn|button)/i.test(m[0]));
       const plain = anchors.filter(m => !/class=["'][^"']*(cta|btn|button|logo|brand)/i.test(m[0]));
       // Copy the class of an existing plain <a> so the item picks up the menu styling.
       const aClassMatch = plain[0]?.[0].match(/class=["']([^"']+)["']/i);
       const aClass = aClassMatch ? ` class="${aClassMatch[1]}"` : '';
       const link = `${LINK_MARKER}<a${aClass} href="${href}">${LINK_LABEL}</a>`;
-      if (cta && cta.index !== undefined) {
-        newNav = `${nav.slice(0, cta.index)}${link}\n      ${nav.slice(cta.index)}`;
-      } else if (plain.length > 0) {
-        const last = plain[plain.length - 1];
-        const end = (last.index ?? 0) + last[0].length;
+      if (plain.length > 0) {
+        // After the first plain link = position 2 in the nav.
+        const first = plain[0];
+        const end = (first.index ?? 0) + first[0].length;
         newNav = `${nav.slice(0, end)}\n      ${link}${nav.slice(end)}`;
       }
     }
