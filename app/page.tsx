@@ -181,9 +181,7 @@ export default function HomePage() {
             zusammen die Leasingrate eines Sportwagens kosten &ndash; aber eigentlich nach wie vor nicht wirklich etwas bringen.
           </p>
           <p style={{ margin: 0 }}>
-            Bei <strong>suchmaschinen.pro</strong> bekommen Sie nicht nur einen starken Service f&uuml;r weniger Geld als anderswo, sondern alles, was Sie
-            brauchen: Sie sehen, wo sich Ihre Website bei Google befindet &ndash; und Sie sehen, wie sie mit unseren KI-Services in der Regel nach ein paar
-            Wochen immer mehr Impressionen bekommt.
+            Bei <strong>suchmaschinen.pro</strong>{" "}bekommen Sie nicht nur einen starken Service für weniger Geld als anderswo, sondern alles, was Sie brauchen: Sie sehen, wo sich Ihre Website bei Google befindet – und Sie sehen, wie sie mit unseren KI-Services in der Regel nach ein paar Wochen immer mehr Impressionen bekommt.
           </p>
           </div>
         </div>
