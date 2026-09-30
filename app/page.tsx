@@ -16,7 +16,7 @@ export default function HomePage() {
         }}
       >
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <div className=”section-label” style={{ color: 'var(--emerald-light)', marginBottom: '1rem' }}>
+          <div className="section-label" style={{ color: 'var(--emerald-light)', marginBottom: '1rem' }}>
             Statt jeden Klick zu bezahlen
           </div>
           <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', margin: '0 0 1.25rem', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
@@ -28,10 +28,10 @@ export default function HomePage() {
             und gleichzeitig auf Ihrer Facebook-Unternehmensseite geteilt.
           </p>
           <div style={{ display: 'flex', gap: '0.9rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href=”/auth?mode=register” className=”btn-emerald” style={{ padding: '0.9rem 2rem', fontSize: '0.95rem' }}>
+            <Link href="/auth?mode=register" className="btn-emerald" style={{ padding: '0.9rem 2rem', fontSize: '0.95rem' }}>
               Kostenlos testen →
             </Link>
-            <Link href=”#vergleich” className=”btn-outline” style={{ padding: '0.9rem 2rem', fontSize: '0.95rem', borderColor: 'rgba(255,255,255,0.35)', color: 'white' }}>
+            <Link href="#vergleich" className="btn-outline" style={{ padding: '0.9rem 2rem', fontSize: '0.95rem', borderColor: 'rgba(255,255,255,0.35)', color: 'white' }}>
               Was ist der Unterschied?
             </Link>
           </div>
@@ -41,8 +41,8 @@ export default function HomePage() {
       {/* Visual Flow */}
       <section style={{ padding: '4.5rem 1.5rem', background: 'var(--paper-dark)' }}>
         <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center' }}>
-          <div className=”section-label”>So einfach funktioniert&apos;s</div>
-          <div className=”divider-emerald” style={{ margin: '0.75rem auto 2.5rem' }} />
+          <div className="section-label">So einfach funktioniert&apos;s</div>
+          <div className="divider-emerald" style={{ margin: '0.75rem auto 2.5rem' }} />
 
           {/* Flow diagram */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, flexWrap: 'wrap', rowGap: '1.5rem' }}>
@@ -99,7 +99,7 @@ export default function HomePage() {
 
       {/* Facebook highlight */}
       <section style={{ padding: '3.5rem 1.5rem', maxWidth: 860, margin: '0 auto' }}>
-        <div className=”card” style={{ padding: '2.25rem 2.5rem', borderLeft: '4px solid #1877F2', background: 'linear-gradient(135deg, #f0f5ff 0%, #ffffff 100%)' }}>
+        <div className="card" style={{ padding: '2.25rem 2.5rem', borderLeft: '4px solid #1877F2', background: 'linear-gradient(135deg, #f0f5ff 0%, #ffffff 100%)' }}>
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <div style={{ fontSize: '2.5rem', flexShrink: 0 }}>👍</div>
             <div>
@@ -119,11 +119,11 @@ export default function HomePage() {
       </section>
 
       {/* Comparison table */}
-      <section id=”vergleich” style={{ padding: '4rem 1.5rem', background: 'var(--paper-dark)' }}>
+      <section id="vergleich" style={{ padding: '4rem 1.5rem', background: 'var(--paper-dark)' }}>
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-            <div className=”section-label”>Der Vergleich</div>
-            <div className=”divider-emerald” style={{ margin: '0.75rem auto' }} />
+            <div className="section-label">Der Vergleich</div>
+            <div className="divider-emerald" style={{ margin: '0.75rem auto' }} />
             <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', color: 'var(--ink)' }}>
               Google Ads vs. suchmaschinen.pro
             </h2>
@@ -160,10 +160,10 @@ export default function HomePage() {
       </section>
 
       {/* Pricing */}
-      <section id=”preise” style={{ padding: '4rem 1.5rem', maxWidth: 1100, margin: '0 auto' }}>
+      <section id="preise" style={{ padding: '4rem 1.5rem', maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <div className=”section-label”>Preise</div>
-          <div className=”divider-emerald” style={{ margin: '0.75rem auto' }} />
+          <div className="section-label">Preise</div>
+          <div className="divider-emerald" style={{ margin: '0.75rem auto' }} />
           <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', color: 'var(--ink)' }}>
             Regelmäßige Artikel für Ihre Website und Facebook
           </h2>
@@ -172,15 +172,15 @@ export default function HomePage() {
           </p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', maxWidth: 960, margin: '0 auto' }}>
-          <div className=”card” style={{ padding: '2rem', textAlign: 'center' }}>
+          <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.5rem' }}>FREE</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '0.5rem' }}>0 €</div>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
               1 Artikel alle 2 Wochen. Kostenlos, solange unser Badge auf Ihrer Website eingebunden ist.
             </p>
-            <Link href=”/auth?mode=register” className=”btn-outline” style={{ width: '100%', justifyContent: 'center' }}>Kostenlos starten</Link>
+            <Link href="/auth?mode=register" className="btn-outline" style={{ width: '100%', justifyContent: 'center' }}>Kostenlos starten</Link>
           </div>
-          <div className=”card” style={{ padding: '2rem', textAlign: 'center' }}>
+          <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.5rem' }}>BASIC</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '0.5rem' }}>
               19 €<span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-muted)' }}> / Monat</span>
@@ -188,9 +188,9 @@ export default function HomePage() {
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
               1 Artikel pro Woche. Kein Badge nötig.
             </p>
-            <Link href=”/auth?mode=register” className=”btn-outline” style={{ width: '100%', justifyContent: 'center' }}>Jetzt starten</Link>
+            <Link href="/auth?mode=register" className="btn-outline" style={{ width: '100%', justifyContent: 'center' }}>Jetzt starten</Link>
           </div>
-          <div className=”card” style={{ padding: '2rem', textAlign: 'center' }}>
+          <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.5rem' }}>PRO</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '0.5rem' }}>
               29 €<span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-muted)' }}> / Monat</span>
@@ -198,7 +198,7 @@ export default function HomePage() {
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
               1 Artikel alle 2 Tage, mit interner Verlinkung zu Ihren bisherigen Artikeln.
             </p>
-            <Link href=”/auth?mode=register” className=”btn-outline” style={{ width: '100%', justifyContent: 'center' }}>Jetzt starten</Link>
+            <Link href="/auth?mode=register" className="btn-outline" style={{ width: '100%', justifyContent: 'center' }}>Jetzt starten</Link>
           </div>
         </div>
 
@@ -227,7 +227,7 @@ export default function HomePage() {
               und aktualisiert, und neue Artikel werden in Ihre bestehenden Artikel eingebunden.
             </p>
           </div>
-          <Link href=”/auth?mode=register” className=”btn-emerald” style={{ padding: '0.9rem 2.2rem', fontSize: '0.95rem', whiteSpace: 'nowrap' }}>
+          <Link href="/auth?mode=register" className="btn-emerald" style={{ padding: '0.9rem 2.2rem', fontSize: '0.95rem', whiteSpace: 'nowrap' }}>
             Jetzt starten
           </Link>
         </div>
@@ -242,7 +242,7 @@ export default function HomePage() {
           <p style={{ fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)', color: 'var(--ink)', fontWeight: 600, lineHeight: 1.5, marginBottom: '2rem' }}>
             Die Suchbegriffe sind schon da.<br />Lassen Sie daraus Artikel entstehen.
           </p>
-          <Link href=”/auth?mode=register” className=”btn-emerald” style={{ padding: '1rem 2.5rem', fontSize: '1rem' }}>
+          <Link href="/auth?mode=register" className="btn-emerald" style={{ padding: '1rem 2.5rem', fontSize: '1rem' }}>
             Kostenlos starten →
           </Link>
         </div>
