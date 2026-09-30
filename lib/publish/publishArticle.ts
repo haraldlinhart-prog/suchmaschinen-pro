@@ -47,7 +47,7 @@ async function repoIsNextJs(owner: string, repo: string, githubToken: string): P
   }
 }
 
-function buildHtmlPage(title: string, metaDescription: string, contentHtml: string, domain: string, origin: string, canonical: string, publishPath: string): string {
+function buildHtmlPage(title: string, metaDescription: string, contentHtml: string, domain: string, origin: string, canonical: string, publishPath: string, imageUrl?: string | null): string {
   return `<!DOCTYPE html>
 <html lang="de">
 <head>
@@ -57,6 +57,16 @@ function buildHtmlPage(title: string, metaDescription: string, contentHtml: stri
 <meta name="description" content="${escapeHtml(metaDescription)}">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="${canonical}">
+<meta property="og:type" content="article">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:description" content="${escapeHtml(metaDescription)}">
+<meta property="og:url" content="${canonical}">
+<meta property="og:site_name" content="${escapeHtml(domain)}">
+${imageUrl ? `<meta property="og:image" content="${imageUrl}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="${imageUrl}">` : ''}
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 720px; margin: 0 auto; padding: 40px 20px; line-height: 1.7; color: #1a1a1a; }
   h1 { font-size: 2rem; margin-bottom: 0.5rem; }
@@ -117,7 +127,7 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow): 
     const path = `${publishPrefix}/${article.slug}/index.html`;
     const origin = await resolveOrigin(website.domain);
     const articleUrl = `${origin}/${cleanPublishPath}/${article.slug}/`;
-    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl, cleanPublishPath);
+    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl, cleanPublishPath, article.image_url);
     const contentBase64 = Buffer.from(html, 'utf-8').toString('base64');
 
     // GitHub rejects a PUT to an already-existing path with 422 "sha wasn't supplied"

@@ -153,7 +153,7 @@ export async function GET(req: NextRequest) {
       const related = features.internalLinks
         ? relatedArticles(next.keyword, next.keyword, await linkTargets(website.id, supabase), 3).map(t => ({ title: t.title, url: t.url }))
         : [];
-      const generated = await generateArticleContent(website.domain, website.notes, next.keyword, next.rationale, next.intent, related);
+      const generated = await generateArticleContent(website.domain, website.notes, next.keyword, next.rationale, next.intent, related, website.article_language ?? 'de');
 
       const { data: articleRow, error: insertError } = await supabase
         .from('sq_articles')

@@ -70,7 +70,8 @@ export async function generateArticleContent(
   keyword: string,
   rationale?: string,
   intent?: string,
-  relatedLinks?: { title: string; url: string }[]
+  relatedLinks?: { title: string; url: string }[],
+  articleLanguage = 'de'
 ): Promise<GeneratedArticle> {
   if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY fehlt.');
 
@@ -85,12 +86,13 @@ export async function generateArticleContent(
 - Describe the business model factually (private fee-based service, not an official authority) without characterising it as fraudulent\n`
     : '';
 
-  const prompt = `You are an expert German-language SEO content writer. Write a high-quality, genuinely useful blog article targeting the keyword "${keyword}" for the website ${domain}${notes ? ` (context: ${notes})` : ''}.
+  const langName = articleLanguage === 'en' ? 'English' : articleLanguage === 'de' ? 'German' : articleLanguage;
+  const prompt = `You are an expert ${langName}-language SEO content writer. Write a high-quality, genuinely useful blog article targeting the keyword "${keyword}" for the website ${domain}${notes ? ` (context: ${notes})` : ''}.
 ${rationale ? `Why this keyword matters for this site: ${rationale}` : ''}
 ${intent ? `Search intent: ${intent}` : ''}
 ${legalCautionNote}
 Requirements:
-- Write in German
+- Write in ${langName}
 - 700-1000 words, genuinely informative (not generic filler)
 - Use a clear H1 title, then structured with H2/H3 subheadings
 - Natural, non-spammy use of the keyword and closely related terms
