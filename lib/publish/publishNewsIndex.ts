@@ -14,11 +14,11 @@ interface PublishedArticle {
   published_at: string;
 }
 
-function buildIndexHtml(domain: string, origin: string, canonical: string, articles: PublishedArticle[]): string {
+function buildIndexHtml(domain: string, origin: string, canonical: string, publishPath: string, articles: PublishedArticle[]): string {
   const items = articles
     .map(
       a => `  <li>
-    <a href="./${a.slug}/">${escapeHtml(a.title)}</a>
+    <a href="${origin}/${publishPath}/${a.slug}/">${escapeHtml(a.title)}</a>
     ${a.meta_description ? `<p>${escapeHtml(a.meta_description)}</p>` : ''}
   </li>`
     )
@@ -88,7 +88,7 @@ export async function publishNewsIndex(
   const indexPath = `${publishPrefix}/index.html`;
 
   const origin = await resolveOrigin(website.domain);
-  const html = buildIndexHtml(website.domain, origin, `${origin}/${cleanPublishPath}/`, articles);
+  const html = buildIndexHtml(website.domain, origin, `${origin}/${cleanPublishPath}/`, cleanPublishPath, articles);
   const contentBase64 = Buffer.from(html, 'utf-8').toString('base64');
 
   // Need the current sha if the file already exists, otherwise GitHub rejects the PUT.

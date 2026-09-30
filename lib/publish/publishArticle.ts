@@ -69,7 +69,7 @@ function buildHtmlPage(title: string, metaDescription: string, contentHtml: stri
 <body>
 <a class="back" href="${origin}/">&larr; Zurück zu ${escapeHtml(domain)}</a>
 ${contentHtml}
-<p style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid #eee"><a href="../">Weitere Artikel &rarr;</a></p>
+<p style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid #eee"><a href="${origin}/${cleanPublishPath}/">Weitere Artikel &rarr;</a></p>
 </body>
 </html>
 `;
