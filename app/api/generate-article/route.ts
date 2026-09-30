@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       const related = featuresFor(website.plan).internalLinks
         ? relatedArticles(keyword, keyword, await linkTargets(website.id, supabase), 3).map(t => ({ title: t.title, url: t.url }))
         : [];
-      generated = await generateArticleContent(website.domain, website.notes, keyword, rationale, intent, related);
+      generated = await generateArticleContent(website.domain, website.notes, keyword, rationale, intent, related, website.article_language ?? 'de');
     } catch (e) {
       console.error('generateArticleContent error:', e);
       return NextResponse.json({ error: 'Artikel-Generierung fehlgeschlagen.' }, { status: 500 });
