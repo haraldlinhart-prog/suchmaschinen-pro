@@ -47,7 +47,7 @@ async function repoIsNextJs(owner: string, repo: string, githubToken: string): P
   }
 }
 
-function buildHtmlPage(title: string, metaDescription: string, contentHtml: string, domain: string, origin: string, canonical: string): string {
+function buildHtmlPage(title: string, metaDescription: string, contentHtml: string, domain: string, origin: string, canonical: string, publishPath: string): string {
   return `<!DOCTYPE html>
 <html lang="de">
 <head>
@@ -69,7 +69,7 @@ function buildHtmlPage(title: string, metaDescription: string, contentHtml: stri
 <body>
 <a class="back" href="${origin}/">&larr; Zurück zu ${escapeHtml(domain)}</a>
 ${contentHtml}
-<p style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid #eee"><a href="${origin}/${cleanPublishPath}/">Weitere Artikel &rarr;</a></p>
+<p style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid #eee"><a href="${origin}/${publishPath}/">Weitere Artikel &rarr;</a></p>
 </body>
 </html>
 `;
@@ -117,7 +117,7 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow): 
     const path = `${publishPrefix}/${article.slug}/index.html`;
     const origin = await resolveOrigin(website.domain);
     const articleUrl = `${origin}/${cleanPublishPath}/${article.slug}/`;
-    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl);
+    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl, cleanPublishPath);
     const contentBase64 = Buffer.from(html, 'utf-8').toString('base64');
 
     // GitHub rejects a PUT to an already-existing path with 422 "sha wasn't supplied"
