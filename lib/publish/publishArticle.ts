@@ -85,6 +85,61 @@ ${contentHtml}
 `;
 }
 
+/** HEAD-checks whether an image URL is actually reachable (not just that a prior
+ *  upload call reported success). Falls back to a ranged GET for servers that don't
+ *  implement HEAD correctly. Used before publishing a URL as og:image/twitter:image,
+ *  since the video.pan21.com mirror upload has been seen to report success while the
+ *  mirrored file 404s, and Pixabay's own CDN links eventually expire too.
+ */
+async function verifyImageReachable(url: string, timeoutMs = 8_000): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const headRes = await fetch(url, { method: 'HEAD', signal: controller.signal });
+    if (headRes.ok) return true;
+    // Some servers (including video.pan21.com) don't implement HEAD properly —
+    // fall back to a ranged GET that only pulls the first byte.
+    const getRes = await fetch(url, {
+      method: 'GET',
+      headers: { Range: 'bytes=0-0' },
+      signal: controller.signal,
+    });
+    return getRes.ok;
+  } catch (err) {
+    console.error(`verifyImageReachable: ${url} unreachable:`, err);
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** The visible article body always embeds the raw, un-mirrored source image URL
+ *  (Pixabay) directly in an <img> tag — that's the one Harry confirmed is reliably
+ *  displayed on the article page itself, as distinct from the separately mirrored
+ *  article.image_url used for og:image. Used as a fallback when the mirror is down.
+ */
+function extractInlineImageUrl(contentHtml: string): string | null {
+  const match = contentHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return match ? match[1] : null;
+}
+
+/** Picks the image URL to publish as og:image/twitter:image, verifying reachability
+ *  first so a dead mirror link never gets published. Prefers the mirrored
+ *  article.image_url; falls back to the raw inline image URL from the article body
+ *  if the mirror is unreachable; returns null (omitting the tags) if neither works.
+ */
+async function resolveOgImageUrl(article: ArticleRow): Promise<string | null> {
+  if (article.image_url && (await verifyImageReachable(article.image_url))) {
+    return article.image_url;
+  }
+  const inline = extractInlineImageUrl(article.content_html);
+  if (inline && (await verifyImageReachable(inline))) {
+    return inline;
+  }
+  console.error(`resolveOgImageUrl: no reachable image for article "${article.title}" — omitting og:image.`);
+  return null;
+}
+
 /** Polls a freshly-published article URL until it returns HTTP 200, so Facebook's
  *  link scraper doesn't hit the page mid-deploy and cache it as a 404 with no image.
  *  Used only for the GitHub publish path, where the page goes live seconds to ~2
@@ -148,7 +203,8 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow): 
     const path = `${publishPrefix}/${article.slug}/index.html`;
     const origin = await resolveOrigin(website.domain);
     const articleUrl = `${origin}/${cleanPublishPath}/${article.slug}/`;
-    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl, cleanPublishPath, article.image_url);
+    const ogImageUrl = await resolveOgImageUrl(article);
+    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl, cleanPublishPath, ogImageUrl);
     const contentBase64 = Buffer.from(html, 'utf-8').toString('base64');
 
     // GitHub rejects a PUT to an already-existing path with 422 "sha wasn't supplied"
