@@ -85,6 +85,27 @@ ${contentHtml}
 `;
 }
 
+/** Polls a freshly-published article URL until it returns HTTP 200, so Facebook's
+ *  link scraper doesn't hit the page mid-deploy and cache it as a 404 with no image.
+ *  Used only for the GitHub publish path, where the page goes live seconds to ~2
+ *  minutes after the commit (Vercel build time). WordPress/hosted paths are live
+ *  immediately and don't need this.
+ */
+async function waitForArticleLive(url: string, timeoutMs = 90_000, intervalMs = 3_000): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+      if (res.ok) return true;
+    } catch {
+      // network hiccup during deploy — keep polling until the deadline
+    }
+    await new Promise(r => setTimeout(r, intervalMs));
+  }
+  console.error(`waitForArticleLive: timed out waiting for ${url} to return 200 after ${timeoutMs}ms.`);
+  return false;
+}
+
 /** Fire-and-forget: post to Facebook if the website has credentials configured.
  *  Only fires on the FIRST publish (article.status !== 'published') to prevent
  *  duplicate posts when an article is re-published after a partial failure.
@@ -164,6 +185,11 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow): 
       throw new Error(`GitHub-Veröffentlichung fehlgeschlagen (${ghRes.status}).`);
     }
 
+    // Facebook's link scraper fetches the URL as soon as we call the Graph API. On the
+    // GitHub path the commit lands seconds to ~2 minutes before Vercel's deploy makes the
+    // page actually live, so posting right after the commit makes Facebook scrape a 404
+    // and cache a headline-only post with no image. Wait for the page to go live first.
+    await waitForArticleLive(articleUrl);
     await maybeFacebookPost(website, article, articleUrl);
     return { mode: 'github', url: articleUrl, githubPath: path };
   }

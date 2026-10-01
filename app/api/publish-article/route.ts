@@ -6,6 +6,10 @@ import { ensureDiscoverability } from '@/lib/publish/ensureDiscoverability';
 import { featuresFor } from '@/lib/content/planFeatures';
 import { backlinkOlderArticles } from '@/lib/content/premiumJobs';
 
+// GitHub-path publishes now wait (up to 90s) for the deploy to go live before
+// posting to Facebook, so the default serverless timeout is too tight.
+export const maxDuration = 120;
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
