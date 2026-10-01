@@ -66,6 +66,10 @@ export default function WebsiteDetailPage() {
   const [fbPageIdInput, setFbPageIdInput] = useState('');
   const [fbTokenInput, setFbTokenInput] = useState('');
   const [savingFb, setSavingFb] = useState(false);
+  const [checkingFb, setCheckingFb] = useState(false);
+  const [fbCheckResult, setFbCheckResult] = useState<{
+    ok: boolean; issues: string[]; pageName: string | null; expiryNote?: string;
+  } | null>(null);
   const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
   const [savingAutomation, setSavingAutomation] = useState(false);
 
@@ -174,7 +178,40 @@ export default function WebsiteDetailPage() {
     if (user) await loadData(user.id);
   };
 
+  // Runs debug_token (+ a live call against the specific page) before anything is
+  // saved — this is what would have caught turnkey-companies.com's expired/wrong-type
+  // token immediately instead of silently breaking Facebook posting for days.
+  const checkFbToken = async (): Promise<boolean> => {
+    if (!fbPageIdInput.trim() || !fbTokenInput.trim()) {
+      setFbCheckResult({ ok: false, issues: ['Bitte Page-ID und Token angeben.'], pageName: null });
+      return false;
+    }
+    setCheckingFb(true);
+    setFbCheckResult(null);
+    try {
+      const res = await fetch('/api/facebook/verify-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pageId: fbPageIdInput.trim(), token: fbTokenInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setFbCheckResult({ ok: false, issues: [data.error || 'Prüfung fehlgeschlagen.'], pageName: null });
+        return false;
+      }
+      setFbCheckResult(data);
+      return data.ok;
+    } catch {
+      setFbCheckResult({ ok: false, issues: ['Prüfung fehlgeschlagen (Netzwerkfehler).'], pageName: null });
+      return false;
+    } finally {
+      setCheckingFb(false);
+    }
+  };
+
   const handleSaveFb = async () => {
+    const valid = await checkFbToken();
+    if (!valid) return; // fbCheckResult now shows why — nothing is saved until it's fixed
     setSavingFb(true);
     const supabase = createClient();
     const { error } = await supabase.from('sq_websites').update({
@@ -185,6 +222,7 @@ export default function WebsiteDetailPage() {
     if (error) { alert('Fehler beim Speichern.'); return; }
     setEditingFb(false);
     setFbTokenInput('');
+    setFbCheckResult(null);
     if (user) await loadData(user.id);
   };
 
@@ -433,13 +471,34 @@ export default function WebsiteDetailPage() {
           {editingFb ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem', maxWidth: 320 }}>
               <a href="/hilfe/facebook" target="_blank" rel="noopener" style={{ fontSize: '0.78rem', color: 'var(--emerald)', fontWeight: 600 }}>📘 Token erstellen →</a>
-              <input type="text" value={fbPageIdInput} onChange={e => setFbPageIdInput(e.target.value)} placeholder="Facebook Page-ID (z. B. 123456789012345)" className="form-input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.7rem' }} />
-              <input type="password" value={fbTokenInput} onChange={e => setFbTokenInput(e.target.value)} placeholder="Page Access Token (EAAxxxxxxx…)" className="form-input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.7rem' }} />
+              <input type="text" value={fbPageIdInput} onChange={e => { setFbPageIdInput(e.target.value); setFbCheckResult(null); }} placeholder="Facebook Page-ID (z. B. 123456789012345)" className="form-input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.7rem' }} />
+              <input type="password" value={fbTokenInput} onChange={e => { setFbTokenInput(e.target.value); setFbCheckResult(null); }} placeholder="Page Access Token (EAAxxxxxxx…)" className="form-input" style={{ fontSize: '0.82rem', padding: '0.4rem 0.7rem' }} />
+              {fbCheckResult && (
+                <div style={{
+                  fontSize: '0.78rem',
+                  padding: '0.5rem 0.65rem',
+                  borderRadius: 6,
+                  background: fbCheckResult.ok ? '#e8f7ee' : '#fce8e8',
+                  border: `1px solid ${fbCheckResult.ok ? '#8fd4ac' : '#f5a5a5'}`,
+                  color: fbCheckResult.ok ? '#1a7a42' : '#b02020',
+                }}>
+                  {fbCheckResult.ok ? (
+                    <>✓ Gültiges Page-Token für „{fbCheckResult.pageName}" · {fbCheckResult.expiryNote}</>
+                  ) : (
+                    <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+                      {fbCheckResult.issues.map((issue, i) => <li key={i}>{issue}</li>)}
+                    </ul>
+                  )}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button onClick={handleSaveFb} disabled={savingFb} className="btn-emerald" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                <button onClick={checkFbToken} disabled={checkingFb || savingFb} className="btn-outline" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                  {checkingFb ? 'Prüfe…' : 'Token prüfen'}
+                </button>
+                <button onClick={handleSaveFb} disabled={savingFb || checkingFb} className="btn-emerald" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
                   {savingFb ? '…' : 'Speichern'}
                 </button>
-                <button onClick={() => setEditingFb(false)} className="btn-outline" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                <button onClick={() => { setEditingFb(false); setFbCheckResult(null); }} className="btn-outline" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
                   Abbrechen
                 </button>
               </div>
