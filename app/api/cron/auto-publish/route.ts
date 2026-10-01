@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { fetchSiteText, suggestKeywords, type SuggestedKeyword } from '@/lib/ai/analyzeWebsite';
 import { generateArticleContent } from '@/lib/ai/generateArticle';
-import { publishArticle } from '@/lib/publish/publishArticle';
+import { publishArticleAndTranslation } from '@/lib/publish/publishBilingual';
 import { publishNewsIndex } from '@/lib/publish/publishNewsIndex';
 import { featuresFor } from '@/lib/content/planFeatures';
 import { linkTargets, backlinkOlderArticles, maybeRefreshOne } from '@/lib/content/premiumJobs';
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
       const pendingDraft = pendingDrafts?.[0];
 
       if (pendingDraft) {
-        const publishResult = await publishArticle(website, pendingDraft);
+        const publishResult = await publishArticleAndTranslation(website, pendingDraft, supabase);
 
         await supabase
           .from('sq_articles')
@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
           .eq('id', pendingDraft.id);
 
         await supabase.from('sq_websites').update({ last_auto_published_at: new Date().toISOString() }).eq('id', website.id);
-        await publishNewsIndex(website, supabase).catch(e => console.error('publishNewsIndex failed', e));
+        await publishNewsIndex(website, supabase, { language: website.article_language ?? 'de', includeLegacyNullLanguage: true }).catch(e => console.error('publishNewsIndex failed', e));
         await ensureDiscoverability(website, supabase).catch(e => console.error('ensureDiscoverability failed', e));
 
         results.push({ domain: website.domain, status: 'published-pending-draft', detail: publishResult.url });
@@ -167,6 +167,7 @@ export async function GET(req: NextRequest) {
           content_html: generated.content_html,
           image_url: generated.image_url,
           image_alt: generated.image_alt,
+          language: website.article_language ?? 'de',
           status: 'draft',
         })
         .select()
@@ -174,7 +175,7 @@ export async function GET(req: NextRequest) {
 
       if (insertError || !articleRow) throw new Error(`insert failed: ${insertError?.message}`);
 
-      const publishResult = await publishArticle(website, articleRow);
+      const publishResult = await publishArticleAndTranslation(website, articleRow, supabase);
 
       await supabase
         .from('sq_articles')
@@ -188,7 +189,7 @@ export async function GET(req: NextRequest) {
 
       await supabase.from('sq_websites').update({ last_auto_published_at: new Date().toISOString() }).eq('id', website.id);
 
-      await publishNewsIndex(website, supabase).catch(e => console.error('publishNewsIndex failed', e));
+      await publishNewsIndex(website, supabase, { language: website.article_language ?? 'de', includeLegacyNullLanguage: true }).catch(e => console.error('publishNewsIndex failed', e));
       await ensureDiscoverability(website, supabase).catch(e => console.error('ensureDiscoverability failed', e));
 
       if (features.backlinkOlder) {

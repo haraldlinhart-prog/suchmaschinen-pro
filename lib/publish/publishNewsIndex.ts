@@ -12,9 +12,10 @@ interface PublishedArticle {
   slug: string;
   meta_description: string | null;
   published_at: string;
+  language?: string | null;
 }
 
-function buildIndexHtml(domain: string, origin: string, canonical: string, publishPath: string, articles: PublishedArticle[]): string {
+function buildIndexHtml(domain: string, origin: string, canonical: string, publishPath: string, articles: PublishedArticle[], lang: string = 'de'): string {
   const items = articles
     .map(
       a => `  <li>
@@ -24,12 +25,15 @@ function buildIndexHtml(domain: string, origin: string, canonical: string, publi
     )
     .join('\n');
 
+  const title = lang === 'en' ? 'News' : 'News';
+  const backLabel = lang === 'en' ? `Back to ${escapeHtml(domain)}` : `Zurück zu ${escapeHtml(domain)}`;
+
   return `<!DOCTYPE html>
-<html lang="de">
+<html lang="${lang}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>News – ${escapeHtml(domain)}</title>
+<title>${title} – ${escapeHtml(domain)}</title>
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="${canonical}">
 <style>
@@ -44,8 +48,8 @@ function buildIndexHtml(domain: string, origin: string, canonical: string, publi
 </style>
 </head>
 <body>
-<a class="back" href="${origin}/">&larr; Zurück zu ${escapeHtml(domain)}</a>
-<h1>News</h1>
+<a class="back" href="${origin}/">&larr; ${backLabel}</a>
+<h1>${title}</h1>
 <ul>
 ${items}
 </ul>
@@ -58,26 +62,47 @@ ${items}
  * Regenerates the <publish_path>/index.html listing page after each publish,
  * so there's something to link a "News" menu entry to (see chat 02.09.26).
  */
+export interface PublishNewsIndexOptions {
+  /** Restricts the index to articles in this language. Omit for legacy (unfiltered)
+   *  behavior. */
+  language?: string;
+  /** Overrides website.publish_path — used to regenerate a secondary-language index
+   *  under its own path (e.g. /en/blog/). */
+  publishPath?: string;
+  /** When filtering by language, also include legacy rows where `language` is NULL
+   *  (articles published before the bilingual feature existed). Only meaningful for
+   *  the primary-language index, so old articles don't disappear from it. */
+  includeLegacyNullLanguage?: boolean;
+}
+
 export async function publishNewsIndex(
   website: { id: string; domain: string; github_repo: string | null; publish_path: string },
-  supabase: SupabaseLike
+  supabase: SupabaseLike,
+  options?: PublishNewsIndexOptions
 ): Promise<void> {
   if (!website.github_repo) return;
   const githubToken = process.env.GITHUB_TOKEN;
   if (!githubToken) return;
 
-  const { data } = await supabase
+  let query = supabase
     .from('sq_articles')
-    .select('title, slug, meta_description, published_at')
+    .select('title, slug, meta_description, published_at, language')
     .eq('website_id', website.id)
-    .eq('status', 'published')
-    .order('published_at', { ascending: false });
+    .eq('status', 'published');
+
+  if (options?.language) {
+    query = options.includeLegacyNullLanguage
+      ? query.or(`language.eq.${options.language},language.is.null`)
+      : query.eq('language', options.language);
+  }
+
+  const { data } = await query.order('published_at', { ascending: false });
 
   const articles = (data || []) as unknown as PublishedArticle[];
   if (articles.length === 0) return;
 
   const [owner, repo] = website.github_repo.split('/');
-  const cleanPublishPath = (website.publish_path || '/blog/').replace(/^\/|\/$/g, '');
+  const cleanPublishPath = (options?.publishPath || website.publish_path || '/blog/').replace(/^\/|\/$/g, '');
 
   const rootRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/`, {
     headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github+json' },
@@ -88,7 +113,7 @@ export async function publishNewsIndex(
   const indexPath = `${publishPrefix}/index.html`;
 
   const origin = await resolveOrigin(website.domain);
-  const html = buildIndexHtml(website.domain, origin, `${origin}/${cleanPublishPath}/`, cleanPublishPath, articles);
+  const html = buildIndexHtml(website.domain, origin, `${origin}/${cleanPublishPath}/`, cleanPublishPath, articles, options?.language || 'de');
   const contentBase64 = Buffer.from(html, 'utf-8').toString('base64');
 
   // Need the current sha if the file already exists, otherwise GitHub rejects the PUT.

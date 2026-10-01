@@ -13,6 +13,19 @@ interface WebsiteRow {
   wp_app_password: string | null;
   facebook_page_id: string | null;
   facebook_page_token: string | null;
+  /** Null/undefined = post every published article to Facebook (legacy behavior).
+   *  Set (e.g. 'en') on bilingual sites whose Facebook ad audience only speaks one
+   *  language — then only articles published in that language get posted. */
+  facebook_post_language?: string | null;
+}
+
+export interface PublishOptions {
+  /** Overrides <html lang="..."> in the generated page. Defaults to 'de'. */
+  language?: string;
+  /** Overrides website.publish_path for this call — used to publish a secondary-
+   *  language translation under its own path (e.g. /en/blog/) instead of the
+   *  site's primary publish_path. */
+  publishPath?: string;
 }
 
 interface ArticleRow {
@@ -47,9 +60,9 @@ async function repoIsNextJs(owner: string, repo: string, githubToken: string): P
   }
 }
 
-function buildHtmlPage(title: string, metaDescription: string, contentHtml: string, domain: string, origin: string, canonical: string, publishPath: string, imageUrl?: string | null): string {
+function buildHtmlPage(title: string, metaDescription: string, contentHtml: string, domain: string, origin: string, canonical: string, publishPath: string, imageUrl?: string | null, lang: string = 'de'): string {
   return `<!DOCTYPE html>
-<html lang="de">
+<html lang="${lang}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -77,9 +90,9 @@ ${imageUrl ? `<meta property="og:image" content="${imageUrl}">
 </style>
 </head>
 <body>
-<a class="back" href="${origin}/">&larr; Zurück zu ${escapeHtml(domain)}</a>
+<a class="back" href="${origin}/">&larr; ${lang === 'en' ? `Back to ${escapeHtml(domain)}` : `Zurück zu ${escapeHtml(domain)}`}</a>
 ${contentHtml}
-<p style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid #eee"><a href="${origin}/${publishPath}/">Weitere Artikel &rarr;</a></p>
+<p style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid #eee"><a href="${origin}/${publishPath}/">${lang === 'en' ? 'More articles' : 'Weitere Artikel'} &rarr;</a></p>
 </body>
 </html>
 `;
@@ -165,10 +178,17 @@ async function waitForArticleLive(url: string, timeoutMs = 90_000, intervalMs = 
  *  Only fires on the FIRST publish (article.status !== 'published') to prevent
  *  duplicate posts when an article is re-published after a partial failure.
  */
-async function maybeFacebookPost(website: WebsiteRow, article: ArticleRow, url: string): Promise<void> {
+async function maybeFacebookPost(website: WebsiteRow, article: ArticleRow, url: string, language?: string): Promise<void> {
   if (!website.facebook_page_id || !website.facebook_page_token) return;
   if (article.status === 'published') {
     console.log(`Facebook post skipped for ${website.domain} — article already published.`);
+    return;
+  }
+  // Bilingual sites can restrict Facebook posting to a single language (the one the
+  // Facebook ad audience actually speaks). Null/undefined keeps legacy behavior —
+  // post every first-publish regardless of language.
+  if (website.facebook_post_language && language && website.facebook_post_language !== language) {
+    console.log(`Facebook post skipped for ${website.domain} — article language "${language}" does not match facebook_post_language "${website.facebook_post_language}".`);
     return;
   }
   const result = await postToFacebook({
@@ -185,14 +205,16 @@ async function maybeFacebookPost(website: WebsiteRow, article: ArticleRow, url: 
   }
 }
 
-export async function publishArticle(website: WebsiteRow, article: ArticleRow): Promise<PublishResult> {
+export async function publishArticle(website: WebsiteRow, article: ArticleRow, options?: PublishOptions): Promise<PublishResult> {
+  const language = options?.language || 'de';
+
   // Path A: network sites with a linked GitHub repo — commit directly.
   if (website.github_repo) {
     const githubToken = process.env.GITHUB_TOKEN;
     if (!githubToken) throw new Error('Serverkonfiguration unvollständig (GITHUB_TOKEN fehlt).');
 
     const [owner, repo] = website.github_repo.split('/');
-    const cleanPublishPath = (website.publish_path || '/blog/').replace(/^\/|\/$/g, '');
+    const cleanPublishPath = (options?.publishPath || website.publish_path || '/blog/').replace(/^\/|\/$/g, '');
 
     // Next.js projects only serve files that live under public/ (or go through the
     // Next build) — a root-level path like `news/slug/index.html` is silently dropped
@@ -204,7 +226,7 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow): 
     const origin = await resolveOrigin(website.domain);
     const articleUrl = `${origin}/${cleanPublishPath}/${article.slug}/`;
     const ogImageUrl = await resolveOgImageUrl(article);
-    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl, cleanPublishPath, ogImageUrl);
+    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl, cleanPublishPath, ogImageUrl, language);
     const contentBase64 = Buffer.from(html, 'utf-8').toString('base64');
 
     // GitHub rejects a PUT to an already-existing path with 422 "sha wasn't supplied"
@@ -246,7 +268,7 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow): 
     // page actually live, so posting right after the commit makes Facebook scrape a 404
     // and cache a headline-only post with no image. Wait for the page to go live first.
     await waitForArticleLive(articleUrl);
-    await maybeFacebookPost(website, article, articleUrl);
+    await maybeFacebookPost(website, article, articleUrl, language);
     return { mode: 'github', url: articleUrl, githubPath: path };
   }
 
@@ -309,12 +331,12 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow): 
     }
 
     const wpData = await wpRes.json();
-    await maybeFacebookPost(website, article, wpData.link);
+    await maybeFacebookPost(website, article, wpData.link, language);
     return { mode: 'wordpress', url: wpData.link };
   }
 
   // Path C: no repo/WP credentials — host ourselves at /b/[slug]/[articleSlug].
   const hostedUrl = `https://suchmaschinen.pro/b/${website.public_slug}/${article.slug}`;
-  await maybeFacebookPost(website, article, hostedUrl);
+  await maybeFacebookPost(website, article, hostedUrl, language);
   return { mode: 'hosted', url: hostedUrl };
 }

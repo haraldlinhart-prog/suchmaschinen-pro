@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { publishArticle } from '@/lib/publish/publishArticle';
+import { publishArticleAndTranslation } from '@/lib/publish/publishBilingual';
 import { publishNewsIndex } from '@/lib/publish/publishNewsIndex';
 import { ensureDiscoverability } from '@/lib/publish/ensureDiscoverability';
 import { featuresFor } from '@/lib/content/planFeatures';
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
     const { data: article, error: articleError } = await supabase
       .from('sq_articles')
-      .select('*, sq_websites!inner(id, domain, github_repo, publish_path, public_slug, hosting_platform, wp_url, wp_username, wp_app_password, facebook_page_id, facebook_page_token, plan, status)')
+      .select('*, sq_websites!inner(id, user_id, domain, notes, github_repo, publish_path, public_slug, hosting_platform, wp_url, wp_username, wp_app_password, facebook_page_id, facebook_page_token, facebook_post_language, article_language, secondary_language, secondary_publish_path, plan, status)')
       .eq('id', articleId)
       .eq('user_id', user.id)
       .single();
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     let result;
     try {
-      result = await publishArticle(website, article);
+      result = await publishArticleAndTranslation(website, article, supabase);
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Veröffentlichung fehlgeschlagen.';
       return NextResponse.json({ error: message }, { status: 500 });
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     if (updateError) return NextResponse.json({ error: 'Veröffentlicht, aber Status konnte nicht aktualisiert werden.' }, { status: 500 });
 
-    await publishNewsIndex(website, supabase).catch(e => console.error('publishNewsIndex failed', e));
+    await publishNewsIndex(website, supabase, { language: website.article_language ?? 'de', includeLegacyNullLanguage: true }).catch(e => console.error('publishNewsIndex failed', e));
     await ensureDiscoverability(website, supabase).catch(e => console.error('ensureDiscoverability failed', e));
     if (featuresFor(website.plan).backlinkOlder) {
       await backlinkOlderArticles(website, { id: articleId, title: article.title, keyword: article.keyword, url: result.url }, supabase)

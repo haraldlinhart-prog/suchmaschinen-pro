@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
         content_html: generated.content_html,
         image_url: generated.image_url,
         image_alt: generated.image_alt,
+        language: website.article_language ?? 'de',
         status: 'draft',
       })
       .select()
