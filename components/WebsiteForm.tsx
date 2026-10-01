@@ -216,15 +216,15 @@ export function WebsiteForm({ userId, userEmail, onSuccess }: { userId: string; 
           </p>
           <div>
             <label className="form-label">WordPress-URL</label>
-            <input type="text" value={wpUrl} onChange={e => setWpUrl(e.target.value)} className="form-input" placeholder="https://ihredomain.de" />
+            <input type="text" name="wp-url" autoComplete="off" value={wpUrl} onChange={e => setWpUrl(e.target.value)} className="form-input" placeholder="https://ihredomain.de" />
           </div>
           <div>
             <label className="form-label">Benutzername</label>
-            <input type="text" value={wpUsername} onChange={e => setWpUsername(e.target.value)} className="form-input" placeholder="admin" />
+            <input type="text" name="wp-username" autoComplete="off" value={wpUsername} onChange={e => setWpUsername(e.target.value)} className="form-input" placeholder="admin" />
           </div>
           <div>
             <label className="form-label">Anwendungspasswort</label>
-            <input type="password" value={wpAppPassword} onChange={e => setWpAppPassword(e.target.value)} className="form-input" placeholder="xxxx xxxx xxxx xxxx xxxx xxxx" />
+            <input type="password" name="wp-app-password" autoComplete="new-password" value={wpAppPassword} onChange={e => setWpAppPassword(e.target.value)} className="form-input" placeholder="xxxx xxxx xxxx xxxx xxxx xxxx" />
           </div>
         </div>
       )}
@@ -243,12 +243,12 @@ export function WebsiteForm({ userId, userEmail, onSuccess }: { userId: string; 
         </p>
         <div>
           <label className="form-label">Facebook Page-ID</label>
-          <input type="text" value={facebookPageId} onChange={e => setFacebookPageId(e.target.value)}
+          <input type="text" name="fb-page-id" autoComplete="off" value={facebookPageId} onChange={e => setFacebookPageId(e.target.value)}
             className="form-input" placeholder="z. B. 123456789012345" />
         </div>
         <div>
           <label className="form-label">Facebook Page Access Token</label>
-          <input type="password" value={facebookPageToken} onChange={e => setFacebookPageToken(e.target.value)}
+          <input type="password" name="fb-page-token" autoComplete="new-password" value={facebookPageToken} onChange={e => setFacebookPageToken(e.target.value)}
             className="form-input" placeholder="EAAxxxxxxx…" />
         </div>
       </div>
