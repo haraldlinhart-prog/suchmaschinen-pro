@@ -6,9 +6,12 @@ import { ensureDiscoverability } from '@/lib/publish/ensureDiscoverability';
 import { featuresFor } from '@/lib/content/planFeatures';
 import { backlinkOlderArticles } from '@/lib/content/premiumJobs';
 
-// GitHub-path publishes now wait (up to 90s) for the deploy to go live before
-// posting to Facebook, so the default serverless timeout is too tight.
-export const maxDuration = 120;
+// GitHub-path publishes wait (up to 90s) for the deploy to go live before posting to
+// Facebook. Bilingual sites now reliably await the full primary + secondary-language
+// publish sequence in this same request (see publishBilingual.ts) — each half can hit
+// that 90s wait on its own, so 120s was too tight once the secondary publish was no
+// longer a detached, unreliable background promise.
+export const maxDuration = 240;
 
 export async function POST(req: NextRequest) {
   try {

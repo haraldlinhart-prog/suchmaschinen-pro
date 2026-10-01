@@ -63,11 +63,17 @@ export async function publishArticleAndTranslation(
   const primaryResult = await publishArticle(website, article, { language: primaryLanguage });
 
   if (website.secondary_language && website.secondary_publish_path && article.keyword) {
-    // Fire-and-forget: the primary publish above already succeeded and must stand
-    // regardless of what happens here.
-    publishSecondaryLanguage(website, article, primaryLanguage, supabase).catch(err => {
+    // Must be awaited, not fire-and-forget: a Vercel serverless function's execution
+    // environment is frozen/torn down as soon as the HTTP response is sent, so a
+    // detached (un-awaited) promise is not reliably given the chance to finish — it was
+    // silently never completing (no error logged, the code just never got far enough).
+    // The primary publish above has already succeeded and must stand regardless of what
+    // happens here — hence the try/catch, not the missing await.
+    try {
+      await publishSecondaryLanguage(website, article, primaryLanguage, supabase);
+    } catch (err) {
       console.error(`publishArticleAndTranslation: secondary-language publish failed for ${website.domain}/${article.slug}:`, err);
-    });
+    }
   }
 
   return primaryResult;
