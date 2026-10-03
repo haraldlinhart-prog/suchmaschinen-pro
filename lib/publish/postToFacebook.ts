@@ -15,6 +15,10 @@ interface FacebookPostOptions {
   articleUrl: string;
   /** Optional 2–3 sentence teaser shown above the link card. */
   teaser?: string | null;
+  /** Optional image URL to attach directly as the post's preview thumbnail via
+   *  the Graph API's `picture` field. Independent of `link` — Facebook still
+   *  links the post/click-through to `articleUrl` regardless of this value. */
+  picture?: string | null;
 }
 
 export interface FacebookPostResult {
@@ -24,7 +28,7 @@ export interface FacebookPostResult {
 }
 
 export async function postToFacebook(opts: FacebookPostOptions): Promise<FacebookPostResult> {
-  const { pageId, pageToken, articleTitle, articleUrl, teaser } = opts;
+  const { pageId, pageToken, articleTitle, articleUrl, teaser, picture } = opts;
 
   // Build the message: teaser (if any) + link. Facebook generates the link
   // preview card automatically from Open Graph tags on the article page.
@@ -42,6 +46,10 @@ export async function postToFacebook(opts: FacebookPostOptions): Promise<Faceboo
           message,
           link: articleUrl,
           access_token: pageToken,
+          // `picture` is independent of `link`: it only sets the preview thumbnail
+          // Facebook attaches to this post. The post/click-through still points at
+          // `link` (the real article URL) regardless of which image is shown here.
+          ...(picture ? { picture } : {}),
         }),
       }
     );
