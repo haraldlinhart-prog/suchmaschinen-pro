@@ -86,6 +86,8 @@ export function AuthForm({ locale = 'de', homeHref = '/' }: { locale?: 'de' | 'e
     widgetIdRef.current = window.hcaptcha.render(captchaRef.current, {
       sitekey: HCAPTCHA_SITE_KEY,
       hl: locale,
+      // The normal widget is 303px wide and does not fit the card on small phones.
+      size: window.innerWidth < 420 ? 'compact' : 'normal',
       callback: (token: string) => setCaptchaToken(token),
       'expired-callback': () => setCaptchaToken(''),
       'error-callback': () => setCaptchaToken(''),
@@ -235,7 +237,7 @@ export function AuthForm({ locale = 'de', homeHref = '/' }: { locale?: 'de' | 'e
                 </button>
               )}
 
-              <div ref={captchaRef} style={{ display: 'flex', justifyContent: 'center', maxWidth: '100%', overflow: 'hidden' }} />
+              <div ref={captchaRef} style={{ display: 'flex', justifyContent: 'center' }} />
 
               {status === 'error' && (
                 <div style={{ background: '#fce8e8', border: '1px solid #f5a5a5', padding: '0.75rem', fontSize: '0.85rem', color: '#b02020', borderRadius: 8 }}>
