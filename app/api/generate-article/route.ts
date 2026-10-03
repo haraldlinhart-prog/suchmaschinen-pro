@@ -5,6 +5,16 @@ import { featuresFor } from '@/lib/content/planFeatures';
 import { linkTargets } from '@/lib/content/premiumJobs';
 import { relatedArticles } from '@/lib/content/internalLinks';
 
+// This route calls the Claude API, looks up a Pixabay image, and (since the
+// video.pan21.com image mirror now downloads the Pixabay bytes itself and
+// re-uploads them, rather than asking that server to fetch the URL) can take
+// noticeably longer than Vercel's default function timeout. Without an
+// explicit maxDuration, a timeout here silently kills the whole request with
+// no error logged anywhere — the article/Facebook post then simply never
+// appears, which looked like a mysterious intermittent failure before this
+// was traced back to the missing timeout config.
+export const maxDuration = 120;
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
