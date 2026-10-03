@@ -107,6 +107,10 @@ h1,h2,h3,h4 { font-family: var(--font-display); line-height: 1.2; }
 }
 .progress-message { animation: pulse-fade 1.8s ease-in-out infinite; }
 
+/* Ad server banners (Revive) are 728px wide — scale them down instead of causing horizontal scrolling on phones */
+ins[data-revive-zoneid] { display: block; max-width: 100%; }
+ins[data-revive-zoneid] a, ins[data-revive-zoneid] img, ins[data-revive-zoneid] iframe { max-width: 100%; height: auto; }
+
 /* Mobile: only logo + main button in the header (the text links overflowed the viewport) */
 @media (max-width: 640px) {
   .nav-link-desktop { display: none !important; }
