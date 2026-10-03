@@ -1,10 +1,17 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import VideoTutorial from './VideoTutorial';
 
-export const metadata = { title: 'Facebook-Seite verbinden – Anleitung' };
+export const metadata: Metadata = {
+  title: 'Facebook-Seite verbinden – Anleitung',
+  description: 'Schritt für Schritt: Page-ID und Page Access Token erstellen, damit suchmaschinen.pro jeden neuen Artikel automatisch auf Ihrer Facebook-Seite teilt.',
+  alternates: { canonical: 'https://www.suchmaschinen.pro/hilfe/facebook' },
+};
 
 const sectionStyle = { fontSize: '1.1rem', marginTop: '2.2rem', marginBottom: '0.6rem', color: 'var(--ink)', fontFamily: 'var(--font-display)' } as const;
 const pStyle = { color: 'var(--text-muted)', fontSize: '0.92rem', lineHeight: 1.7, margin: '0 0 0.6rem' } as const;
+const link = { color: 'var(--emerald)' } as const;
+const pre = { background: 'var(--paper-dark)', borderRadius: 6, padding: '0.9rem 1rem', fontSize: '0.8rem', overflowX: 'auto', color: 'var(--ink)' } as const;
 
 export default function FacebookHelpPage() {
   return (
@@ -17,73 +24,66 @@ export default function FacebookHelpPage() {
           Facebook-Seite verbinden
         </h1>
         <p style={pStyle}>
-          Wenn du eine Facebook Page-ID und einen Page Access Token hinterlegst, postet suchmaschinen.pro jeden neuen Artikel automatisch auf deine Facebook-Seite — mit Titel, Teaser und direktem Link zum Artikel. Facebook generiert die Vorschaukarte selbst.
+          Wenn Sie eine Facebook-Page-ID und einen Page Access Token hinterlegen, teilt suchmaschinen.pro jeden neuen Artikel automatisch auf Ihrer Facebook-Seite — mit einem kurzen Teaser und dem direkten Link zum Artikel. Die Vorschaukarte mit Titel und Bild erzeugt Facebook selbst.
         </p>
       </div>
 
-      <h2 style={sectionStyle}>Was du brauchst</h2>
+      <h2 style={sectionStyle}>Was Sie brauchen</h2>
       <ul style={{ ...pStyle, paddingLeft: '1.2rem' }}>
-        <li>Eine Facebook-Seite (Page), die du verwaltest — kein privates Profil</li>
-        <li>Ein kostenloses Meta-Entwicklerkonto auf <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--emerald)' }}>developers.facebook.com</a> (Registrierung mit dem bestehenden Facebook-Login, kostenlos)</li>
+        <li>Eine Facebook-Seite (Page), die Sie verwalten — kein privates Profil</li>
+        <li>Ein Meta-Entwicklerkonto auf <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" style={link}>developers.facebook.com</a> (kostenlos, Registrierung mit Ihrem bestehenden Facebook-Login)</li>
       </ul>
 
       <h2 style={sectionStyle}>1. Facebook-Seite anlegen (falls noch keine vorhanden)</h2>
       <p style={pStyle}>
-        Auf <a href="https://www.facebook.com/pages/create" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--emerald)' }}>facebook.com/pages/create</a> eine neue Seite erstellen. Kategorie wählen, Name eintragen, fertig — das dauert unter 5 Minuten. Neue Seiten ohne Follower sind kein Problem; der erste Artikel wird trotzdem gepostet.
+        Auf <a href="https://www.facebook.com/pages/create" target="_blank" rel="noopener noreferrer" style={link}>facebook.com/pages/create</a> eine neue Seite erstellen: Kategorie wählen, Namen eintragen, fertig — das dauert keine 5 Minuten. Neue Seiten ohne Follower sind kein Problem; der erste Artikel wird trotzdem gepostet.
       </p>
 
       <VideoTutorial />
 
       <h2 style={sectionStyle}>2. Page-ID herausfinden</h2>
       <p style={pStyle}>
-        Die Facebook-Seite aufrufen. In der URL steht entweder eine Zahl (<code>facebook.com/123456789012345</code>) — das ist direkt die Page-ID. Oder ein Name (<code>facebook.com/meinefirma</code>) — dann auf der Seite auf <strong>„Über"</strong> klicken und ganz unten nach <strong>„Seiten-ID"</strong> suchen.
+        Rufen Sie Ihre Facebook-Seite auf. Steht in der Adresse eine Zahl (<code>facebook.com/123456789012345</code>), ist das direkt die Page-ID. Steht dort ein Name (<code>facebook.com/meinefirma</code>), finden Sie die ID auf der Seite unter <strong>„Info“</strong> bzw. <strong>„Seitentransparenz“</strong>.
       </p>
       <p style={pStyle}>
-        Alternativ: Im <a href="https://developers.facebook.com/tools/explorer" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--emerald)' }}>Graph API Explorer</a> als Abfrage <code>me/accounts</code> eingeben (nach Schritt 3) — dort werden alle verwalteten Seiten mit ID aufgelistet.
+        Einfacher: Die Abfrage <code>me/accounts</code> im Graph API Explorer (Schritt 5) listet alle Ihre Seiten mit ID auf.
       </p>
 
-      <h2 style={sectionStyle}>3. Meta Developer App erstellen</h2>
+      <h2 style={sectionStyle}>3. Meta-App erstellen</h2>
       <p style={pStyle}>
-        Einmalig nötig. Auf <a href="https://developers.facebook.com/apps/create" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--emerald)' }}>developers.facebook.com/apps/create</a> eine neue App anlegen:
+        Einmalig nötig. Auf <a href="https://developers.facebook.com/apps/create" target="_blank" rel="noopener noreferrer" style={link}>developers.facebook.com/apps/create</a> eine neue App anlegen:
       </p>
       <ol style={{ ...pStyle, paddingLeft: '1.2rem' }}>
-        <li style={{ marginBottom: '0.5rem' }}>App-Typ: <strong>„Andere"</strong> wählen → weiter → <strong>„Business"</strong> wählen → weiter.</li>
-        <li style={{ marginBottom: '0.5rem' }}>Einen beliebigen App-Namen eingeben (z. B. „meinefirma-posts"), E-Mail-Adresse bestätigen → <strong>„App erstellen"</strong>.</li>
-        <li style={{ marginBottom: '0.5rem' }}>Im App-Dashboard links auf <strong>„Anwendungsfälle"</strong> klicken → <strong>„Content-Management"</strong> auswählen → <strong>„Einrichten"</strong>.</li>
-        <li style={{ marginBottom: '0.5rem' }}>Unter „Berechtigungen und Features" bei <strong><code>pages_manage_posts</code></strong> und <strong><code>pages_read_engagement</code></strong> jeweils auf <strong>„+ Hinzufügen"</strong> klicken.</li>
+        <li style={{ marginBottom: '0.5rem' }}>App-Typ <strong>„Andere“</strong> wählen → weiter → <strong>„Business“</strong> wählen → weiter.</li>
+        <li style={{ marginBottom: '0.5rem' }}>Einen beliebigen App-Namen eingeben (z. B. „meinefirma-posts“), E-Mail-Adresse bestätigen → <strong>„App erstellen“</strong>.</li>
+        <li style={{ marginBottom: '0.5rem' }}>Im App-Dashboard links auf <strong>„Anwendungsfälle“</strong> klicken → <strong>„Content-Management“</strong> auswählen → <strong>„Einrichten“</strong>.</li>
+        <li style={{ marginBottom: '0.5rem' }}>Unter „Berechtigungen und Features“ bei <strong><code>pages_manage_posts</code></strong> und <strong><code>pages_read_engagement</code></strong> jeweils auf <strong>„+ Hinzufügen“</strong> klicken.</li>
       </ol>
       <div style={{ background: '#fff8e8', border: '1px solid #e8c840', borderRadius: 8, padding: '1rem 1.2rem', margin: '0.8rem 0' }}>
-        <strong style={{ fontSize: '0.88rem', color: 'var(--ink)' }}>⚠️ Wichtig: Anwendungsfall zuerst</strong>
+        <strong style={{ fontSize: '0.88rem', color: 'var(--ink)' }}>⚠️ Wichtig: zuerst den Anwendungsfall</strong>
         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.3rem 0 0' }}>
-          Ohne den Anwendungsfall „Content-Management" erscheinen <code>pages_manage_posts</code> und <code>pages_read_engagement</code> im Graph API Explorer gar nicht. Der Anwendungsfall muss zuerst aktiviert werden.
+          Ohne den Anwendungsfall „Content-Management“ erscheinen <code>pages_manage_posts</code> und <code>pages_read_engagement</code> im Graph API Explorer gar nicht.
         </p>
       </div>
 
-      <h2 style={sectionStyle}>4. Page Access Token erstellen</h2>
+      <h2 style={sectionStyle}>4. Nutzer-Token erzeugen</h2>
       <p style={pStyle}>
-        Den <a href="https://developers.facebook.com/tools/explorer" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--emerald)' }}>Graph API Explorer</a> öffnen (mit Facebook-Account einloggen).
+        Öffnen Sie den <a href="https://developers.facebook.com/tools/explorer" target="_blank" rel="noopener noreferrer" style={link}>Graph API Explorer</a> und melden Sie sich mit Ihrem Facebook-Konto an.
       </p>
       <ol style={{ ...pStyle, paddingLeft: '1.2rem' }}>
-        <li style={{ marginBottom: '0.5rem' }}>Oben rechts bei <strong>„Meta App"</strong> die soeben erstellte App auswählen.</li>
-        <li style={{ marginBottom: '0.5rem' }}>Auf <strong>„Berechtigungen hinzufügen"</strong> klicken und folgende zwei aktivieren: <code>pages_manage_posts</code> und <code>pages_read_engagement</code>.</li>
-        <li style={{ marginBottom: '0.5rem' }}>Auf <strong>„Token generieren"</strong> klicken. Facebook fragt, auf welche Seite(n) Zugriff erlaubt wird — die gewünschte Seite auswählen und bestätigen.</li>
-        <li style={{ marginBottom: '0.5rem' }}>Auf <strong>„Abfragen"</strong> klicken und als Abfrage <code>me/accounts</code> eingeben → ausführen. Die Antwort zeigt alle deine Facebook-Seiten mit <code>id</code> und <code>access_token</code> — beides für die gewünschte Seite notieren.</li>
+        <li style={{ marginBottom: '0.5rem' }}>Oben rechts unter <strong>„Meta App“</strong> die soeben erstellte App auswählen.</li>
+        <li style={{ marginBottom: '0.5rem' }}>Unter <strong>„Berechtigungen hinzufügen“</strong> die beiden Berechtigungen <code>pages_manage_posts</code> und <code>pages_read_engagement</code> aktivieren.</li>
+        <li style={{ marginBottom: '0.5rem' }}>Auf <strong>„Token generieren“</strong> klicken. Facebook fragt, für welche Seite(n) der Zugriff erlaubt wird — die gewünschte Seite auswählen und bestätigen.</li>
       </ol>
-      <div style={{ background: 'var(--emerald-pale)', border: '1px solid var(--emerald)', borderRadius: 8, padding: '1rem 1.2rem', margin: '0.8rem 0' }}>
-        <strong style={{ fontSize: '0.88rem', color: 'var(--ink)' }}>💡 me/accounts ist der einfachste Weg</strong>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.3rem 0 0' }}>
-          Die Abfrage <code>me/accounts</code> liefert in einem Schritt sowohl die Page-ID als auch einen gültigen Page Access Token für jede deiner Seiten. Den Token aus der Antwort direkt in Schritt 5 verwenden — er ist bereits ein Long-Lived Page Token und muss nicht mehr umgewandelt werden.
-        </p>
-      </div>
+      <p style={pStyle}>
+        Der so erzeugte Nutzer-Token ist nur etwa eine Stunde gültig. Damit die automatische Veröffentlichung dauerhaft läuft, wandeln Sie ihn im nächsten Schritt in einen dauerhaften Page Access Token um.
+      </p>
 
-      <h2 style={sectionStyle}>5. Long-Lived Token erzeugen (wichtig!)</h2>
+      <h2 style={sectionStyle}>5. Dauerhaften Page Access Token erzeugen (wichtig!)</h2>
       <p style={pStyle}>
-        Der kurze Token hält nur 1 Stunde. Für den automatischen Dauerbetrieb braucht es einen <strong>Long-Lived Page Access Token</strong>, der 60 Tage gültig ist (und sich bei regelmäßiger Nutzung automatisch verlängert).
+        Zuerst den kurzlebigen Nutzer-Token in einen langlebigen umwandeln. Im Graph API Explorer folgende Abfrage ausführen — <code>SHORT_LIVED_TOKEN</code> durch den Token aus Schritt 4 ersetzen; <code>APP_ID</code> und <code>APP_SECRET</code> finden Sie in den Einstellungen Ihrer Meta-App:
       </p>
-      <p style={pStyle}>
-        Im Graph API Explorer folgende Abfrage eingeben — <code>SHORT_LIVED_TOKEN</code> durch den gerade kopierten Token ersetzen, <code>APP_ID</code> und <code>APP_SECRET</code> aus der Meta-App-Einstellungsseite holen:
-      </p>
-      <pre style={{ background: 'var(--paper-dark)', borderRadius: 6, padding: '0.9rem 1rem', fontSize: '0.8rem', overflowX: 'auto', color: 'var(--ink)' }}>
+      <pre style={pre}>
 {`GET /oauth/access_token
   ?grant_type=fb_exchange_token
   &client_id=APP_ID
@@ -91,43 +91,35 @@ export default function FacebookHelpPage() {
   &fb_exchange_token=SHORT_LIVED_TOKEN`}
       </pre>
       <p style={pStyle}>
-        Die Antwort enthält einen neuen, 60-Tage-gültigen Token. Diesen Token dann noch einmal für die konkrete Seite austauschen — Abfrage:
+        Mit dem langlebigen Nutzer-Token aus der Antwort fragen Sie nun den Page Access Token ab:
       </p>
-      <pre style={{ background: 'var(--paper-dark)', borderRadius: 6, padding: '0.9rem 1rem', fontSize: '0.8rem', overflowX: 'auto', color: 'var(--ink)' }}>
-{`GET /PAGE_ID?fields=access_token
-  &access_token=LONG_LIVED_USER_TOKEN`}
+      <pre style={pre}>
+{`GET /me/accounts?access_token=LONG_LIVED_USER_TOKEN`}
       </pre>
       <p style={pStyle}>
-        Das Feld <code>access_token</code> in der Antwort ist der fertige <strong>Long-Lived Page Access Token</strong> — dieser wird bei suchmaschinen.pro eingetragen.
+        Die Antwort listet alle Ihre Seiten mit <code>id</code> (der Page-ID) und <code>access_token</code>. Dieser <code>access_token</code> ist Ihr dauerhafter Page Access Token — er wird bei suchmaschinen.pro eingetragen.
       </p>
 
-      <div style={{ background: 'var(--emerald-pale)', border: '1px solid var(--emerald)', borderRadius: 8, padding: '1rem 1.2rem', margin: '1.2rem 0' }}>
-        <strong style={{ fontSize: '0.88rem', color: 'var(--ink)' }}>Tipp: Token einfacher holen</strong>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.3rem 0 0' }}>
-          Tools wie <a href="https://www.fbstatus.com/token" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--emerald)' }}>fbstatus.com/token</a> oder der <a href="https://developers.facebook.com/tools/accesstoken/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--emerald)' }}>Access Token Debugger</a> helfen, Long-Lived Page Tokens ohne manuelles API-Aufrufen zu erzeugen.
-        </p>
-      </div>
-
-      <h2 style={sectionStyle}>6. Token bei suchmaschinen.pro eintragen</h2>
+      <h2 style={sectionStyle}>6. Werte bei suchmaschinen.pro eintragen</h2>
       <p style={pStyle}>
-        Im Dashboard die jeweilige Website bearbeiten und in den Feldern <strong>„Facebook Page-ID"</strong> und <strong>„Facebook Page Access Token"</strong> die Werte aus den Schritten 2 und 4 eintragen. Ab dem nächsten veröffentlichten Artikel wird automatisch ein Post auf der Facebook-Seite erstellt.
+        Im Dashboard die jeweilige Website bearbeiten und in die Felder <strong>„Facebook Page-ID“</strong> und <strong>„Facebook Page Access Token“</strong> die Werte aus Schritt 5 eintragen. Ab dem nächsten veröffentlichten Artikel wird automatisch ein Post auf Ihrer Facebook-Seite erstellt.
       </p>
 
       <div style={{ background: '#fff8e8', border: '1px solid #e8c840', borderRadius: 8, padding: '1rem 1.2rem', margin: '1.2rem 0' }}>
-        <strong style={{ fontSize: '0.88rem', color: 'var(--ink)' }}>Token nach 60 Tagen erneuern</strong>
+        <strong style={{ fontSize: '0.88rem', color: 'var(--ink)' }}>Wann muss der Token erneuert werden?</strong>
         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.3rem 0 0' }}>
-          Wird die Seite regelmäßig bespielt (mindestens alle 60 Tage ein Artikel), verlängert Facebook den Token automatisch. Läuft er trotzdem ab, erscheint im Dashboard eine Fehlermeldung beim nächsten Publish — dann einfach einen neuen Token nach derselben Anleitung erstellen und eintragen.
+          Ein Page Access Token, der wie oben aus einem langlebigen Nutzer-Token erzeugt wurde, hat kein Ablaufdatum. Ungültig wird er, wenn Sie Ihr Facebook-Passwort ändern, der App die Berechtigungen entziehen oder Ihre Administratorrolle für die Seite verlieren. Erscheinen keine neuen Posts mehr auf Ihrer Seite, erzeugen Sie einfach nach dieser Anleitung einen neuen Token und tragen ihn ein.
         </p>
       </div>
 
       <h2 style={sectionStyle}>Was im Post erscheint</h2>
       <ul style={{ ...pStyle, paddingLeft: '1.2rem' }}>
-        <li>Der Artikeltitel und die Meta-Beschreibung als Text</li>
+        <li>Die Meta-Beschreibung des Artikels (oder ein kurzer Auszug daraus) als Text</li>
         <li>Der direkte Link zum Artikel</li>
-        <li>Eine automatische Vorschaukarte mit Bild, die Facebook aus den Open-Graph-Tags der Seite zieht</li>
+        <li>Eine Vorschaukarte mit Titel und Bild, die Facebook automatisch aus den Open-Graph-Angaben des Artikels erzeugt</li>
       </ul>
       <p style={pStyle}>
-        Der Post erscheint sofort nach dem Veröffentlichen des Artikels — auch beim automatischen Cron-Publish.
+        Der Post erscheint unmittelbar nach dem Veröffentlichen des Artikels — auch bei der automatischen Veröffentlichung.
       </p>
 
       <div style={{ marginTop: '2.5rem', textAlign: 'center' }}>

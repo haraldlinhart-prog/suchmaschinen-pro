@@ -1,4 +1,12 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
+
+export const metadata: Metadata = pageMetadata('home', 'de', {
+  title: 'suchmaschinen.pro — SEO-Content, der wirklich indexiert wird',
+  absoluteTitle: true,
+  description: 'Automatisch generierte, thematisch passende Artikel — direkt auf Ihrer eigenen Domain veröffentlicht und auf Ihrer Facebook-Seite geteilt. Für echte Sichtbarkeit statt leerer Impressionen.',
+});
 
 export default function HomePage() {
   return (
@@ -25,7 +33,7 @@ export default function HomePage() {
             Bauen Sie sich eine weitere Besucherquelle auf.
           </h1>
           <p style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.75)', margin: '0 auto 2.5rem', lineHeight: 1.65, maxWidth: 580 }}>
-            suchmaschinen.pro nutzt die Suchdaten Ihrer Website, um relevante Themen zu finden.
+            suchmaschinen.pro analysiert Ihre Website und findet die Suchbegriffe, nach denen Ihre Kunden suchen.
             Daraus entstehen regelmäßig Artikel — automatisch veröffentlicht auf Ihrer Website
             und gleichzeitig auf Ihrer Facebook-Unternehmensseite geteilt.
           </p>
@@ -55,7 +63,7 @@ export default function HomePage() {
                 🔍
               </div>
               <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--ink)', marginBottom: '0.25rem' }}>Suchbegriff</div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>aus Ihrer Google<br />Search Console</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>aus der Analyse<br />Ihrer Website</div>
             </div>
 
             {/* Arrow */}
@@ -142,7 +150,7 @@ export default function HomePage() {
               </thead>
               <tbody>
                 {[
-                  ['Kosten pro Besucher', 'Jeder Klick kostet', 'Einmaliger Monatspreis'],
+                  ['Kosten pro Besucher', 'Jeder Klick kostet', 'Fester Monatspreis'],
                   ['Wirkung nach Stopp', 'Sofort kein Traffic mehr', 'Artikel bleiben online'],
                   ['Aufbau von Sichtbarkeit', 'Keine — nur gemietet', 'Wächst mit jedem Artikel'],
                   ['Facebook-Reichweite', 'Separate Kampagne nötig', 'Automatisch inklusive'],
@@ -251,8 +259,8 @@ export default function HomePage() {
               <span style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.65)' }}>/ Monat</span>
             </div>
             <p style={{ fontSize: '0.92rem', color: 'rgba(255,255,255,0.75)', margin: 0 }}>
-              1 Artikel täglich – plus: Artikel, die bei Google an Position verlieren oder auf Seite 2 hängen, werden automatisch überarbeitet
-              und aktualisiert, und neue Artikel werden in Ihre bestehenden Artikel eingebunden.
+              1 Artikel täglich, mit interner Verlinkung – plus: Neue Artikel werden zusätzlich in passende bestehende Artikel eingebunden,
+              und Artikel, die bei Google an Position verlieren oder auf den Seiten 2 bis 4 hängen bleiben, werden automatisch überarbeitet.*
             </p>
           </div>
           <Link href="/auth?mode=register" className="btn-emerald" style={{ padding: '0.9rem 2.2rem', fontSize: '0.95rem', whiteSpace: 'nowrap' }}>
@@ -261,6 +269,10 @@ export default function HomePage() {
         </div>
         <p style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '1.5rem' }}>
           Alle Preise zzgl. USt. Monatlich kündbar, keine Mindestlaufzeit.
+        </p>
+        <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.4rem auto 0', maxWidth: 720 }}>
+          * Das nachträgliche Verlinken und Überarbeiten bereits veröffentlichter Artikel ist bei WordPress-Websites derzeit nicht möglich.
+          Die Überarbeitung nutzt Positionsdaten aus der Google Search Console (Anbindung in Kürze für alle Kunden).
         </p>
       </section>
 

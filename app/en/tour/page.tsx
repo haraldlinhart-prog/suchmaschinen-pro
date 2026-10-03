@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { pageMetadata, englishHomeHref } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata('tour', 'en', {
   title: 'Tour: What you get with search-engines.pro',
   description:
     'Step by step with real screenshots: registration, website analysis, keyword volumes and Google Ads cost, keyword check, ranking overview, and articles published on your own domain.',
-  alternates: { canonical: 'https://www.search-engines.pro/en/tour' },
-};
+});
 
 type Step = {
   n: string;
@@ -58,8 +58,8 @@ const steps: Step[] = [
     title: 'Suggested keywords — with real numbers',
     text: [
       'From the analysis, the AI derives dozens of relevant search terms, each with its search intent (informational, commercial, transactional).',
-      'For every keyword you see the monthly search volume in your country and the Google Ads price — what advertisers pay for a single click. Keywords nobody searches for are automatically skipped when publishing.',
-      'Use "Publish next" to decide which article gets written first.',
+      'For every keyword you see the monthly search volume (currently measured for Germany) and the Google Ads price — what advertisers pay for a single click. Keywords nobody searches for are automatically skipped when publishing.',
+      'With a single click you decide which article gets written next.',
     ],
     img: '/tour/04-vorschlaege.webp', w: 1160, h: 595,
     alt: 'List of suggested keywords with search volume, Google Ads price, and generate buttons',
@@ -80,7 +80,7 @@ const steps: Step[] = [
     title: 'Your keywords in Google',
     text: [
       'Which search terms already bring your website into Google results? The list shows them with search volume, impressions, clicks, and average position.',
-      'Where no article exists yet, you can create one with a single click — and where Google already sees you, the path to the top is shortest.',
+      'Where no article exists yet, you can create one with a single click — where Google already sees you, the path to the top is shortest.',
     ],
     img: '/tour/06-google-suchbegriffe.webp', w: 1160, h: 750, badge: SC_BADGE,
     alt: 'Keywords from Google Search Console with search volume, position, and buttons to queue or create an article',
@@ -118,8 +118,8 @@ const steps: Step[] = [
     n: '10',
     title: 'Discoverable by visitors and Google',
     text: [
-      'An article nobody links to won\'t be found. For directly connected websites we therefore create an overview page listing all articles, link it from your homepage ("Articles"), and register the article sitemap in robots.txt. Under each article, "More articles" leads back to the overview.',
-      'For WordPress, your existing blog with its sitemap handles this automatically.',
+      'An article nobody links to won\'t be found. For directly connected websites we therefore create an overview page listing all articles, link it from your homepage, and register the article sitemap in robots.txt. Under each article, "More articles" leads back to the overview.',
+      'On WordPress, your existing blog and its sitemap take care of this.',
     ],
     img: '/tour/10-ratgeber-seite.webp', w: 1000, h: 1132, narrow: true,
     alt: 'Article overview page on firmenabwicklung.de',
@@ -132,11 +132,12 @@ const features: { label: string; on: boolean[] | string[] }[] = [
   { label: 'Website analysis and content plan', on: [true, true, true, true] },
   { label: 'Search volume and Google Ads cost per keyword', on: [true, true, true, true] },
   { label: 'Check your own keywords', on: [true, true, true, true] },
-  { label: 'Published on your domain, sitemap, articles link', on: [true, true, true, true] },
+  { label: 'Published on your domain, sitemap, link from your homepage', on: [true, true, true, true] },
+  { label: 'Automatically shared on your Facebook page (optional)', on: [true, true, true, true] },
   { label: 'New articles link to relevant older articles', on: [false, false, true, true] },
-  { label: 'Older articles link back to new articles', on: [false, false, false, true] },
-  { label: 'Articles that slip in Google are automatically refreshed', on: [false, false, false, true] },
-  { label: 'No search-engines.pro badge on your website', on: [false, true, true, true] },
+  { label: 'Older articles link back to new articles*', on: [false, false, false, true] },
+  { label: 'Articles that slip on Google are automatically revised*', on: [false, false, false, true] },
+  { label: 'No badge required on your website', on: [false, true, true, true] },
 ];
 
 const h2 = { fontFamily: 'var(--font-display)', fontSize: 'clamp(1.2rem, 2.4vw, 1.5rem)', color: 'var(--ink)', margin: '0.35rem 0 0.8rem' } as const;
@@ -159,7 +160,8 @@ function Shot({ s }: { s: Step }) {
   );
 }
 
-export default function TourPage() {
+export default async function TourPage() {
+  const enHome = await englishHomeHref();
   return (
     <>
       <section style={{ padding: '4rem 1.5rem 2.5rem', textAlign: 'center' }}>
@@ -236,9 +238,12 @@ export default function TourPage() {
           <p style={{ ...p, fontSize: '0.8rem', textAlign: 'center', marginTop: '1rem' }}>
             Ranking overview, your Google keywords, and the indexing status per article require a Google Search Console connection and will be available to all customers soon.
           </p>
+          <p style={{ ...p, fontSize: '0.8rem', textAlign: 'center' }}>
+            * Currently not available for WordPress websites. Automatic revisions are based on ranking data from Google Search Console.
+          </p>
           <div style={{ display: 'flex', gap: '0.9rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '2rem' }}>
             <Link href="/auth?mode=register" className="btn-emerald" style={{ padding: '0.9rem 2rem', fontSize: '0.95rem' }}>Try it for free →</Link>
-            <Link href="/en#pricing" className="btn-outline" style={{ padding: '0.9rem 2rem', fontSize: '0.95rem' }}>View pricing</Link>
+            <Link href={`${enHome}#pricing`} className="btn-outline" style={{ padding: '0.9rem 2rem', fontSize: '0.95rem' }}>View pricing</Link>
           </div>
         </div>
       </section>

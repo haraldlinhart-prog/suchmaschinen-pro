@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata('tour', 'de', {
   title: 'Rundgang: Was Sie bei suchmaschinen.pro bekommen',
   description:
     'Schritt für Schritt mit echten Screenshots: Registrierung, Website-Analyse, Suchbegriffe mit Suchvolumen und Google-Ads-Preis, Suchbegriff-Check, Ranking-Übersicht und Artikel auf Ihrer eigenen Domain.',
-  alternates: { canonical: 'https://www.suchmaschinen.pro/rundgang' },
-};
+});
 
 type Step = {
   n: string;
@@ -133,9 +133,10 @@ const features: { label: string; on: boolean[] | string[] }[] = [
   { label: 'Suchvolumen und Google-Ads-Preis je Suchbegriff', on: [true, true, true, true] },
   { label: 'Eigenen Suchbegriff prüfen', on: [true, true, true, true] },
   { label: 'Veröffentlichung auf Ihrer Domain, Sitemap, Ratgeber-Link', on: [true, true, true, true] },
+  { label: 'Automatisch auf Ihrer Facebook-Seite geteilt (optional)', on: [true, true, true, true] },
   { label: 'Neue Artikel verlinken auf passende ältere Artikel', on: [false, false, true, true] },
-  { label: 'Ältere Artikel verlinken zurück auf neue Artikel', on: [false, false, false, true] },
-  { label: 'Artikel, die bei Google abrutschen, werden automatisch aufgefrischt', on: [false, false, false, true] },
+  { label: 'Ältere Artikel verlinken zurück auf neue Artikel*', on: [false, false, false, true] },
+  { label: 'Artikel, die bei Google abrutschen, werden automatisch überarbeitet*', on: [false, false, false, true] },
   { label: 'Ohne suchmaschinen.pro-Badge auf Ihrer Website', on: [false, true, true, true] },
 ];
 
@@ -235,6 +236,9 @@ export default function RundgangPage() {
           </div>
           <p style={{ ...p, fontSize: '0.8rem', textAlign: 'center', marginTop: '1rem' }}>
             Ranking-Übersicht, Ihre Google-Suchbegriffe und der Indexierungsstatus je Artikel benötigen eine Verbindung mit der Google Search Console und werden in Kürze für alle Kunden freigeschaltet.
+          </p>
+          <p style={{ ...p, fontSize: '0.8rem', textAlign: 'center' }}>
+            * Bei WordPress-Websites derzeit nicht verfügbar. Die automatische Überarbeitung nutzt Positionsdaten aus der Google Search Console.
           </p>
           <div style={{ display: 'flex', gap: '0.9rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '2rem' }}>
             <Link href="/auth?mode=register" className="btn-emerald" style={{ padding: '0.9rem 2rem', fontSize: '0.95rem' }}>Kostenlos starten →</Link>
