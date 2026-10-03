@@ -175,16 +175,6 @@ function buildExcerptFromHtml(html: string, maxLen = 280): string {
   return `${truncated.trim()}…`;
 }
 
-/** Pulls the src of the first <img> in the article body — this is the raw,
- *  off-domain Pixabay/fbcdn source URL regardless of whether mirrorToVideoCdn
- *  succeeded, since generateArticle.ts always writes the raw image.url into the
- *  inline <img> tag. Used only as a last-resort Facebook `picture` attachment —
- *  never written into the article page's own og:image metadata. */
-function extractRawImageSrc(contentHtml: string): string | null {
-  const match = contentHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
-  return match ? match[1] : null;
-}
-
 /** Polls a freshly-published article URL until it returns HTTP 200, so Facebook's
  *  link scraper doesn't hit the page mid-deploy and cache it as a 404 with no image.
  *  Used only for the GitHub publish path, where the page goes live seconds to ~2
@@ -210,7 +200,7 @@ async function waitForArticleLive(url: string, timeoutMs = 90_000, intervalMs = 
  *  Only fires on the FIRST publish (article.status !== 'published') to prevent
  *  duplicate posts when an article is re-published after a partial failure.
  */
-async function maybeFacebookPost(website: WebsiteRow, article: ArticleRow, url: string, language?: string, precomputedOgImage?: string | null): Promise<void> {
+async function maybeFacebookPost(website: WebsiteRow, article: ArticleRow, url: string, language?: string): Promise<void> {
   if (!website.facebook_page_id || !website.facebook_page_token) return;
   if (article.status === 'published') {
     console.log(`Facebook post skipped for ${website.domain} — article already published.`);
@@ -228,30 +218,18 @@ async function maybeFacebookPost(website: WebsiteRow, article: ArticleRow, url: 
   const teaser = (article.meta_description && article.meta_description.trim())
     ? article.meta_description
     : buildExcerptFromHtml(article.content_html);
-  // Prefer the verified video.pan21.com mirror (reused from the GitHub path when
-  // already computed, to avoid a redundant reachability check); otherwise fall
-  // back to the raw Pixabay source URL for this Graph API `picture` field only —
-  // but ONLY if that raw URL is itself verified reachable first. Facebook's Graph
-  // API fetches `picture` itself, and fbcdn/Pixabay URLs are often signed/expiring
-  // and unfetchable out of context — if Facebook can't fetch it, it rejects the
-  // ENTIRE /feed POST, so no post is created at all. Omitting `picture` is always
-  // safer than sending an unverified URL: the post still succeeds, just without a
-  // custom preview image (Facebook falls back to the article page's own og:image).
-  const ogImage = precomputedOgImage !== undefined ? precomputedOgImage : await resolveOgImageUrl(article);
-  let picture: string | null = ogImage;
-  if (!picture) {
-    const rawImageSrc = extractRawImageSrc(article.content_html);
-    if (rawImageSrc && (await verifyImageReachable(rawImageSrc))) {
-      picture = rawImageSrc;
-    }
-  }
+  // No `picture` field: Facebook's Graph API rejects the ENTIRE /feed post with
+  // error #100 ("Only owners of the URL have the ability to specify the picture,
+  // name, thumbnail or description params") unless the domain is verified as an
+  // Owned Domain in Facebook Business settings — confirmed live on himassage.net.
+  // The preview image comes purely from Facebook's own scraper reading the
+  // article page's og:image meta tag (see resolveOgImageUrl / buildHtmlPage).
   const result = await postToFacebook({
     pageId: website.facebook_page_id,
     pageToken: website.facebook_page_token,
     articleTitle: article.title,
     articleUrl: url,
     teaser,
-    picture,
   });
   if (!result.success) {
     console.error(`Facebook post failed for ${website.domain}:`, result.error);
@@ -323,7 +301,7 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow, o
     // page actually live, so posting right after the commit makes Facebook scrape a 404
     // and cache a headline-only post with no image. Wait for the page to go live first.
     await waitForArticleLive(articleUrl);
-    await maybeFacebookPost(website, article, articleUrl, language, ogImageUrl);
+    await maybeFacebookPost(website, article, articleUrl, language);
     return { mode: 'github', url: articleUrl, githubPath: path };
   }
 
