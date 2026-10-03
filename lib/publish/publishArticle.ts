@@ -230,10 +230,21 @@ async function maybeFacebookPost(website: WebsiteRow, article: ArticleRow, url: 
     : buildExcerptFromHtml(article.content_html);
   // Prefer the verified video.pan21.com mirror (reused from the GitHub path when
   // already computed, to avoid a redundant reachability check); otherwise fall
-  // back directly to the raw Pixabay source URL for this Graph API `picture` field
-  // only — this never touches the article page's own og:image metadata.
+  // back to the raw Pixabay source URL for this Graph API `picture` field only —
+  // but ONLY if that raw URL is itself verified reachable first. Facebook's Graph
+  // API fetches `picture` itself, and fbcdn/Pixabay URLs are often signed/expiring
+  // and unfetchable out of context — if Facebook can't fetch it, it rejects the
+  // ENTIRE /feed POST, so no post is created at all. Omitting `picture` is always
+  // safer than sending an unverified URL: the post still succeeds, just without a
+  // custom preview image (Facebook falls back to the article page's own og:image).
   const ogImage = precomputedOgImage !== undefined ? precomputedOgImage : await resolveOgImageUrl(article);
-  const picture = ogImage || extractRawImageSrc(article.content_html);
+  let picture: string | null = ogImage;
+  if (!picture) {
+    const rawImageSrc = extractRawImageSrc(article.content_html);
+    if (rawImageSrc && (await verifyImageReachable(rawImageSrc))) {
+      picture = rawImageSrc;
+    }
+  }
   const result = await postToFacebook({
     pageId: website.facebook_page_id,
     pageToken: website.facebook_page_token,
