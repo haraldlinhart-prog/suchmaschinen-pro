@@ -26,11 +26,19 @@ export function escapeHtml(str: string): string {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-async function mirrorToVideoCdn(pixabayUrl: string): Promise<string> {
+async function mirrorToVideoCdn(pixabayUrl: string, articleRef?: string): Promise<string | null> {
   // Download the Pixabay image immediately (URL is short-lived) and store it
   // on video.pan21.com so we can use a permanent URL instead of the expiring
   // Pixabay CDN link which also gets blocked when hotlinked from other domains.
-  if (!VIDEO_UPLOAD_KEY) return pixabayUrl;
+  //
+  // IMPORTANT: on failure this must return null, not the raw Pixabay URL. An
+  // off-domain fallback here previously ended up stored as article.image_url and
+  // used as og:image, which made Facebook's link-preview image open on Pixabay/
+  // fbcdn instead of staying on the article page.
+  if (!VIDEO_UPLOAD_KEY) {
+    console.error(`mirrorToVideoCdn: VIDEO_UPLOAD_KEY not set, cannot mirror image${articleRef ? ` for article "${articleRef}"` : ''} (source: ${pixabayUrl})`);
+    return null;
+  }
   try {
     const body = new URLSearchParams({ url: pixabayUrl });
     const res = await fetch(`${VIDEO_UPLOAD_URL}?key=${encodeURIComponent(VIDEO_UPLOAD_KEY)}`, {
@@ -38,13 +46,17 @@ async function mirrorToVideoCdn(pixabayUrl: string): Promise<string> {
       body,
       signal: AbortSignal.timeout(15000),
     });
-    if (!res.ok) return pixabayUrl;
+    if (!res.ok) {
+      console.error(`mirrorToVideoCdn: upload to video.pan21.com failed with status ${res.status}${articleRef ? ` for article "${articleRef}"` : ''} (source: ${pixabayUrl})`);
+      return null;
+    }
     const data = await res.json() as { url?: string; error?: string };
     if (data.url) return data.url;
-  } catch {
-    // fall back to original URL
+    console.error(`mirrorToVideoCdn: upload response had no url${articleRef ? ` for article "${articleRef}"` : ''} (source: ${pixabayUrl}):`, data.error ?? data);
+  } catch (err) {
+    console.error(`mirrorToVideoCdn: upload threw${articleRef ? ` for article "${articleRef}"` : ''} (source: ${pixabayUrl}):`, err);
   }
-  return pixabayUrl;
+  return null;
 }
 
 async function findPixabayImage(query: string): Promise<{ url: string; alt: string } | null> {
@@ -162,7 +174,7 @@ Call the output_article tool with the finished article.`;
 
   const image = article.image_query ? await findPixabayImage(article.image_query) : null;
   if (image) {
-    imageUrl = await mirrorToVideoCdn(image.url);
+    imageUrl = await mirrorToVideoCdn(image.url, slug);
     imageAlt = image.alt;
     const figure = `<figure style="margin:0 0 1.5rem;"><img src="${image.url}" alt="${escapeHtml(article.title)}" style="width:100%;height:auto;border-radius:8px;" loading="lazy"><figcaption style="font-size:0.78rem;color:#8a9a94;margin-top:0.4rem;">Bild: Pixabay</figcaption></figure>`;
     if (/^\s*<h1[^>]*>.*?<\/h1>/i.test(contentHtml)) {

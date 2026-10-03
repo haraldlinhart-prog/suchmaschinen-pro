@@ -126,30 +126,25 @@ async function verifyImageReachable(url: string, timeoutMs = 8_000): Promise<boo
   }
 }
 
-/** The visible article body always embeds the raw, un-mirrored source image URL
- *  (Pixabay) directly in an <img> tag — that's the one Harry confirmed is reliably
- *  displayed on the article page itself, as distinct from the separately mirrored
- *  article.image_url used for og:image. Used as a fallback when the mirror is down.
- */
-function extractInlineImageUrl(contentHtml: string): string | null {
-  const match = contentHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
-  return match ? match[1] : null;
-}
-
 /** Picks the image URL to publish as og:image/twitter:image, verifying reachability
- *  first so a dead mirror link never gets published. Prefers the mirrored
- *  article.image_url; falls back to the raw inline image URL from the article body
- *  if the mirror is unreachable; returns null (omitting the tags) if neither works.
+ *  first so a dead mirror link never gets published. Only ever returns the mirrored
+ *  article.image_url (on video.pan21.com) or null.
+ *
+ *  IMPORTANT: this must never fall back to the raw inline Pixabay <img> URL from the
+ *  article body (an off-domain pixabay.com/fbcdn.net URL). That used to be the
+ *  fallback here, which meant that whenever the video.pan21.com mirror was down,
+ *  Facebook's link-preview scraper would pick up the off-domain Pixabay og:image —
+ *  so clicking the preview image on Facebook opened Pixabay/fbcdn instead of staying
+ *  on the article page. The article's own <img> tag can still show the raw Pixabay
+ *  URL inline on the page itself (that's a separate, acceptable use) — it just must
+ *  never become og:image. If the mirror isn't reachable, we omit og:image entirely
+ *  rather than risk any off-domain URL going out as the preview image.
  */
 async function resolveOgImageUrl(article: ArticleRow): Promise<string | null> {
   if (article.image_url && (await verifyImageReachable(article.image_url))) {
     return article.image_url;
   }
-  const inline = extractInlineImageUrl(article.content_html);
-  if (inline && (await verifyImageReachable(inline))) {
-    return inline;
-  }
-  console.error(`resolveOgImageUrl: no reachable image for article "${article.title}" — omitting og:image.`);
+  console.error(`resolveOgImageUrl: no reachable mirrored image for article "${article.title}" — omitting og:image (never falling back to the off-domain source image).`);
   return null;
 }
 
