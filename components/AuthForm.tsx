@@ -153,9 +153,9 @@ export function AuthForm({ locale = 'de', homeHref = '/' }: { locale?: 'de' | 'e
       <div style={{ width: '100%', maxWidth: 440 }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <Link href={homeHref} style={{ textDecoration: 'none' }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 700, color: 'var(--ink)' }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
               {isEn ? 'search-engines' : 'suchmaschinen'}<span style={{ color: 'var(--emerald)' }}>.pro</span>
-            </div>
+            </h1>
           </Link>
           <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
             {t.tagline}

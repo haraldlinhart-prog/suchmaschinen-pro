@@ -14,7 +14,7 @@ export default function EnglishHomePage() {
       {/* Hero */}
       <section
         style={{
-          background: `linear-gradient(90deg, rgba(6,20,15,0.85) 0%, rgba(6,20,15,0.3) 30%, rgba(6,20,15,0.3) 62%, rgba(6,20,15,0.85) 100%), url('/hero-graphic.jpg')`,
+          background: `linear-gradient(90deg, rgba(6,20,15,0.85) 0%, rgba(6,20,15,0.3) 30%, rgba(6,20,15,0.3) 62%, rgba(6,20,15,0.85) 100%), url('/hero-graphic-en.jpg')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           color: 'white',

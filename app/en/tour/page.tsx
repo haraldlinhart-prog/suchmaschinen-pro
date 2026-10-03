@@ -31,7 +31,7 @@ const steps: Step[] = [
       'You land straight in your dashboard and can add your first website right away.',
     ],
     img: '/tour/01-registrierung.webp', w: 465, h: 660, narrow: true,
-    alt: 'Registration form on search-engines.pro with email address and password fields',
+    alt: 'Registration form with email address and password fields',
   },
   {
     n: '02',
@@ -174,6 +174,9 @@ export default async function TourPage() {
           <p style={{ ...p, fontSize: '1.02rem' }}>
             No promises on a slide deck — the real system, step by step, with screenshots from a live account.
             From registration to an article live on your own domain.
+          </p>
+          <p style={{ ...p, fontSize: '0.85rem' }}>
+            The screenshots were taken from an account using the German-language interface.
           </p>
         </div>
       </section>
