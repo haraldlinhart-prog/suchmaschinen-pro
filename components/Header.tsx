@@ -14,8 +14,12 @@ export function Header({ locale = 'de', enHome = '/en' }: { locale?: 'de' | 'en'
   const pathname = usePathname() || '/';
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setLoggedIn(!!data.user));
+    try {
+      const supabase = createClient();
+      supabase.auth.getUser().then(({ data }) => setLoggedIn(!!data.user)).catch(() => {});
+    } catch {
+      // No Supabase config (preview deployments) — show the logged-out header.
+    }
   }, []);
 
   const isEn = locale === 'en';

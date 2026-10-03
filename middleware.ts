@@ -52,6 +52,9 @@ export async function middleware(request: NextRequest) {
 
   let supabaseResponse = buildResponse();
 
+  // Preview deployments have no Supabase env vars — still serve the public pages there.
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return supabaseResponse;
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
