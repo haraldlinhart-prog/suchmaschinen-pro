@@ -1,6 +1,11 @@
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const PIXABAY_API_KEY = process.env.PIXABAY_API_KEY;
-const VIDEO_UPLOAD_URL = 'https://video.pan21.com/upload.php';
+// upload-image.php accepts raw image bytes (multipart) instead of a source URL,
+// because the Plesk server itself is IP-blocked by Pixabay's CDN (confirmed via
+// direct curl test from the server: even a static pixabay.com/favicon.ico fetch
+// gets a 403 regardless of User-Agent). This app's own runtime (Vercel) is not
+// blocked, so we download the Pixabay bytes here and upload the finished file.
+const VIDEO_UPLOAD_URL = 'https://video.pan21.com/upload-image.php';
 const VIDEO_UPLOAD_KEY = process.env.VIDEO_UPLOAD_KEY ?? '';
 
 export interface GeneratedArticle {
@@ -27,9 +32,11 @@ export function escapeHtml(str: string): string {
 }
 
 async function mirrorToVideoCdn(pixabayUrl: string, articleRef?: string): Promise<string | null> {
-  // Download the Pixabay image immediately (URL is short-lived) and store it
-  // on video.pan21.com so we can use a permanent URL instead of the expiring
-  // Pixabay CDN link which also gets blocked when hotlinked from other domains.
+  // Download the Pixabay image bytes ourselves (this runtime can reach Pixabay;
+  // the video.pan21.com Plesk server cannot — it is IP-blocked by Pixabay's CDN,
+  // confirmed by a direct server-side curl test returning 403 even for a static
+  // favicon.ico regardless of User-Agent) and upload the bytes to video.pan21.com
+  // as a multipart file, instead of asking that server to fetch the URL itself.
   //
   // IMPORTANT: on failure this must return null, not the raw Pixabay URL. An
   // off-domain fallback here previously ended up stored as article.image_url and
@@ -40,10 +47,22 @@ async function mirrorToVideoCdn(pixabayUrl: string, articleRef?: string): Promis
     return null;
   }
   try {
-    const body = new URLSearchParams({ url: pixabayUrl });
-    const res = await fetch(`${VIDEO_UPLOAD_URL}?key=${encodeURIComponent(VIDEO_UPLOAD_KEY)}`, {
+    const imgRes = await fetch(pixabayUrl, { signal: AbortSignal.timeout(15000) });
+    if (!imgRes.ok) {
+      console.error(`mirrorToVideoCdn: failed to download source image, status ${imgRes.status}${articleRef ? ` for article "${articleRef}"` : ''} (source: ${pixabayUrl})`);
+      return null;
+    }
+    const contentType = imgRes.headers.get('content-type') ?? 'image/jpeg';
+    const extFromType = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : contentType.includes('gif') ? 'gif' : 'jpg';
+    const bytes = await imgRes.arrayBuffer();
+
+    const form = new FormData();
+    form.append('api_key', VIDEO_UPLOAD_KEY);
+    form.append('image', new Blob([bytes], { type: contentType }), `pixabay_${Date.now()}.${extFromType}`);
+
+    const res = await fetch(VIDEO_UPLOAD_URL, {
       method: 'POST',
-      body,
+      body: form,
       signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) {
