@@ -202,7 +202,7 @@ export default function EnglishHomePage() {
           <div className="divider-emerald" style={{ margin: '0.75rem auto' }} />
           <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', color: 'var(--ink)' }}>Regular articles for your website and Facebook</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginTop: '0.5rem' }}>
-            Every two weeks on the free plan — at no cost.
+            A new article every two weeks on the free plan.
           </p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', maxWidth: 960, margin: '0 auto' }}>

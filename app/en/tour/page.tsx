@@ -69,7 +69,7 @@ const steps: Step[] = [
     title: 'Check a keyword before the article is written',
     text: [
       'Know what your customers are searching for? Enter the term. Before any article is written you see:',
-      '• how many people search for it each month,\n• how many visitors a page ranking at position 1, 3, 10, or 20 would approximately bring,\n• what those same visitors would cost via Google Ads.',
+      '• how many people search for it each month,\n• roughly how many visitors an article ranking at position 1, 3, 10, or 20 would bring,\n• what those same visitors would cost via Google Ads.',
       'You also get a clear verdict on whether the keyword is worth pursuing, and better alternatives if not. Only then do you create the article or queue it for later.',
     ],
     img: '/tour/05-suchbegriff-pruefen.webp', w: 1160, h: 897,

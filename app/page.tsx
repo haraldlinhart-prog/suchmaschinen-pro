@@ -204,7 +204,7 @@ export default function HomePage() {
             Regelmäßige Artikel für Ihre Website und Facebook
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginTop: '0.5rem' }}>
-            Im günstigsten Plan 2-wöchentlich — kostenlos.
+            Im kostenlosen Tarif alle zwei Wochen ein neuer Artikel.
           </p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', maxWidth: 960, margin: '0 auto' }}>
