@@ -112,7 +112,23 @@ export default function FacebookHelpPage() {
         </p>
       </div>
 
-      <h2 style={sectionStyle}>Was im Post erscheint</h2>
+      <h2 style={sectionStyle}>Optional: zusätzlich auf Instagram posten</h2>
+      <p style={pStyle}>
+        Ist mit Ihrer Facebook-Seite ein Instagram-Konto verknüpft, kann suchmaschinen.pro jeden neuen Artikel auch dort veröffentlichen — mit demselben Page Access Token, ein eigener Instagram-Token ist nicht nötig. Voraussetzungen:
+      </p>
+      <ol style={{ ...pStyle, paddingLeft: '1.2rem' }}>
+        <li style={{ marginBottom: '0.5rem' }}>Ein <strong>professionelles Instagram-Konto</strong> (Business oder Creator), das in den Einstellungen der Facebook-Seite unter <strong>„Verknüpfte Konten“</strong> mit der Seite verbunden ist.</li>
+        <li style={{ marginBottom: '0.5rem' }}>In Ihrer Meta-App unter <strong>„Anwendungsfälle hinzufügen“ → „Content-Management“</strong> den Anwendungsfall <strong>„Messaging und Content auf Instagram verwalten“</strong> hinzufügen. Beim Anpassen die Variante <strong>„API-Einrichtung mit Facebook-Login“</strong> wählen und unter „Berechtigungen und Features“ bei <code>instagram_basic</code> und <code>instagram_content_publish</code> auf <strong>„+ Hinzufügen“</strong> klicken. Den erweiterten Zugriff bzw. die App-Review brauchen Sie dafür nicht.</li>
+        <li style={{ marginBottom: '0.5rem' }}>Den Token wie in Schritt 4 und 5 neu erzeugen und dabei zusätzlich <code>instagram_basic</code>, <code>instagram_content_publish</code>, <code>pages_show_list</code> und <code>business_management</code> aktivieren.</li>
+      </ol>
+      <p style={pStyle}>
+        Nach <strong>„Token prüfen“</strong> erkennt das Dashboard das verknüpfte Instagram-Konto und bietet die Option <strong>„Auch auf Instagram posten“</strong> an. Fehlt eine Berechtigung, steht dort, welche.
+      </p>
+      <p style={pStyle}>
+        Der Instagram-Beitrag besteht aus dem Artikelbild, dem Titel, einem kurzen Teaser, der Adresse des Artikels und einigen passenden Hashtags. Links sind in Instagram-Texten nicht anklickbar; die Adresse steht deshalb gut lesbar am Ende. Artikel ohne Bild werden auf Instagram übersprungen.
+      </p>
+
+      <h2 style={sectionStyle}>Was im Facebook-Post erscheint</h2>
       <ul style={{ ...pStyle, paddingLeft: '1.2rem' }}>
         <li>Die Meta-Beschreibung des Artikels (oder ein kurzer Auszug daraus) als Text</li>
         <li>Der direkte Link zum Artikel</li>
