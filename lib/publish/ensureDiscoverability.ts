@@ -235,7 +235,9 @@ export async function ensureDiscoverability(website: WebsiteLike, supabase: Supa
   //    at build time; a public/robots.txt would be shadowed, so rely on GSC there.
   const dynamicRobots = isNextJs && (
     await api.exists(owner, repo, 'app/robots.ts') || await api.exists(owner, repo, 'app/robots.js') ||
-    await api.exists(owner, repo, 'src/app/robots.ts') || await api.exists(owner, repo, 'src/app/robots.js')
+    await api.exists(owner, repo, 'src/app/robots.ts') || await api.exists(owner, repo, 'src/app/robots.js') ||
+    // Route handler (e.g. host-dependent robots.txt): a public/robots.txt would break the build
+    await api.exists(owner, repo, 'app/robots.txt/route.ts') || await api.exists(owner, repo, 'app/robots.txt/route.js')
   );
   if (dynamicRobots) {
     result.robots = 'dynamic';
