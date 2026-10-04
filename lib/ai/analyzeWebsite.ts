@@ -29,32 +29,39 @@ export async function fetchSiteText(domain: string): Promise<{ pageText: string;
   return { pageText, pageTitle };
 }
 
+const LANGUAGE_NAMES: Record<string, string> = { de: 'German', en: 'English' };
+
 /**
- * Suggests a large batch of German-language keywords for a site. When `avoidKeywords`
- * is passed (e.g. every keyword already turned into an article), the model is asked to
- * avoid repeating them and dig into further long-tail / adjacent-topic territory instead —
- * this is what lets a site "refill" its keyword pipeline for ongoing automated publishing.
+ * Suggests a large batch of keywords for a site in its article language (German by
+ * default). When `avoidKeywords` is passed (e.g. every keyword already turned into an
+ * article), the model is asked to avoid repeating them and dig into further long-tail /
+ * adjacent-topic territory instead — this is what lets a site "refill" its keyword
+ * pipeline for ongoing automated publishing.
+ * `language` (04.10.2026): English sites such as american-llc.org used to get German
+ * keywords, so their articles ended up German or half-German.
  */
 export async function suggestKeywords(
   domain: string,
   pageTitle: string,
   pageText: string,
-  avoidKeywords: string[] = []
+  avoidKeywords: string[] = [],
+  language: string = 'de'
 ): Promise<SuggestedKeyword[]> {
   if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY fehlt.');
+  const lang = LANGUAGE_NAMES[language] ?? 'German';
 
   const avoidBlock = avoidKeywords.length
     ? `\nThese keywords have already been used — suggest DIFFERENT ones (deeper long-tail variants, adjacent subtopics, related questions), do not repeat them:\n${avoidKeywords.map(k => `- ${k}`).join('\n')}\n`
     : '';
 
-  const prompt = `You are a German-language SEO analyst. Analyze the following website content and identify the 50 most valuable German-language search keywords/phrases this site should target for organic traffic, ranging from core commercial terms to specific long-tail questions. For each, give a short rationale (why it fits this site) and the likely search intent (informational, commercial, or transactional).
+  const prompt = `You are a ${lang}-language SEO analyst. Analyze the following website content and identify the 50 most valuable ${lang}-language search keywords/phrases this site should target for organic traffic, ranging from core commercial terms to specific long-tail questions. For each, give a short rationale (why it fits this site) and the likely search intent (informational, commercial, or transactional).
 
 Website: ${domain}
 Page title: ${pageTitle}
 Content excerpt:
 ${pageText}
 ${avoidBlock}
-IMPORTANT: Write the "keyword" and "rationale" fields entirely in German. Only the "intent" value stays in English (one of: informational, commercial, transactional).
+IMPORTANT: Write the "keyword" and "rationale" fields entirely in ${lang}. Only the "intent" value stays in English (one of: informational, commercial, transactional).
 
 Respond ONLY with a JSON array of exactly 50 items, no other text, in this exact shape:
 [{"keyword": "...", "rationale": "...", "intent": "informational|commercial|transactional"}]`;

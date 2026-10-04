@@ -197,7 +197,7 @@ async function processWebsite(website: AnyWebsite, supabase: ReturnType<typeof c
       if (pool.length < 3) {
         try {
           const { pageText, pageTitle } = await fetchSiteText(website.domain);
-          const fresh = await suggestKeywords(website.domain, pageTitle, pageText, Array.from(usedKeywords));
+          const fresh = await suggestKeywords(website.domain, pageTitle, pageText, Array.from(usedKeywords) as string[], website.article_language ?? 'de');
           const merged: SuggestedKeyword[] = [
             ...(website.suggested_keywords || []),
             ...fresh.filter(f => !(website.suggested_keywords || []).some((e: SuggestedKeyword) => e.keyword === f.keyword)),
@@ -212,7 +212,10 @@ async function processWebsite(website: AnyWebsite, supabase: ReturnType<typeof c
       // Don't write filler: skip suggested keywords that Google data shows nobody searches
       // for. Keywords the customer picked or queued themselves are always kept (chat 26.09.26).
       try {
-        const vols = await getKeywordVolumes(pool.slice(0, 30).map(k => k.keyword));
+        // English sites are measured on the US market (2840), not Germany — otherwise every
+        // English keyword shows volume 0 and gets dropped (04.10.26, american-llc.org).
+        const isEn = (website.article_language ?? 'de') === 'en';
+        const vols = await getKeywordVolumes(pool.slice(0, 30).map((k: SuggestedKeyword) => k.keyword), isEn ? 2840 : 2276, isEn ? 'en' : 'de');
         pool = pool.filter((k: SuggestedKeyword & { source?: string }) => {
           if (k.source === 'manual' || k.source === 'search_console') return true;
           const v = vols[k.keyword.trim().toLowerCase().replace(/\s+/g, ' ')];

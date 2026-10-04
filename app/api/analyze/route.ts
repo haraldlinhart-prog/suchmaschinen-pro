@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     let keywords;
     try {
-      keywords = await suggestKeywords(website.domain, pageTitle, pageText);
+      keywords = await suggestKeywords(website.domain, pageTitle, pageText, [], website.article_language ?? 'de');
     } catch (e) {
       console.error('suggestKeywords error:', e);
       return NextResponse.json({ error: 'KI-Analyse fehlgeschlagen.' }, { status: 500 });
