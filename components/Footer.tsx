@@ -33,8 +33,8 @@ export function Footer({ locale = 'de' }: { locale?: 'de' | 'en'; enHome?: strin
         </div>
         <div style={{ fontSize: '.78rem', color: 'rgba(255,255,255,0.45)' }}>
           {isEn
-            ? <>© {new Date().getFullYear()} search-engines.pro — a service by PAN21.COM Corporate Consultants Ltd</>
-            : <>© {new Date().getFullYear()} suchmaschinen.pro — ein Angebot der PAN21.COM Corporate Consultants Ltd</>}
+            ? <>© {new Date().getFullYear()} search-engines.pro — a service by PAN21.com International LLC</>
+            : <>© {new Date().getFullYear()} suchmaschinen.pro — ein Angebot der PAN21.com International LLC</>}
         </div>
       </div>
     </footer>

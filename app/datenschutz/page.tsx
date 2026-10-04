@@ -21,7 +21,7 @@ function German() {
       <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', color: 'var(--ink)', marginBottom: '2rem' }}>Datenschutzerklärung</h1>
 
       <h2 style={section}>1. Verantwortlicher</h2>
-      <p style={p}>PAN21.COM Corporate Consultants Ltd, 61 Bridge Street, Kington, Herefordshire HR5 3DJ, United Kingdom. Kontakt: {MAIL}</p>
+      <p style={p}>PAN21.com International LLC, vertreten durch Harald Linhart, 7533 South Center View CT, STE R, 84084 West Jordan, Utah, USA. Telefon: +49 30 5684450-0, E-Mail: {MAIL}</p>
 
       <h2 style={section}>2. Registrierung &amp; Nutzerkonto</h2>
       <p style={p}>Bei der Registrierung erheben wir Ihre E-Mail-Adresse sowie ein von Ihnen gewähltes Passwort. Diese Daten werden bei unserem Auftragsverarbeiter Supabase Inc. gespeichert und ausschließlich zur Bereitstellung Ihres Nutzerkontos verwendet. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO.</p>
@@ -55,7 +55,7 @@ function English() {
       <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', color: 'var(--ink)', marginBottom: '2rem' }}>Privacy policy</h1>
 
       <h2 style={section}>1. Controller</h2>
-      <p style={p}>PAN21.COM Corporate Consultants Ltd, 61 Bridge Street, Kington, Herefordshire HR5 3DJ, United Kingdom. Contact: {MAIL}</p>
+      <p style={p}>PAN21.com International LLC, represented by Harald Linhart, 7533 South Center View CT, STE R, 84084 West Jordan, Utah, USA. Phone: +49 30 5684450-0, email: {MAIL}</p>
 
       <h2 style={section}>2. Registration &amp; user account</h2>
       <p style={p}>When you register, we collect your email address and a password of your choice. This data is stored by our processor Supabase Inc. and used solely to provide your user account. The legal basis is Art. 6(1)(b) GDPR.</p>
