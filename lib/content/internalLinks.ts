@@ -39,8 +39,9 @@ function esc(s: string) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-/** Adds (or extends) a "Passend zum Thema" block at the end of an article. Idempotent per URL. */
-export function addRelatedLink(contentHtml: string, target: { title: string; url: string }): string {
+/** Adds (or extends) a "Passend zum Thema" / "Related articles" block at the end of an
+ *  article. Idempotent per URL. */
+export function addRelatedLink(contentHtml: string, target: { title: string; url: string }, language = 'de'): string {
   if (contentHtml.includes(`href="${target.url}"`)) return contentHtml;
   const li = `<li><a href="${esc(target.url)}">${esc(target.title)}</a></li>`;
   const s = contentHtml.indexOf(BLOCK_START);
@@ -48,5 +49,6 @@ export function addRelatedLink(contentHtml: string, target: { title: string; url
     const endUl = contentHtml.indexOf('</ul>', s);
     if (endUl !== -1) return contentHtml.slice(0, endUl) + li + contentHtml.slice(endUl);
   }
-  return `${contentHtml}\n${BLOCK_START}<h2>Passend zum Thema</h2><ul>${li}</ul>${BLOCK_END}`;
+  const heading = language === 'en' ? 'Related articles' : 'Passend zum Thema';
+  return `${contentHtml}\n${BLOCK_START}<h2>${heading}</h2><ul>${li}</ul>${BLOCK_END}`;
 }

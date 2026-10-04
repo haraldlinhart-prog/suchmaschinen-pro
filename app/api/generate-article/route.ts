@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     let generated;
     try {
       const related = featuresFor(website.plan).internalLinks
-        ? relatedArticles(keyword, keyword, await linkTargets(website.id, supabase), 3).map(t => ({ title: t.title, url: t.url }))
+        ? relatedArticles(keyword, keyword, await linkTargets(website, supabase, undefined, website.article_language ?? 'de'), 3).map(t => ({ title: t.title, url: t.url }))
         : [];
       const network = await networkUsage(supabase, user.id, website.id);
       generated = await generateArticleContent(website.domain, website.notes, keyword, rationale, intent, related, website.article_language ?? 'de', titlesNear(keyword, network.titles));

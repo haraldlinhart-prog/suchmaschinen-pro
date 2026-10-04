@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     await publishNewsIndex(website, supabase, { language: website.article_language ?? 'de', includeLegacyNullLanguage: true }).catch(e => console.error('publishNewsIndex failed', e));
     await ensureDiscoverability(website, supabase).catch(e => console.error('ensureDiscoverability failed', e));
     if (featuresFor(website.plan).backlinkOlder) {
-      await backlinkOlderArticles(website, { id: articleId, title: article.title, keyword: article.keyword, url: result.url }, supabase)
+      await backlinkOlderArticles(website, { id: articleId, title: article.title, keyword: article.keyword, url: result.url, language: article.language }, supabase)
         .catch(e => console.error('backlinkOlderArticles failed', e));
     }
 

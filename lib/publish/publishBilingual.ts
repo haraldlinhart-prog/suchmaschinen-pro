@@ -1,4 +1,5 @@
 import { generateArticleContent } from '@/lib/ai/generateArticle';
+import { translateKeyword } from '@/lib/ai/analyzeWebsite';
 import { publishArticle, type PublishResult } from '@/lib/publish/publishArticle';
 import { publishNewsIndex } from '@/lib/publish/publishNewsIndex';
 
@@ -91,10 +92,31 @@ async function publishSecondaryLanguage(
 
   if (secondaryLanguage === primaryLanguage) return; // nothing to translate into
 
+  // One translation per article: turnkey-companies.com got the same German article
+  // translated and published twice, 2 s apart (01.10.26 — double publish request).
+  const { data: existing } = await supabase
+    .from('sq_articles')
+    .select('id')
+    .eq('translation_of', article.id)
+    .eq('language', secondaryLanguage)
+    .in('status', ['draft', 'published'])
+    .limit(1);
+  if (existing && existing.length > 0) return;
+
+  // Write the translation for the search term people use in THAT language. Passing the
+  // German keyword made the English articles open with it ("Gesellschaft Kaufen Statt
+  // Gründen: The Smart Alternative…", "When you Geschäftsadresse Deutschland mieten").
+  let keyword = article.keyword as string;
+  try {
+    keyword = await translateKeyword(keyword, secondaryLanguage);
+  } catch (err) {
+    console.error(`publishSecondaryLanguage: keyword translation failed for ${website.domain}`, err);
+  }
+
   const generated = await generateArticleContent(
     website.domain,
     website.notes,
-    article.keyword as string,
+    keyword,
     undefined,
     undefined,
     [],
@@ -106,7 +128,7 @@ async function publishSecondaryLanguage(
     .insert({
       website_id: website.id,
       user_id: website.user_id,
-      keyword: article.keyword,
+      keyword,
       title: generated.title,
       slug: generated.slug,
       meta_description: generated.meta_description,

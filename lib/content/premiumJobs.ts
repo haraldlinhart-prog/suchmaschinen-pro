@@ -28,28 +28,39 @@ export function canRepublish(website: WebsiteRow): boolean {
   return !(website.hosting_platform === 'wordpress' && website.wp_url);
 }
 
-export async function linkTargets(websiteId: string, supabase: SupabaseLike, excludeId?: string): Promise<LinkTarget[]> {
+/** The language an article row is published in (legacy rows without one = primary). */
+export function rowLanguage(website: WebsiteRow, row: { language?: string | null }): string {
+  return row.language || website.article_language || 'de';
+}
+
+/**
+ * Link candidates of one site. With `language`, only articles in that language
+ * (04.10.2026: turnkey-companies.com's English articles got a German "Passend zum
+ * Thema" block linking to the German originals).
+ */
+export async function linkTargets(website: WebsiteRow, supabase: SupabaseLike, excludeId?: string, language?: string): Promise<LinkTarget[]> {
   const { data } = await supabase
     .from('sq_articles')
-    .select('id, title, keyword, published_url')
-    .eq('website_id', websiteId)
+    .select('id, title, keyword, published_url, language')
+    .eq('website_id', website.id)
     .eq('status', 'published')
     .not('published_url', 'is', null);
   return (data || [])
-    .filter((a: { id: string }) => a.id !== excludeId)
+    .filter((a: { id: string; language?: string | null }) => a.id !== excludeId && (!language || rowLanguage(website, a) === language))
     .map((a: { id: string; title: string; keyword: string; published_url: string }) => ({ id: a.id, title: a.title, keyword: a.keyword, url: a.published_url }));
 }
 
-/** Premium: give the two most related older articles a link to the newly published one. */
-export async function backlinkOlderArticles(website: WebsiteRow, newArticle: { id: string; title: string; keyword: string; url: string }, supabase: SupabaseLike): Promise<number> {
+/** Premium: give the two most related older articles (same language) a link to the newly published one. */
+export async function backlinkOlderArticles(website: WebsiteRow, newArticle: { id: string; title: string; keyword: string; url: string; language?: string | null }, supabase: SupabaseLike): Promise<number> {
   if (!canRepublish(website)) return 0;
-  const targets = await linkTargets(website.id, supabase, newArticle.id);
+  const language = rowLanguage(website, newArticle);
+  const targets = await linkTargets(website, supabase, newArticle.id, language);
   const best = relatedArticles(newArticle.keyword, newArticle.title, targets, 2);
   let done = 0;
   for (const t of best) {
     const { data: row } = await supabase.from('sq_articles').select('*').eq('id', t.id).single();
     if (!row) continue;
-    const updated = addRelatedLink(row.content_html, { title: newArticle.title, url: newArticle.url });
+    const updated = addRelatedLink(row.content_html, { title: newArticle.title, url: newArticle.url }, language);
     if (updated === row.content_html) continue;
     await publishArticle(website, { ...row, content_html: updated }, { ...publishOptionsFor(website, row), supabase });
     await supabase.from('sq_articles').update({ content_html: updated }).eq('id', row.id);
@@ -89,7 +100,7 @@ export async function maybeRefreshOne(website: WebsiteRow, supabase: SupabaseLik
   const pick = candidates[0];
   if (!pick) return null;
 
-  const targets = await linkTargets(website.id, supabase, pick.a.id);
+  const targets = await linkTargets(website, supabase, pick.a.id, rowLanguage(website, pick.a));
   const related = relatedArticles(pick.a.keyword, pick.a.title, targets, 3).map(t => ({ title: t.title, url: t.url }));
   const revised = await refreshArticleContent({
     domain: website.domain,

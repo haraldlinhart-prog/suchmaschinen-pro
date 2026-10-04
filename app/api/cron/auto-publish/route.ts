@@ -241,7 +241,7 @@ async function processWebsite(website: AnyWebsite, supabase: ReturnType<typeof c
       const next = pool[0];
       const features = featuresFor(website.plan);
       const related = features.internalLinks
-        ? relatedArticles(next.keyword, next.keyword, await linkTargets(website.id, supabase), 3).map(t => ({ title: t.title, url: t.url }))
+        ? relatedArticles(next.keyword, next.keyword, await linkTargets(website, supabase, undefined, website.article_language ?? 'de'), 3).map(t => ({ title: t.title, url: t.url }))
         : [];
       const generated = await generateArticleContent(website.domain, website.notes, next.keyword, next.rationale, next.intent, related, website.article_language ?? 'de', titlesNear(next.keyword, network.titles));
 
@@ -283,7 +283,7 @@ async function processWebsite(website: AnyWebsite, supabase: ReturnType<typeof c
       await ensureDiscoverability(website, supabase).catch(e => console.error('ensureDiscoverability failed', e));
 
       if (features.backlinkOlder) {
-        await backlinkOlderArticles(website, { id: articleRow.id, title: generated.title, keyword: next.keyword, url: publishResult.url }, supabase)
+        await backlinkOlderArticles(website, { id: articleRow.id, title: generated.title, keyword: next.keyword, url: publishResult.url, language: website.article_language ?? 'de' }, supabase)
           .catch(e => console.error('backlinkOlderArticles failed', e));
       }
 

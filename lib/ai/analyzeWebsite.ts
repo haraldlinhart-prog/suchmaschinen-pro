@@ -32,6 +32,33 @@ export async function fetchSiteText(domain: string): Promise<{ pageText: string;
 const LANGUAGE_NAMES: Record<string, string> = { de: 'German', en: 'English' };
 
 /**
+ * Translates a search keyword into the search term people actually use in the target
+ * language (not a word-for-word translation), e.g. "Gesellschaft kaufen statt gründen"
+ * → "buy a company instead of starting one". Used for secondary-language articles.
+ */
+export async function translateKeyword(keyword: string, language: string): Promise<string> {
+  if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY fehlt.');
+  const lang = LANGUAGE_NAMES[language] ?? language;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 100,
+      messages: [{
+        role: 'user',
+        content: `Give the ${lang} search phrase that people would type into Google for the same topic as this keyword: "${keyword}". Keep brand and product names (e.g. bank names, "GmbH", "LLC") as they are. Answer with the phrase only, no quotes, no explanation.`,
+      }],
+    }),
+  });
+  if (!res.ok) throw new Error(`translateKeyword: Claude API ${res.status}`);
+  const data = await res.json();
+  const text = (data.content?.find((c: { type: string }) => c.type === 'text')?.text ?? '').trim().replace(/^["']|["']$/g, '');
+  if (!text || text.length > 120) throw new Error('translateKeyword: unusable answer');
+  return text;
+}
+
+/**
  * Suggests a large batch of keywords for a site in its article language (German by
  * default). When `avoidKeywords` is passed (e.g. every keyword already turned into an
  * article), the model is asked to avoid repeating them and dig into further long-tail /
