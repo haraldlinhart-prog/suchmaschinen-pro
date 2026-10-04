@@ -34,6 +34,10 @@ const DISPATCH_CONCURRENCY = 8;
 // Stop starting new sites before the dispatcher itself hits maxDuration; sites already
 // started run to completion in their own invocations, the rest are first in line tomorrow.
 const DISPATCH_BUDGET_MS = 700_000;
+// Explicit www host: the apex suchmaschinen.pro answers with a 308 to www, and fetch drops
+// the Authorization header on that cross-host redirect (→ 401 for every worker). The
+// cron's own request origin may also be a protected *.vercel.app deployment URL.
+const WORKER_ORIGIN = process.env.CRON_WORKER_ORIGIN || 'https://www.suchmaschinen.pro';
 
 function authorized(req: NextRequest): boolean {
   // Vercel Cron sends `Authorization: Bearer <CRON_SECRET>` automatically when the
@@ -99,7 +103,7 @@ export async function GET(req: NextRequest) {
         continue;
       }
       try {
-        const res = await fetch(`${req.nextUrl.origin}/api/cron/auto-publish?site=${encodeURIComponent(site.id)}`, {
+        const res = await fetch(`${WORKER_ORIGIN}/api/cron/auto-publish?site=${encodeURIComponent(site.id)}`, {
           headers: { Authorization: auth },
           cache: 'no-store',
         });
