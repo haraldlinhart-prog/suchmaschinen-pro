@@ -21,20 +21,55 @@ function isDue(lastAutoPublishedAt: string | null, plan: string): boolean {
   return elapsedMs >= intervalDays * 24 * 60 * 60 * 1000;
 }
 
-export async function GET(req: NextRequest) {
+type SiteResult = { domain: string; status: string; detail?: string };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyWebsite = any;
+
+// Fan-out (04.10.2026): the old version handled all sites one after another in ONE
+// invocation. With 58 sites (+ Premium refresh jobs) it hit the 800 s limit every day
+// (504), so the sites at the end of the loop were never published — 28 sites overdue,
+// some since 23.09. Now the cron call only dispatches: every site runs in its own
+// invocation (?site=<id>) with its own 800 s budget, a few at a time, most overdue first.
+const DISPATCH_CONCURRENCY = 8;
+// Stop starting new sites before the dispatcher itself hits maxDuration; sites already
+// started run to completion in their own invocations, the rest are first in line tomorrow.
+const DISPATCH_BUDGET_MS = 700_000;
+
+function authorized(req: NextRequest): boolean {
   // Vercel Cron sends `Authorization: Bearer <CRON_SECRET>` automatically when the
   // CRON_SECRET env var is set on the project. Reject anything else.
   const authHeader = req.headers.get('authorization');
-  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  return !!process.env.CRON_SECRET && authHeader === `Bearer ${process.env.CRON_SECRET}`;
+}
+
+export async function GET(req: NextRequest) {
+  if (!authorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const supabase = createServiceClient();
-  const results: Array<{ domain: string; status: string; detail?: string }> = [];
+  const siteId = req.nextUrl.searchParams.get('site');
 
+  // Worker: one site.
+  if (siteId) {
+    const { data: website, error } = await supabase
+      .from('sq_websites')
+      .select('*')
+      .eq('id', siteId)
+      .eq('auto_publish', true)
+      .eq('status', 'active')
+      .maybeSingle();
+    if (error || !website) {
+      return NextResponse.json({ error: 'Website not found or not active' }, { status: 404 });
+    }
+    const results = await processWebsite(website, supabase);
+    return NextResponse.json({ ranAt: new Date().toISOString(), results });
+  }
+
+  // Dispatcher: all sites.
   const { data: websites, error } = await supabase
     .from('sq_websites')
-    .select('*')
+    .select('id, domain, plan, last_auto_published_at')
     .eq('auto_publish', true)
     .eq('status', 'active');
 
@@ -43,7 +78,47 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to load websites' }, { status: 500 });
   }
 
-  for (const website of websites || []) {
+  // Due sites first, longest-waiting first; then the rest (they still need the daily
+  // discoverability check and Premium refresh).
+  const ts = (w: { last_auto_published_at: string | null }) => (w.last_auto_published_at ? new Date(w.last_auto_published_at).getTime() : 0);
+  const queue = [...(websites || [])].sort((a, b) => {
+    const dueA = isDue(a.last_auto_published_at, a.plan), dueB = isDue(b.last_auto_published_at, b.plan);
+    if (dueA !== dueB) return dueA ? -1 : 1;
+    return ts(a) - ts(b);
+  });
+
+  const started = Date.now();
+  const results: SiteResult[] = [];
+  const auth = req.headers.get('authorization')!;
+
+  async function lane() {
+    while (queue.length) {
+      const site = queue.shift()!;
+      if (Date.now() - started > DISPATCH_BUDGET_MS) {
+        results.push({ domain: site.domain, status: 'deferred-time-budget' });
+        continue;
+      }
+      try {
+        const res = await fetch(`${req.nextUrl.origin}/api/cron/auto-publish?site=${encodeURIComponent(site.id)}`, {
+          headers: { Authorization: auth },
+          cache: 'no-store',
+        });
+        const data = await res.json().catch(() => null);
+        if (res.ok && Array.isArray(data?.results)) results.push(...data.results);
+        else results.push({ domain: site.domain, status: 'error', detail: `worker HTTP ${res.status}` });
+      } catch (err) {
+        results.push({ domain: site.domain, status: 'error', detail: err instanceof Error ? err.message : String(err) });
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: DISPATCH_CONCURRENCY }, lane));
+
+  return NextResponse.json({ ranAt: new Date().toISOString(), results });
+}
+
+async function processWebsite(website: AnyWebsite, supabase: ReturnType<typeof createServiceClient>): Promise<SiteResult[]> {
+  const results: SiteResult[] = [];
+  {
     try {
       // Runs every day for every site, not just on publish days, so sites that already
       // have articles get their sitemap/robots/homepage link fixed (idempotent).
@@ -61,13 +136,13 @@ export async function GET(req: NextRequest) {
 
       if (!isDue(website.last_auto_published_at, website.plan)) {
         results.push({ domain: website.domain, status: 'skipped-not-due' });
-        continue;
+        return results;
       }
 
       // Free tier only runs while the badge is embedded (see chat 02.09.26 pricing model).
       if (website.badge_required && website.badge_status !== 'active') {
         results.push({ domain: website.domain, status: 'skipped-badge-missing' });
-        continue;
+        return results;
       }
 
       // Prefer publishing an existing unpublished draft (e.g. one generated manually and
@@ -100,7 +175,7 @@ export async function GET(req: NextRequest) {
         await ensureDiscoverability(website, supabase).catch(e => console.error('ensureDiscoverability failed', e));
 
         results.push({ domain: website.domain, status: 'published-pending-draft', detail: publishResult.url });
-        continue;
+        return results;
       }
 
       // Determine which suggested keywords are still unused.
@@ -145,7 +220,7 @@ export async function GET(req: NextRequest) {
 
       if (pool.length === 0) {
         results.push({ domain: website.domain, status: 'no-worthwhile-keywords' });
-        continue;
+        return results;
       }
 
       const next = pool[0];
@@ -204,5 +279,5 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ranAt: new Date().toISOString(), results });
+  return results;
 }
