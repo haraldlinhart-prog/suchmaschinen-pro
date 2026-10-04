@@ -1,6 +1,7 @@
 import { escapeHtml } from '@/lib/ai/generateArticle';
 import { resolveOrigin } from '@/lib/publish/origin';
 import { commitFiles } from '@/lib/publish/githubCommit';
+import { buildIndexJsonLd } from '@/lib/publish/jsonLd';
 
 // Intentionally untyped (not matched structurally against the real generated Supabase
 // client) — that structural match is what caused "Type instantiation is excessively deep"
@@ -37,6 +38,7 @@ function buildIndexHtml(domain: string, origin: string, canonical: string, publi
 <title>${title} – ${escapeHtml(domain)}</title>
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="${canonical}">
+${buildIndexJsonLd({ canonical, origin, siteName: domain, lang, name: `${title} – ${domain}` })}
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 720px; margin: 0 auto; padding: 40px 20px; line-height: 1.7; color: #1a1a1a; }
   h1 { font-size: 1.8rem; margin-bottom: 1.5rem; }

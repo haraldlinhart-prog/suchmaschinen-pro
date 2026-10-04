@@ -5,6 +5,7 @@ import { postToInstagram } from '@/lib/publish/postToInstagram';
 import { commitFiles } from '@/lib/publish/githubCommit';
 import { buildNewsIndexFile } from '@/lib/publish/publishNewsIndex';
 import { buildSitemapFile } from '@/lib/publish/ensureDiscoverability';
+import { buildArticleJsonLd } from '@/lib/publish/jsonLd';
 
 interface WebsiteRow {
   id?: string;
@@ -78,7 +79,7 @@ async function repoIsNextJs(owner: string, repo: string, githubToken: string): P
   }
 }
 
-function buildHtmlPage(title: string, metaDescription: string, contentHtml: string, domain: string, origin: string, canonical: string, publishPath: string, imageUrl?: string | null, lang: string = 'de'): string {
+function buildHtmlPage(title: string, metaDescription: string, contentHtml: string, domain: string, origin: string, canonical: string, publishPath: string, imageUrl?: string | null, lang: string = 'de', jsonLd: string = ''): string {
   return `<!DOCTYPE html>
 <html lang="${lang}">
 <head>
@@ -98,6 +99,7 @@ ${imageUrl ? `<meta property="og:image" content="${imageUrl}">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="${imageUrl}">` : ''}
+${jsonLd}
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 720px; margin: 0 auto; padding: 40px 20px; line-height: 1.7; color: #1a1a1a; }
   h1 { font-size: 2rem; margin-bottom: 0.5rem; }
@@ -305,7 +307,22 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow, o
     const origin = await resolveOrigin(website.domain);
     const articleUrl = `${origin}/${cleanPublishPath}/${article.slug}/`;
     const ogImageUrl = await resolveOgImageUrl(article);
-    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl, cleanPublishPath, ogImageUrl, language);
+    // JSON-LD (04.10.2026): BlogPosting + BreadcrumbList. A republish (refresh/backlink)
+    // keeps the original published_at and moves dateModified to now.
+    const now = new Date().toISOString();
+    const jsonLd = buildArticleJsonLd({
+      title: article.title,
+      metaDescription: article.meta_description || '',
+      lang: language,
+      canonical: articleUrl,
+      origin,
+      siteName: website.domain,
+      indexUrl: `${origin}/${cleanPublishPath}/`,
+      datePublished: article.published_at || now,
+      dateModified: now,
+      imageUrl: ogImageUrl,
+    });
+    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl, cleanPublishPath, ogImageUrl, language, jsonLd);
 
     // Article, news index and article sitemap go into ONE commit (04.10.2026) — before,
     // these were three commits, i.e. three Vercel builds and three GitHub mails per
