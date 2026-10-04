@@ -7,7 +7,10 @@ const GA_DATA_API = 'https://analyticsdata.googleapis.com/v1beta';
 // properties/data streams, chat 03.09.26) is requested for the admin only, so the
 // customer-facing consent screen stays on a single, easily verifiable read-only scope.
 const READ_SCOPES = ['https://www.googleapis.com/auth/analytics.readonly'];
-const ADMIN_SCOPES = [...READ_SCOPES, 'https://www.googleapis.com/auth/analytics.edit'];
+// Seit 04.10.26 auch fuer den Admin nur Lesezugriff: Die "GA4 einrichten"-Funktion, die
+// Properties anlegte und das gtag-Snippet ohne Einwilligung in Netzwerk-Repos schrieb,
+// wurde entfernt (Entscheidung Harald). Damit wird analytics.edit nicht mehr gebraucht.
+const ADMIN_SCOPES = READ_SCOPES;
 
 
 // The one GA4 account all future auto-created properties should live under —
