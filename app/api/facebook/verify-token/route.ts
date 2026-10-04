@@ -89,10 +89,35 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Instagram (optional, 04.10.2026): is a professional IG account linked to this
+    // page, and may this token publish to it? Never blocks saving the Facebook part —
+    // the result only decides whether the dashboard offers "also post to Instagram".
+    let instagram: { id: string; username: string | null } | null = null;
+    let instagramIssue: string | null = null;
+    if (pageName !== null) {
+      const igRes = await fetch(
+        `https://graph.facebook.com/v21.0/${encodeURIComponent(pageId)}?fields=instagram_business_account{id,username}&access_token=${encodeURIComponent(token)}`
+      );
+      const igData = await igRes.json();
+      const acc = igData?.instagram_business_account;
+      if (acc?.id) {
+        instagram = { id: String(acc.id), username: acc.username ?? null };
+        const missing = ['instagram_basic', 'instagram_content_publish'].filter(s => !scopes.includes(s));
+        if (missing.length) {
+          instagramIssue = `Für Instagram fehlen dem Token die Berechtigungen: ${missing.join(', ')}.`;
+        }
+      } else if (igData?.error) {
+        instagramIssue = `Instagram-Verknüpfung nicht lesbar: ${igData.error.message ?? 'unbekannter Fehler'}`;
+      }
+    }
+
     return NextResponse.json({
       ok: issues.length === 0,
       issues,
       pageName,
+      instagram,
+      instagramReady: !!instagram && !instagramIssue,
+      instagramIssue,
       type: info.type,
       scopes,
       expiryNote,

@@ -35,6 +35,8 @@ export interface Website {
   ga_connected_at: string | null;
   facebook_page_id: string | null;
   facebook_page_token: string | null;
+  instagram_account_id: string | null;
+  instagram_username: string | null;
 }
 
 export const HOSTING_LABELS: Record<HostingPlatform, string> = {

@@ -22,6 +22,7 @@ interface WebsiteRow {
   facebook_page_id: string | null;
   facebook_page_token: string | null;
   facebook_post_language?: string | null;
+  instagram_account_id?: string | null;
   article_language?: string | null;
   secondary_language?: string | null;
   secondary_publish_path?: string | null;

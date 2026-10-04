@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     const { data: article, error: articleError } = await supabase
       .from('sq_articles')
-      .select('*, sq_websites!inner(id, user_id, domain, notes, github_repo, publish_path, public_slug, hosting_platform, wp_url, wp_username, wp_app_password, facebook_page_id, facebook_page_token, facebook_post_language, article_language, secondary_language, secondary_publish_path, plan, status)')
+      .select('*, sq_websites!inner(id, user_id, domain, notes, github_repo, publish_path, public_slug, hosting_platform, wp_url, wp_username, wp_app_password, facebook_page_id, facebook_page_token, facebook_post_language, instagram_account_id, article_language, secondary_language, secondary_publish_path, plan, status)')
       .eq('id', articleId)
       .eq('user_id', user.id)
       .single();

@@ -1,6 +1,7 @@
 import { escapeHtml } from '@/lib/ai/generateArticle';
 import { resolveOrigin } from '@/lib/publish/origin';
 import { postToFacebook } from '@/lib/publish/postToFacebook';
+import { postToInstagram } from '@/lib/publish/postToInstagram';
 
 interface WebsiteRow {
   domain: string;
@@ -17,6 +18,9 @@ interface WebsiteRow {
    *  Set (e.g. 'en') on bilingual sites whose Facebook ad audience only speaks one
    *  language — then only articles published in that language get posted. */
   facebook_post_language?: string | null;
+  /** Instagram account linked to facebook_page_id (posted with the same page token).
+   *  Null/undefined = no Instagram posting. Follows the same language gate as Facebook. */
+  instagram_account_id?: string | null;
 }
 
 export interface PublishOptions {
@@ -36,6 +40,8 @@ interface ArticleRow {
   content_html: string;
   image_url: string | null;
   image_alt: string | null;
+  /** Used for the Instagram hashtags. */
+  keyword?: string | null;
   /** Supabase status value — used to skip duplicate Facebook posts on republish. */
   status?: string | null;
 }
@@ -196,11 +202,13 @@ async function waitForArticleLive(url: string, timeoutMs = 90_000, intervalMs = 
   return false;
 }
 
-/** Fire-and-forget: post to Facebook if the website has credentials configured.
- *  Only fires on the FIRST publish (article.status !== 'published') to prevent
- *  duplicate posts when an article is re-published after a partial failure.
+/** Fire-and-forget: post to Facebook (and Instagram, if linked) when the website has
+ *  credentials configured. Only fires on the FIRST publish (article.status !== 'published')
+ *  to prevent duplicate posts when an article is re-published after a partial failure.
+ *  imageUrl: the verified og:image if the caller already resolved it (otherwise it is
+ *  resolved here, and only when Instagram needs it).
  */
-async function maybeFacebookPost(website: WebsiteRow, article: ArticleRow, url: string, language?: string): Promise<void> {
+async function maybeFacebookPost(website: WebsiteRow, article: ArticleRow, url: string, language?: string, imageUrl?: string | null): Promise<void> {
   if (!website.facebook_page_id || !website.facebook_page_token) return;
   if (article.status === 'published') {
     console.log(`Facebook post skipped for ${website.domain} — article already published.`);
@@ -235,6 +243,32 @@ async function maybeFacebookPost(website: WebsiteRow, article: ArticleRow, url: 
     console.error(`Facebook post failed for ${website.domain}:`, result.error);
   } else {
     console.log(`Facebook post created for ${website.domain}: ${result.postId}`);
+  }
+
+  // Instagram (04.10.2026): image post with the same page token. Instagram has no
+  // text-only posts, so without a reachable mirrored image it is skipped.
+  if (website.instagram_account_id) {
+    const igImage = imageUrl !== undefined ? imageUrl : await resolveOgImageUrl(article);
+    if (!igImage) {
+      console.warn(`Instagram post skipped for ${website.domain} — no reachable article image.`);
+      return;
+    }
+    const ig = await postToInstagram({
+      igUserId: website.instagram_account_id,
+      pageToken: website.facebook_page_token,
+      imageUrl: igImage,
+      articleTitle: article.title,
+      articleUrl: url,
+      teaser,
+      keyword: article.keyword,
+      domain: website.domain,
+      language,
+    });
+    if (!ig.success) {
+      console.error(`Instagram post failed for ${website.domain}:`, ig.error);
+    } else {
+      console.log(`Instagram post created for ${website.domain}: ${ig.mediaId}`);
+    }
   }
 }
 
@@ -301,7 +335,7 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow, o
     // page actually live, so posting right after the commit makes Facebook scrape a 404
     // and cache a headline-only post with no image. Wait for the page to go live first.
     await waitForArticleLive(articleUrl);
-    await maybeFacebookPost(website, article, articleUrl, language);
+    await maybeFacebookPost(website, article, articleUrl, language, ogImageUrl);
     return { mode: 'github', url: articleUrl, githubPath: path };
   }
 

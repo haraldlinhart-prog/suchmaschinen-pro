@@ -69,7 +69,11 @@ export default function WebsiteDetailPage() {
   const [checkingFb, setCheckingFb] = useState(false);
   const [fbCheckResult, setFbCheckResult] = useState<{
     ok: boolean; issues: string[]; pageName: string | null; expiryNote?: string;
+    instagram?: { id: string; username: string | null } | null;
+    instagramReady?: boolean;
+    instagramIssue?: string | null;
   } | null>(null);
+  const [igEnabled, setIgEnabled] = useState(true);
   const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
   const [savingAutomation, setSavingAutomation] = useState(false);
 
@@ -212,9 +216,14 @@ export default function WebsiteDetailPage() {
     if (!valid) return; // fbCheckResult now shows why — nothing is saved until it's fixed
     setSavingFb(true);
     const supabase = createClient();
+    // Instagram is posted with the same page token — only stored when the check found a
+    // linked IG account with publish rights and the user left the checkbox on.
+    const ig = fbCheckResult?.instagramReady && igEnabled ? fbCheckResult.instagram : null;
     const { error } = await supabase.from('sq_websites').update({
       facebook_page_id: fbPageIdInput.trim() || null,
       facebook_page_token: fbTokenInput.trim() || null,
+      instagram_account_id: ig?.id ?? null,
+      instagram_username: ig?.username ?? null,
     }).eq('id', websiteId);
     setSavingFb(false);
     if (error) { alert('Fehler beim Speichern.'); return; }
@@ -450,7 +459,17 @@ export default function WebsiteDetailPage() {
                   color: fbCheckResult.ok ? '#1a7a42' : '#b02020',
                 }}>
                   {fbCheckResult.ok ? (
-                    <>✓ Gültiges Page-Token für „{fbCheckResult.pageName}" · {fbCheckResult.expiryNote}</>
+                    <>
+                      ✓ Gültiges Page-Token für „{fbCheckResult.pageName}" · {fbCheckResult.expiryNote}
+                      {fbCheckResult.instagramReady && fbCheckResult.instagram ? (
+                        <label style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.4rem', cursor: 'pointer' }}>
+                          <input type="checkbox" checked={igEnabled} onChange={e => setIgEnabled(e.target.checked)} />
+                          Auch auf Instagram posten{fbCheckResult.instagram.username ? ` (@${fbCheckResult.instagram.username})` : ''}
+                        </label>
+                      ) : fbCheckResult.instagramIssue ? (
+                        <div style={{ marginTop: '0.4rem', color: '#8a5a00' }}>Instagram: {fbCheckResult.instagramIssue}</div>
+                      ) : null}
+                    </>
                   ) : (
                     <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
                       {fbCheckResult.issues.map((issue, i) => <li key={i}>{issue}</li>)}
@@ -478,11 +497,14 @@ export default function WebsiteDetailPage() {
                 <>📘 Keine Facebook-Seite verknüpft · </>
               )}
               <button
-                onClick={() => { setFbPageIdInput(website.facebook_page_id || ''); setFbTokenInput(''); setEditingFb(true); }}
+                onClick={() => { setFbPageIdInput(website.facebook_page_id || ''); setFbTokenInput(''); setIgEnabled(true); setEditingFb(true); }}
                 style={{ background: 'none', border: 'none', color: 'var(--emerald)', fontWeight: 600, cursor: 'pointer', fontSize: '0.8rem', padding: 0, fontFamily: 'var(--font-body)' }}
               >
                 {website.facebook_page_id ? 'ändern' : 'jetzt verknüpfen'}
               </button>
+              {website.instagram_account_id && (
+                <div style={{ marginTop: '0.2rem' }}>📸 Instagram: {website.instagram_username ? `@${website.instagram_username}` : website.instagram_account_id}</div>
+              )}
             </div>
           )}
         </div>
