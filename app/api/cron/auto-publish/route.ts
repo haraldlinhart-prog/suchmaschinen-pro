@@ -9,6 +9,7 @@ import { linkTargets, backlinkOlderArticles, maybeRefreshOne } from '@/lib/conte
 import { relatedArticles } from '@/lib/content/internalLinks';
 import { getKeywordVolumes } from '@/lib/keywords/volume';
 import { ensureDiscoverability } from '@/lib/publish/ensureDiscoverability';
+import { networkUsage, normText, titlesNear } from '@/lib/content/networkUsage';
 
 export const maxDuration = 800; // Vercel Pro/Fluid Compute ceiling - was 300s, raised as the number of sites grew
 
@@ -189,21 +190,28 @@ async function processWebsite(website: AnyWebsite, supabase: ReturnType<typeof c
         .eq('website_id', website.id);
       const usedKeywords = new Set((existingArticles || []).map(a => a.keyword));
 
-      let pool: SuggestedKeyword[] = (website.suggested_keywords || []).filter(
-        (k: SuggestedKeyword) => !usedKeywords.has(k.keyword)
-      );
+      // Keywords another site of the same account already covers are skipped, unless the
+      // customer picked/queued them explicitly (see lib/content/networkUsage.ts).
+      const network = await networkUsage(supabase, website.user_id, website.id);
+      const isFree = (k: SuggestedKeyword & { source?: string }) =>
+        !usedKeywords.has(k.keyword) &&
+        (k.source === 'manual' || k.source === 'search_console' || !network.otherKeywords.has(normText(k.keyword)));
 
-      // Refill: if the pool is running low, ask for a fresh batch avoiding used keywords.
+      let pool: SuggestedKeyword[] = (website.suggested_keywords || []).filter(isFree);
+
+      // Refill: if the pool is running low, ask for a fresh batch avoiding used keywords
+      // (this site's and the ones taken by sister sites, newest first, capped for prompt size).
       if (pool.length < 3) {
         try {
           const { pageText, pageTitle } = await fetchSiteText(website.domain);
-          const fresh = await suggestKeywords(website.domain, pageTitle, pageText, Array.from(usedKeywords) as string[], website.article_language ?? 'de');
+          const avoid = [...(Array.from(usedKeywords) as string[]), ...network.otherKeywordList.slice(0, 300)];
+          const fresh = await suggestKeywords(website.domain, pageTitle, pageText, avoid, website.article_language ?? 'de');
           const merged: SuggestedKeyword[] = [
             ...(website.suggested_keywords || []),
             ...fresh.filter(f => !(website.suggested_keywords || []).some((e: SuggestedKeyword) => e.keyword === f.keyword)),
           ];
           await supabase.from('sq_websites').update({ suggested_keywords: merged, last_analyzed_at: new Date().toISOString() }).eq('id', website.id);
-          pool = merged.filter((k: SuggestedKeyword) => !usedKeywords.has(k.keyword));
+          pool = merged.filter(isFree);
         } catch (refillErr) {
           console.error(`Cron: keyword refill failed for ${website.domain}`, refillErr);
         }
@@ -235,7 +243,7 @@ async function processWebsite(website: AnyWebsite, supabase: ReturnType<typeof c
       const related = features.internalLinks
         ? relatedArticles(next.keyword, next.keyword, await linkTargets(website.id, supabase), 3).map(t => ({ title: t.title, url: t.url }))
         : [];
-      const generated = await generateArticleContent(website.domain, website.notes, next.keyword, next.rationale, next.intent, related, website.article_language ?? 'de');
+      const generated = await generateArticleContent(website.domain, website.notes, next.keyword, next.rationale, next.intent, related, website.article_language ?? 'de', titlesNear(next.keyword, network.titles));
 
       const { data: articleRow, error: insertError } = await supabase
         .from('sq_articles')

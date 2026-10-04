@@ -95,6 +95,58 @@ async function findPixabayImage(query: string): Promise<{ url: string; alt: stri
   }
 }
 
+/** Replaces the text of the first <h1> (the article title) in generated HTML. */
+export function replaceH1(html: string, title: string): string {
+  return /<h1[^>]*>[\s\S]*?<\/h1>/i.test(html)
+    ? html.replace(/(<h1[^>]*>)[\s\S]*?(<\/h1>)/i, `$1${escapeHtml(title)}$2`)
+    : html;
+}
+
+/**
+ * Rewrites a title (and meta description) so it differs from titles already used in the
+ * account (04.10.2026 — 7 word-for-word identical titles across PAN21 network sites).
+ */
+export async function makeDistinctTitle(opts: {
+  title: string; meta_description: string; keyword: string; domain: string; language: string; taken: string[];
+}): Promise<{ title: string; meta_description: string }> {
+  if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY fehlt.');
+  const langName = opts.language === 'en' ? 'English' : 'German';
+  const prompt = `This article on ${opts.domain} targets the keyword "${opts.keyword}". Its title is already used by another website of the same publisher:
+"${opts.title}"
+Current meta description: "${opts.meta_description}"
+
+Write a new ${langName} H1 title (max. 70 characters) that still contains the keyword, fits ${opts.domain} specifically, and is clearly different from ALL of these existing titles — no stock patterns like "Der ultimative/komplette/umfassende Leitfaden" or "The ultimate/complete guide":
+${opts.taken.slice(0, 40).map(t => `- ${t}`).join('\n')}
+
+Also write a matching ${langName} meta description (140-160 characters). Call the output_title tool.`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 400,
+      messages: [{ role: 'user', content: prompt }],
+      tools: [{
+        name: 'output_title',
+        description: 'Submit the new title and meta description.',
+        input_schema: {
+          type: 'object',
+          properties: { title: { type: 'string' }, meta_description: { type: 'string' } },
+          required: ['title', 'meta_description'],
+        },
+      }],
+      tool_choice: { type: 'tool', name: 'output_title' },
+    }),
+  });
+  if (!res.ok) throw new Error(`makeDistinctTitle: Claude API ${res.status}`);
+  const data = await res.json();
+  const block = data.content?.find((c: { type: string }) => c.type === 'tool_use');
+  const out = block?.input as { title?: string; meta_description?: string } | undefined;
+  if (!out?.title) throw new Error('makeDistinctTitle: no title returned');
+  return { title: out.title.trim(), meta_description: (out.meta_description || opts.meta_description).trim() };
+}
+
 export async function generateArticleContent(
   domain: string,
   notes: string | null,
@@ -102,7 +154,10 @@ export async function generateArticleContent(
   rationale?: string,
   intent?: string,
   relatedLinks?: { title: string; url: string }[],
-  articleLanguage = 'de'
+  articleLanguage = 'de',
+  /** Titles already used on this or sister sites of the same account (see
+   *  lib/content/networkUsage.ts) — the H1 must differ from all of them. */
+  avoidTitles: string[] = []
 ): Promise<GeneratedArticle> {
   if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY fehlt.');
 
@@ -128,7 +183,7 @@ Requirements:
 - Use a clear H1 title, then structured with H2/H3 subheadings
 - Natural, non-spammy use of the keyword and closely related terms
 - Include a short concluding paragraph
-${relatedLinks && relatedLinks.length ? `- Where it genuinely fits the text, link 1–3 times to these related articles on the same site (use exactly these URLs, natural anchor text, no link list):\n${relatedLinks.map(r => `  - ${r.title}: ${r.url}`).join('\n')}\n` : ''}- Output as clean semantic HTML body content only (h1, h2, h3, p, ul/li as needed) — no <html>, <head>, or <body> tags, no inline styles, no markdown
+${relatedLinks && relatedLinks.length ? `- Where it genuinely fits the text, link 1–3 times to these related articles on the same site (use exactly these URLs, natural anchor text, no link list):\n${relatedLinks.map(r => `  - ${r.title}: ${r.url}`).join('\n')}\n` : ''}${avoidTitles.length ? `- The H1 title must be clearly different from these titles already used on sister websites — do not reuse them or their phrasing, and avoid stock patterns like "Der ultimative/komplette/umfassende Leitfaden" or "The ultimate/complete guide"; give the title an angle specific to ${domain}:\n${avoidTitles.slice(0, 40).map(t => `  - ${t}`).join('\n')}\n` : ''}- Output as clean semantic HTML body content only (h1, h2, h3, p, ul/li as needed) — no <html>, <head>, or <body> tags, no inline styles, no markdown
 
 Call the output_article tool with the finished article.`;
 
@@ -185,6 +240,21 @@ Call the output_article tool with the finished article.`;
     throw new Error('Artikel-Generierung fehlgeschlagen.');
   }
   const article = toolBlock.input as { title: string; meta_description: string; content_html: string; image_query?: string };
+
+  // Safety net: if the title still matches one already used in the account, rewrite it.
+  const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+  if (avoidTitles.some(t => norm(t) === norm(article.title))) {
+    try {
+      const distinct = await makeDistinctTitle({
+        title: article.title, meta_description: article.meta_description, keyword, domain, language: articleLanguage, taken: avoidTitles,
+      });
+      article.content_html = replaceH1(article.content_html, distinct.title);
+      article.title = distinct.title;
+      article.meta_description = distinct.meta_description;
+    } catch (err) {
+      console.error(`generateArticleContent: could not make title distinct for ${domain}`, err);
+    }
+  }
 
   const slug = slugify(article.title);
   let imageUrl: string | null = null;

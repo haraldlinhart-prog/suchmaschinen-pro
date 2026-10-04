@@ -4,6 +4,7 @@ import { generateArticleContent } from '@/lib/ai/generateArticle';
 import { featuresFor } from '@/lib/content/planFeatures';
 import { linkTargets } from '@/lib/content/premiumJobs';
 import { relatedArticles } from '@/lib/content/internalLinks';
+import { networkUsage, titlesNear } from '@/lib/content/networkUsage';
 
 // This route calls the Claude API, looks up a Pixabay image, and (since the
 // video.pan21.com image mirror now downloads the Pixabay bytes itself and
@@ -52,7 +53,8 @@ export async function POST(req: NextRequest) {
       const related = featuresFor(website.plan).internalLinks
         ? relatedArticles(keyword, keyword, await linkTargets(website.id, supabase), 3).map(t => ({ title: t.title, url: t.url }))
         : [];
-      generated = await generateArticleContent(website.domain, website.notes, keyword, rationale, intent, related, website.article_language ?? 'de');
+      const network = await networkUsage(supabase, user.id, website.id);
+      generated = await generateArticleContent(website.domain, website.notes, keyword, rationale, intent, related, website.article_language ?? 'de', titlesNear(keyword, network.titles));
     } catch (e) {
       console.error('generateArticleContent error:', e);
       return NextResponse.json({ error: 'Artikel-Generierung fehlgeschlagen.' }, { status: 500 });
