@@ -2,9 +2,15 @@ import { escapeHtml } from '@/lib/ai/generateArticle';
 import { resolveOrigin } from '@/lib/publish/origin';
 import { postToFacebook } from '@/lib/publish/postToFacebook';
 import { postToInstagram } from '@/lib/publish/postToInstagram';
+import { commitFiles } from '@/lib/publish/githubCommit';
+import { buildNewsIndexFile } from '@/lib/publish/publishNewsIndex';
+import { buildSitemapFile } from '@/lib/publish/ensureDiscoverability';
 
 interface WebsiteRow {
+  id?: string;
   domain: string;
+  secondary_language?: string | null;
+  secondary_publish_path?: string | null;
   github_repo: string | null;
   publish_path: string;
   public_slug: string;
@@ -30,6 +36,10 @@ export interface PublishOptions {
    *  language translation under its own path (e.g. /en/blog/) instead of the
    *  site's primary publish_path. */
   publishPath?: string;
+  /** When given (with website.id), the news index and the article sitemap are written
+   *  in the same commit as the article. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase?: any;
 }
 
 interface ArticleRow {
@@ -42,6 +52,8 @@ interface ArticleRow {
   image_alt: string | null;
   /** Used for the Instagram hashtags. */
   keyword?: string | null;
+  /** Set on republish (premium refresh/backlinks) — keeps the index/sitemap order. */
+  published_at?: string | null;
   /** Supabase status value — used to skip duplicate Facebook posts on republish. */
   status?: string | null;
 }
@@ -294,40 +306,40 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow, o
     const articleUrl = `${origin}/${cleanPublishPath}/${article.slug}/`;
     const ogImageUrl = await resolveOgImageUrl(article);
     const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl, cleanPublishPath, ogImageUrl, language);
-    const contentBase64 = Buffer.from(html, 'utf-8').toString('base64');
 
-    // GitHub rejects a PUT to an already-existing path with 422 "sha wasn't supplied"
-    // unless the current sha is included. This happens whenever the same article gets
-    // republished (e.g. a prior run wrote the file but failed to mark it published in
-    // Supabase, so the next cron run retries the same slug). See publishNewsIndex.ts,
-    // which already does this correctly. Recurring failure for ug-miete.de since 2026-09-04.
-    let sha: string | undefined;
-    const existingRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
-      headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github+json' },
-    });
-    if (existingRes.ok) {
-      const existing = await existingRes.json();
-      sha = existing.sha;
+    // Article, news index and article sitemap go into ONE commit (04.10.2026) — before,
+    // these were three commits, i.e. three Vercel builds and three GitHub mails per
+    // article. Index and sitemap are only included when the caller passes `supabase`
+    // (and website.id); the later publishNewsIndex/ensureDiscoverability calls then find
+    // them up to date and commit nothing.
+    const files = [{ path, content: html }];
+    if (options?.supabase && website.id) {
+      const site = { ...website, id: website.id };
+      const ctx = { isNextJs, origin };
+      const publishedAt = article.published_at || new Date().toISOString();
+      const indexOptions = options.publishPath
+        ? { language, publishPath: options.publishPath }
+        : { language, includeLegacyNullLanguage: true };
+      try {
+        const [indexFile, sitemapFile] = await Promise.all([
+          buildNewsIndexFile(site, options.supabase, indexOptions, ctx, {
+            title: article.title, slug: article.slug, meta_description: article.meta_description, published_at: publishedAt, language,
+          }),
+          buildSitemapFile(site, options.supabase, ctx, { slug: article.slug, published_at: publishedAt, language }),
+        ]);
+        if (indexFile) files.push(indexFile);
+        if (sitemapFile) files.push(sitemapFile);
+      } catch (err) {
+        // Index/sitemap are best-effort here; the follow-up calls still write them.
+        console.error(`publishArticle: building index/sitemap failed for ${website.domain}`, err);
+      }
     }
 
-    const ghRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
-      method: 'PUT',
-      headers: {
-        Authorization: `token ${githubToken}`,
-        Accept: 'application/vnd.github+json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message: `suchmaschinen.pro: publish article "${article.title}"`,
-        content: contentBase64,
-        ...(sha ? { sha } : {}),
-      }),
-    });
-
-    if (!ghRes.ok) {
-      const errText = await ghRes.text();
-      console.error('GitHub publish error:', errText);
-      throw new Error(`GitHub-Veröffentlichung fehlgeschlagen (${ghRes.status}).`);
+    try {
+      await commitFiles(owner, repo, githubToken, files, `suchmaschinen.pro: publish article "${article.title}"`);
+    } catch (err) {
+      console.error('GitHub publish error:', err);
+      throw new Error(`GitHub-Veröffentlichung fehlgeschlagen (${err instanceof Error ? err.message : String(err)}).`);
     }
 
     // Facebook's link scraper fetches the URL as soon as we call the Graph API. On the

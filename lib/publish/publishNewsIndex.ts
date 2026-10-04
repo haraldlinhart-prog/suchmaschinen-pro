@@ -1,5 +1,6 @@
 import { escapeHtml } from '@/lib/ai/generateArticle';
 import { resolveOrigin } from '@/lib/publish/origin';
+import { commitFiles } from '@/lib/publish/githubCommit';
 
 // Intentionally untyped (not matched structurally against the real generated Supabase
 // client) — that structural match is what caused "Type instantiation is excessively deep"
@@ -7,7 +8,7 @@ import { resolveOrigin } from '@/lib/publish/origin';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseLike = any;
 
-interface PublishedArticle {
+export interface PublishedArticle {
   title: string;
   slug: string;
   meta_description: string | null;
@@ -75,15 +76,21 @@ export interface PublishNewsIndexOptions {
   includeLegacyNullLanguage?: boolean;
 }
 
-export async function publishNewsIndex(
-  website: { id: string; domain: string; github_repo: string | null; publish_path: string },
-  supabase: SupabaseLike,
-  options?: PublishNewsIndexOptions
-): Promise<void> {
-  if (!website.github_repo) return;
-  const githubToken = process.env.GITHUB_TOKEN;
-  if (!githubToken) return;
+type IndexWebsite = { id: string; domain: string; github_repo: string | null; publish_path: string };
 
+/**
+ * Builds the index file (path relative to the repo root + HTML) without writing it.
+ * `extra` is an article that is being published right now and is not yet marked
+ * 'published' in the database — publishArticle() uses this to put the article and the
+ * updated index into the same commit. A row with the same slug is replaced by it.
+ */
+export async function buildNewsIndexFile(
+  website: IndexWebsite,
+  supabase: SupabaseLike,
+  options: PublishNewsIndexOptions | undefined,
+  ctx: { isNextJs: boolean; origin: string },
+  extra?: PublishedArticle
+): Promise<{ path: string; content: string } | null> {
   let query = supabase
     .from('sq_articles')
     .select('title, slug, meta_description, published_at, language')
@@ -98,45 +105,40 @@ export async function publishNewsIndex(
 
   const { data } = await query.order('published_at', { ascending: false });
 
-  const articles = (data || []) as unknown as PublishedArticle[];
-  if (articles.length === 0) return;
+  let articles = (data || []) as unknown as PublishedArticle[];
+  if (extra) {
+    const rest = articles.filter(a => a.slug !== extra.slug);
+    articles = [extra, ...rest].sort((a, b) => (b.published_at || '').localeCompare(a.published_at || ''));
+  }
+  if (articles.length === 0) return null;
+
+  const cleanPublishPath = (options?.publishPath || website.publish_path || '/blog/').replace(/^\/|\/$/g, '');
+  const publishPrefix = ctx.isNextJs ? `public/${cleanPublishPath}` : cleanPublishPath;
+  const html = buildIndexHtml(website.domain, ctx.origin, `${ctx.origin}/${cleanPublishPath}/`, cleanPublishPath, articles, options?.language || 'de');
+  return { path: `${publishPrefix}/index.html`, content: html };
+}
+
+export async function publishNewsIndex(
+  website: IndexWebsite,
+  supabase: SupabaseLike,
+  options?: PublishNewsIndexOptions
+): Promise<void> {
+  if (!website.github_repo) return;
+  const githubToken = process.env.GITHUB_TOKEN;
+  if (!githubToken) return;
 
   const [owner, repo] = website.github_repo.split('/');
-  const cleanPublishPath = (options?.publishPath || website.publish_path || '/blog/').replace(/^\/|\/$/g, '');
-
   const rootRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/`, {
     headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github+json' },
   });
   const rootEntries: Array<{ name: string }> = rootRes.ok ? await rootRes.json() : [];
   const isNextJs = rootEntries.some(e => /^next\.config\.(js|mjs|ts)$/.test(e.name));
-  const publishPrefix = isNextJs ? `public/${cleanPublishPath}` : cleanPublishPath;
-  const indexPath = `${publishPrefix}/index.html`;
-
   const origin = await resolveOrigin(website.domain);
-  const html = buildIndexHtml(website.domain, origin, `${origin}/${cleanPublishPath}/`, cleanPublishPath, articles, options?.language || 'de');
-  const contentBase64 = Buffer.from(html, 'utf-8').toString('base64');
 
-  // Need the current sha if the file already exists, otherwise GitHub rejects the PUT.
-  let sha: string | undefined;
-  const existingRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${indexPath}`, {
-    headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github+json' },
-  });
-  if (existingRes.ok) {
-    const existing = await existingRes.json();
-    sha = existing.sha;
-  }
-
-  await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${indexPath}`, {
-    method: 'PUT',
-    headers: {
-      Authorization: `token ${githubToken}`,
-      Accept: 'application/vnd.github+json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      message: 'suchmaschinen.pro: update news index',
-      content: contentBase64,
-      ...(sha ? { sha } : {}),
-    }),
-  }).catch(err => console.error('publishNewsIndex: failed to write index', err));
+  const file = await buildNewsIndexFile(website, supabase, options, { isNextJs, origin });
+  if (!file) return;
+  // commitFiles skips the commit when the index is already up to date — which is the
+  // normal case now that publishArticle() commits it together with the article.
+  await commitFiles(owner, repo, githubToken, [file], 'suchmaschinen.pro: update news index')
+    .catch(err => console.error('publishNewsIndex: failed to write index', err));
 }

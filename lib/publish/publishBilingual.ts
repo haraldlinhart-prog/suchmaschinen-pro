@@ -61,7 +61,7 @@ export async function publishArticleAndTranslation(
   supabase: SupabaseLike
 ): Promise<PublishResult> {
   const primaryLanguage = website.article_language ?? 'de';
-  const primaryResult = await publishArticle(website, article, { language: primaryLanguage });
+  const primaryResult = await publishArticle(website, article, { language: primaryLanguage, supabase });
 
   if (website.secondary_language && website.secondary_publish_path && article.keyword) {
     // Must be awaited, not fire-and-forget: a Vercel serverless function's execution
@@ -127,6 +127,7 @@ async function publishSecondaryLanguage(
   const result = await publishArticle(website, translationRow, {
     language: secondaryLanguage,
     publishPath: secondaryPublishPath,
+    supabase,
   });
 
   await supabase

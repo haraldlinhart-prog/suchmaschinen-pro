@@ -51,7 +51,7 @@ export async function backlinkOlderArticles(website: WebsiteRow, newArticle: { i
     if (!row) continue;
     const updated = addRelatedLink(row.content_html, { title: newArticle.title, url: newArticle.url });
     if (updated === row.content_html) continue;
-    await publishArticle(website, { ...row, content_html: updated }, publishOptionsFor(website, row));
+    await publishArticle(website, { ...row, content_html: updated }, { ...publishOptionsFor(website, row), supabase });
     await supabase.from('sq_articles').update({ content_html: updated }).eq('id', row.id);
     done++;
   }
@@ -107,7 +107,7 @@ export async function maybeRefreshOne(website: WebsiteRow, supabase: SupabaseLik
   const content = keptBlock ? `${revised.content_html}\n${keptBlock}` : revised.content_html;
   const reason = pick.dropped ? `Position verschlechtert (${pick.best} → ${pick.pos})` : `Seite ${Math.ceil(pick.pos / 10)} (Position ${pick.pos})`;
 
-  await publishArticle(website, { ...pick.a, title: revised.title, meta_description: revised.meta_description, content_html: content }, publishOptionsFor(website, pick.a));
+  await publishArticle(website, { ...pick.a, title: revised.title, meta_description: revised.meta_description, content_html: content }, { ...publishOptionsFor(website, pick.a), supabase });
   await supabase.from('sq_articles').update({
     title: revised.title,
     meta_description: revised.meta_description,

@@ -17,6 +17,8 @@ interface WebsiteLike {
   domain: string;
   github_repo: string | null;
   publish_path: string;
+  secondary_language?: string | null;
+  secondary_publish_path?: string | null;
 }
 
 export interface DiscoverabilityResult {
@@ -71,14 +73,59 @@ function xmlEscape(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function buildSitemap(origin: string, publishPath: string, articles: Array<{ slug: string; published_at: string | null }>): string {
+type SitemapArticle = { slug: string; published_at: string | null; language?: string | null };
+
+function cleanPath(p: string | null | undefined): string {
+  return (p || '/blog/').replace(/^\/|\/$/g, '');
+}
+
+// Secondary-language articles (e.g. turnkey-companies.com English under /en/blog/) used to
+// be listed under the primary path and 404'd in the sitemap (found 04.10.26).
+function articlePath(website: WebsiteLike, a: SitemapArticle): string {
+  return website.secondary_language && website.secondary_publish_path && a.language === website.secondary_language
+    ? cleanPath(website.secondary_publish_path)
+    : cleanPath(website.publish_path);
+}
+
+function buildSitemap(origin: string, website: WebsiteLike, articles: SitemapArticle[]): string {
+  const publishPath = cleanPath(website.publish_path);
   const newest = articles.map(a => a.published_at).filter(Boolean).sort().pop();
   const entry = (loc: string, lastmod: string | null | undefined, priority: string) =>
     `  <url>\n    <loc>${xmlEscape(loc)}</loc>\n${lastmod ? `    <lastmod>${lastmod.slice(0, 10)}</lastmod>\n` : ''}    <priority>${priority}</priority>\n  </url>\n`;
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
   xml += entry(`${origin}/${publishPath}/`, newest, '0.8');
-  for (const a of articles) xml += entry(`${origin}/${publishPath}/${a.slug}/`, a.published_at, '0.7');
+  for (const a of articles) xml += entry(`${origin}/${articlePath(website, a)}/${a.slug}/`, a.published_at, '0.7');
   return xml + '</urlset>\n';
+}
+
+async function loadSitemapArticles(website: WebsiteLike, supabase: SupabaseLike): Promise<SitemapArticle[]> {
+  const { data } = await supabase
+    .from('sq_articles')
+    .select('slug, published_at, language')
+    .eq('website_id', website.id)
+    .eq('status', 'published')
+    .order('published_at', { ascending: false });
+  return (data || []) as SitemapArticle[];
+}
+
+/**
+ * The article sitemap file without writing it — publishArticle() commits it together
+ * with the article. `extra` = the article being published right now (not yet marked
+ * 'published' in the database); a row with the same slug is replaced by it.
+ */
+export async function buildSitemapFile(
+  website: WebsiteLike,
+  supabase: SupabaseLike,
+  ctx: { isNextJs: boolean; origin: string },
+  extra?: SitemapArticle
+): Promise<{ path: string; content: string } | null> {
+  let articles = await loadSitemapArticles(website, supabase);
+  if (extra) {
+    articles = [extra, ...articles.filter(a => a.slug !== extra.slug)]
+      .sort((a, b) => (b.published_at || '').localeCompare(a.published_at || ''));
+  }
+  if (articles.length === 0) return null;
+  return { path: `${ctx.isNextJs ? 'public/' : ''}sitemap-blog.xml`, content: buildSitemap(ctx.origin, website, articles) };
 }
 
 export function homepageLinksToBlog(html: string, publishPath: string): boolean {
@@ -157,13 +204,7 @@ export async function ensureDiscoverability(website: WebsiteLike, supabase: Supa
   const token = process.env.GITHUB_TOKEN;
   if (!token) return { ...result, detail: 'GITHUB_TOKEN fehlt' };
 
-  const { data } = await supabase
-    .from('sq_articles')
-    .select('slug, published_at')
-    .eq('website_id', website.id)
-    .eq('status', 'published')
-    .order('published_at', { ascending: false });
-  const articles = (data || []) as Array<{ slug: string; published_at: string | null }>;
+  const articles = await loadSitemapArticles(website, supabase);
   if (articles.length === 0) return result;
 
   const api = gh(token);
@@ -178,7 +219,7 @@ export async function ensureDiscoverability(website: WebsiteLike, supabase: Supa
   // 1. Dedicated article sitemap. Kept separate from the site's own sitemap.xml so we
   //    never clobber a hand-written or framework-generated one.
   const sitemapPath = `${staticPrefix}sitemap-blog.xml`;
-  const sitemapXml = buildSitemap(origin, publishPath, articles);
+  const sitemapXml = buildSitemap(origin, website, articles);
   const existingSitemap = await api.get(owner, repo, sitemapPath);
   if (!existingSitemap) {
     await api.put(owner, repo, sitemapPath, sitemapXml, 'suchmaschinen.pro: add article sitemap');
