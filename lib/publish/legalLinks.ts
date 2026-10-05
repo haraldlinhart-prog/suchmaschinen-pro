@@ -8,8 +8,12 @@ export interface LegalLinks {
   datenschutz?: string;
 }
 
-const IMPRINT = /impressum|imprint|legal-notice|legal_notice/i;
-const PRIVACY = /datenschutz|privacy/i;
+// Nur ganze Pfadsegmente (z. B. /impressum, /impressum.html, /en/imprint/) und Linktexte, die genau so lauten.
+// Lockerer gematcht, griffen sonst Produktlinks mit "Datenschutz" im Text oder "Impressum-Generator".
+const IMPRINT = /(^|[/#])(impressum|imprint|legal-notice|legal)(\.html?)?\/?([?#]|$)/i;
+const PRIVACY = /(^|[/#])(datenschutz|datenschutzerklaerung|privacy|privacy-policy)(\.html?)?\/?([?#]|$)/i;
+const IMPRINT_TEXT = /^(Impressum|Imprint|Legal notice)$/i;
+const PRIVACY_TEXT = /^(Datenschutz|Datenschutzerklärung|Privacy|Privacy policy)$/i;
 
 function decode(s: string): string {
   return s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'");
@@ -33,11 +37,12 @@ export function extractLegalLinks(html: string, origin: string): LegalLinks {
   while ((m = anchor.exec(withoutScripts))) {
     const href = decode(m[1]);
     if (/impressum-free\./i.test(href)) continue;
-    const text = m[2].replace(/<[^>]+>/g, ' ');
+    const text = m[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     const url = absolute(origin, href);
     if (!url) continue;
-    if (!out.impressum && (IMPRINT.test(href) || /\b(Impressum|Imprint|Legal notice)\b/i.test(text))) out.impressum = url;
-    else if (!out.datenschutz && (PRIVACY.test(href) || /\b(Datenschutz|Privacy)\b/i.test(text))) out.datenschutz = url;
+    const path = new URL(url).pathname + new URL(url).hash;
+    if (!out.impressum && (IMPRINT.test(path) || IMPRINT_TEXT.test(text))) out.impressum = url;
+    else if (!out.datenschutz && (PRIVACY.test(path) || PRIVACY_TEXT.test(text))) out.datenschutz = url;
     if (out.impressum && out.datenschutz) break;
   }
   return out;
