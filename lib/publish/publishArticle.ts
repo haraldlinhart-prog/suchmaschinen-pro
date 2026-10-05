@@ -6,6 +6,7 @@ import { commitFiles } from '@/lib/publish/githubCommit';
 import { buildNewsIndexFile } from '@/lib/publish/publishNewsIndex';
 import { buildSitemapFile } from '@/lib/publish/ensureDiscoverability';
 import { buildArticleJsonLd } from '@/lib/publish/jsonLd';
+import { discoverLegalLinks, type LegalLinks } from '@/lib/publish/legalLinks';
 
 interface WebsiteRow {
   id?: string;
@@ -79,7 +80,19 @@ async function repoIsNextJs(owner: string, repo: string, githubToken: string): P
   }
 }
 
-function buildHtmlPage(title: string, metaDescription: string, contentHtml: string, domain: string, origin: string, canonical: string, publishPath: string, imageUrl?: string | null, lang: string = 'de', jsonLd: string = ''): string {
+/** Footer mit Rechtslinks; ohne gefundene Links verweist er auf die Startseite, wo sie stehen. */
+function buildLegalFooter(origin: string, legal: LegalLinks, lang: string): string {
+  const en = lang === 'en';
+  const imprintLabel = en ? 'Legal notice' : 'Impressum';
+  const privacyLabel = en ? 'Privacy policy' : 'Datenschutz';
+  const links: string[] = [];
+  if (legal.impressum) links.push(`<a href="${escapeHtml(legal.impressum)}">${imprintLabel}</a>`);
+  if (legal.datenschutz) links.push(`<a href="${escapeHtml(legal.datenschutz)}">${privacyLabel}</a>`);
+  if (!links.length) links.push(`<a href="${origin}/">${imprintLabel} &amp; ${privacyLabel}</a>`);
+  return `<footer style="margin-top:2rem;font-size:0.85rem;color:#666">${links.join(' &middot; ')}</footer>`;
+}
+
+function buildHtmlPage(title: string, metaDescription: string, contentHtml: string, domain: string, origin: string, canonical: string, publishPath: string, imageUrl?: string | null, lang: string = 'de', jsonLd: string = '', legal: LegalLinks = {}): string {
   return `<!DOCTYPE html>
 <html lang="${lang}">
 <head>
@@ -113,6 +126,7 @@ ${jsonLd}
 <a class="back" href="${origin}/">&larr; ${lang === 'en' ? `Back to ${escapeHtml(domain)}` : `Zurück zu ${escapeHtml(domain)}`}</a>
 ${contentHtml}
 <p style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid #eee"><a href="${origin}/${publishPath}/">${lang === 'en' ? 'More articles' : 'Weitere Artikel'} &rarr;</a></p>
+${buildLegalFooter(origin, legal, lang)}
 </body>
 </html>
 `;
@@ -322,7 +336,8 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow, o
       dateModified: now,
       imageUrl: ogImageUrl,
     });
-    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl, cleanPublishPath, ogImageUrl, language, jsonLd);
+    const legal = await discoverLegalLinks(origin, language);
+    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl, cleanPublishPath, ogImageUrl, language, jsonLd, legal);
 
     // Article, news index and article sitemap go into ONE commit (04.10.2026) — before,
     // these were three commits, i.e. three Vercel builds and three GitHub mails per
