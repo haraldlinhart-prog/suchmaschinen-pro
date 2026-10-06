@@ -22,6 +22,7 @@ export interface Website {
   plan: 'free' | 'basic' | 'pro' | 'premium';
   auto_publish: boolean;
   last_auto_published_at: string | null;
+  publish_lock_until?: string | null;
   badge_required: boolean;
   badge_status: 'unchecked' | 'active' | 'missing';
   badge_checked_at: string | null;

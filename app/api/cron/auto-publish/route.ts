@@ -13,6 +13,9 @@ import { networkUsage, normText, titlesNear } from '@/lib/content/networkUsage';
 
 export const maxDuration = 800; // Vercel Pro/Fluid Compute ceiling - was 300s, raised as the number of sites grew
 
+// Per-site lock lifetime: a bit above maxDuration (800 s), so a live worker never loses it.
+const LOCK_MINUTES = 15;
+
 const PLAN_INTERVAL_DAYS: Record<string, number> = { free: 14, basic: 7, pro: 2, premium: 1 };
 
 function isDue(lastAutoPublishedAt: string | null, plan: string): boolean {
@@ -57,18 +60,50 @@ export async function GET(req: NextRequest) {
 
   // Worker: one site.
   if (siteId) {
-    const { data: website, error } = await supabase
+    // Claim the site first (06.10.2026). Two overlapping runs — the scheduled cron plus a
+    // manual "Run" in Vercel — both processed the same sites and published every article
+    // twice, including duplicate Facebook posts. This single UPDATE only succeeds when no
+    // other worker holds the lock, so exactly one worker per site gets through. The lock
+    // expires by itself after LOCK_MINUTES in case a worker dies without releasing it.
+    const now = new Date();
+    const lockUntil = new Date(now.getTime() + LOCK_MINUTES * 60_000).toISOString();
+    const { data: claimed, error: claimError } = await supabase
       .from('sq_websites')
-      .select('*')
+      .update({ publish_lock_until: lockUntil })
       .eq('id', siteId)
-      .eq('auto_publish', true)
-      .eq('status', 'active')
-      .maybeSingle();
-    if (error || !website) {
-      return NextResponse.json({ error: 'Website not found or not active' }, { status: 404 });
+      .or(`publish_lock_until.is.null,publish_lock_until.lt.${now.toISOString()}`)
+      .select('id');
+    if (claimError) {
+      console.error(`Cron: lock claim failed for site ${siteId}`, claimError);
+      return NextResponse.json({ error: 'Lock claim failed' }, { status: 500 });
     }
-    const results = await processWebsite(website, supabase);
-    return NextResponse.json({ ranAt: new Date().toISOString(), results });
+    if (!claimed || claimed.length === 0) {
+      return NextResponse.json({ ranAt: now.toISOString(), results: [{ domain: siteId, status: 'skipped-locked' }] });
+    }
+
+    try {
+      // Read the site only after claiming it, so a run that waited behind another one sees
+      // the fresh last_auto_published_at and correctly treats the site as not due.
+      const { data: website, error } = await supabase
+        .from('sq_websites')
+        .select('*')
+        .eq('id', siteId)
+        .eq('auto_publish', true)
+        .eq('status', 'active')
+        .maybeSingle();
+      if (error || !website) {
+        return NextResponse.json({ error: 'Website not found or not active' }, { status: 404 });
+      }
+      const results = await processWebsite(website, supabase);
+      return NextResponse.json({ ranAt: new Date().toISOString(), results });
+    } finally {
+      await supabase
+        .from('sq_websites')
+        .update({ publish_lock_until: null })
+        .eq('id', siteId)
+        .eq('publish_lock_until', lockUntil)
+        .then(({ error }) => { if (error) console.error(`Cron: lock release failed for site ${siteId}`, error); });
+    }
   }
 
   // Dispatcher: all sites.
