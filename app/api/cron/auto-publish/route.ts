@@ -18,11 +18,19 @@ const LOCK_MINUTES = 15;
 
 const PLAN_INTERVAL_DAYS: Record<string, number> = { free: 14, basic: 7, pro: 2, premium: 1 };
 
+// Grace window (17.10.2026): the cron starts at 06:00 but last_auto_published_at is only
+// written once the article is live (06:01–06:15). The next morning at 06:00 a few minutes
+// were still missing to the full 24 h/48 h, so every site was skipped every other run —
+// Premium got an article every 2nd day instead of daily, Pro every 3rd instead of every 2nd
+// (03.–16.10.: Premium 222 of 378, Pro 176 of 210). With one cron run per day, a few hours
+// of slack never lets a site publish twice on the same day.
+const DUE_GRACE_MS = 3 * 60 * 60 * 1000;
+
 function isDue(lastAutoPublishedAt: string | null, plan: string): boolean {
   if (!lastAutoPublishedAt) return true;
   const intervalDays = PLAN_INTERVAL_DAYS[plan] ?? 7;
   const elapsedMs = Date.now() - new Date(lastAutoPublishedAt).getTime();
-  return elapsedMs >= intervalDays * 24 * 60 * 60 * 1000;
+  return elapsedMs >= intervalDays * 24 * 60 * 60 * 1000 - DUE_GRACE_MS;
 }
 
 type SiteResult = { domain: string; status: string; detail?: string };
@@ -233,42 +241,65 @@ async function processWebsite(website: AnyWebsite, supabase: ReturnType<typeof c
         (k.source === 'manual' || k.source === 'search_console' || !network.otherKeywords.has(normText(k.keyword)));
 
       let pool: SuggestedKeyword[] = (website.suggested_keywords || []).filter(isFree);
+      let suggested: SuggestedKeyword[] = website.suggested_keywords || [];
 
-      // Refill: if the pool is running low, ask for a fresh batch avoiding used keywords
-      // (this site's and the ones taken by sister sites, newest first, capped for prompt size).
-      if (pool.length < 3) {
+      // Refill: ask for a fresh batch avoiding used keywords (this site's, the ones taken by
+      // sister sites newest first, capped for prompt size, plus any extra ones to skip).
+      const refill = async (extraAvoid: string[] = []) => {
         try {
           const { pageText, pageTitle } = await fetchSiteText(website.domain);
-          const avoid = [...(Array.from(usedKeywords) as string[]), ...network.otherKeywordList.slice(0, 300)];
+          const avoid = [...(Array.from(usedKeywords) as string[]), ...extraAvoid, ...network.otherKeywordList.slice(0, 300)];
           const fresh = await suggestKeywords(website.domain, pageTitle, pageText, avoid, website.article_language ?? 'de');
           const merged: SuggestedKeyword[] = [
-            ...(website.suggested_keywords || []),
-            ...fresh.filter(f => !(website.suggested_keywords || []).some((e: SuggestedKeyword) => e.keyword === f.keyword)),
+            ...suggested,
+            ...fresh.filter(f => !suggested.some((e: SuggestedKeyword) => e.keyword === f.keyword)),
           ];
           await supabase.from('sq_websites').update({ suggested_keywords: merged, last_analyzed_at: new Date().toISOString() }).eq('id', website.id);
-          pool = merged.filter(isFree);
+          suggested = merged;
+          pool = merged.filter(k => isFree(k) && !extraAvoid.includes(k.keyword));
         } catch (refillErr) {
           console.error(`Cron: keyword refill failed for ${website.domain}`, refillErr);
         }
-      }
+      };
 
       // Don't write filler: skip suggested keywords that Google data shows nobody searches
       // for. Keywords the customer picked or queued themselves are always kept (chat 26.09.26).
-      try {
-        // English sites are measured on the US market (2840), not Germany — otherwise every
-        // English keyword shows volume 0 and gets dropped (04.10.26, american-llc.org).
-        const isEn = (website.article_language ?? 'de') === 'en';
-        const vols = await getKeywordVolumes(pool.slice(0, 30).map((k: SuggestedKeyword) => k.keyword), isEn ? 2840 : 2276, isEn ? 'en' : 'de');
-        pool = pool.filter((k: SuggestedKeyword & { source?: string }) => {
-          if (k.source === 'manual' || k.source === 'search_console') return true;
-          const v = vols[k.keyword.trim().toLowerCase().replace(/\s+/g, ' ')];
-          return !v || v.volume === null || v.volume > 0;
-        });
-      } catch (volErr) {
-        console.error(`Cron: volume check failed for ${website.domain}`, volErr);
+      // Returns the keywords that were dropped for zero volume.
+      const dropZeroVolume = async (): Promise<string[]> => {
+        try {
+          // English sites are measured on the US market (2840), not Germany — otherwise every
+          // English keyword shows volume 0 and gets dropped (04.10.26, american-llc.org).
+          const isEn = (website.article_language ?? 'de') === 'en';
+          const vols = await getKeywordVolumes(pool.slice(0, 30).map((k: SuggestedKeyword) => k.keyword), isEn ? 2840 : 2276, isEn ? 'en' : 'de');
+          const dropped: string[] = [];
+          pool = pool.filter((k: SuggestedKeyword & { source?: string }) => {
+            if (k.source === 'manual' || k.source === 'search_console') return true;
+            const v = vols[k.keyword.trim().toLowerCase().replace(/\s+/g, ' ')];
+            const keep = !v || v.volume === null || v.volume > 0;
+            if (!keep) dropped.push(k.keyword);
+            return keep;
+          });
+          return dropped;
+        } catch (volErr) {
+          console.error(`Cron: volume check failed for ${website.domain}`, volErr);
+          return [];
+        }
+      };
+
+      if (pool.length < 3) await refill();
+      let zeroVolume = await dropZeroVolume();
+
+      // Second refill (17.10.2026): the first refill only looks at the pool BEFORE the volume
+      // check. gmbh-miete.de still had 30 unused keywords, all with volume 0, so the pool
+      // ended up empty every day and the site silently stopped publishing after 11.10.
+      // When nothing searchable is left, ask once more and tell the AI to skip those too.
+      if (pool.length === 0) {
+        await refill(zeroVolume);
+        zeroVolume = [...zeroVolume, ...(await dropZeroVolume())];
       }
 
       if (pool.length === 0) {
+        console.warn(`Cron: no worthwhile keywords for ${website.domain} (${zeroVolume.length} unused keywords without search volume)`);
         results.push({ domain: website.domain, status: 'no-worthwhile-keywords' });
         return results;
       }

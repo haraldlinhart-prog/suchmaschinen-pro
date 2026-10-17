@@ -187,59 +187,21 @@ ${relatedLinks && relatedLinks.length ? `- Where it genuinely fits the text, lin
 
 Call the output_article tool with the finished article.`;
 
-  // Use tool-use (structured output) instead of asking the model to hand-write an
-  // escaped JSON string: when content_html contains quotes/backslashes (common in
-  // <a href="..."> attributes or quoted text), a model-authored JSON string
-  // occasionally comes out mis-escaped and JSON.parse throws. The Anthropic API
-  // encodes tool_use.input itself, so this failure mode goes away entirely.
-  // See recurring "SyntaxError ... in JSON" cron failures from 2026-09-12.
-  const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 4000,
-      messages: [{ role: 'user', content: prompt }],
-      tools: [
-        {
-          name: 'output_article',
-          description: 'Submit the finished article.',
-          input_schema: {
-            type: 'object',
-            properties: {
-              title: { type: 'string', description: 'The H1 text as plain string' },
-              meta_description: { type: 'string', description: 'A compelling 140-160 char meta description' },
-              content_html: { type: 'string', description: 'The full HTML body content as a single string' },
-              image_query: {
-                type: 'string',
-                description: '2-4 English keywords describing a fitting stock photo for this article, e.g. "business handshake office"',
-              },
-            },
-            required: ['title', 'meta_description', 'content_html', 'image_query'],
-          },
-        },
-      ],
-      tool_choice: { type: 'tool', name: 'output_article' },
-    }),
-  });
-
-  if (!claudeRes.ok) {
-    const errText = await claudeRes.text();
-    console.error('Claude API error (generateArticleContent):', errText);
-    throw new Error('Artikel-Generierung fehlgeschlagen.');
+  // Empty-article guard (17.10.2026): 12 cron failures in 7 days with "null value in column
+  // content_html" — with the longer prompts (related links, titles to avoid) the answer
+  // sometimes hit max_tokens 4000 and the tool input came back without content_html. Now:
+  // more room, the result is validated, and a failed or incomplete answer is retried once.
+  type ArticleOut = { title: string; meta_description: string; content_html: string; image_query?: string };
+  let result: ArticleOut | null = null;
+  for (let attempt = 1; attempt <= 2 && !result; attempt++) {
+    try {
+      result = await requestArticle(prompt);
+    } catch (err) {
+      console.error(`generateArticleContent: attempt ${attempt} failed for ${domain} ("${keyword}")`, err);
+    }
   }
-
-  const claudeData = await claudeRes.json();
-  const toolBlock = claudeData.content?.find((c: { type: string }) => c.type === 'tool_use');
-  if (!toolBlock) {
-    console.error('Claude API error (generateArticleContent): no tool_use block in response', JSON.stringify(claudeData));
-    throw new Error('Artikel-Generierung fehlgeschlagen.');
-  }
-  const article = toolBlock.input as { title: string; meta_description: string; content_html: string; image_query?: string };
+  if (!result) throw new Error('Artikel-Generierung fehlgeschlagen.');
+  const article: ArticleOut = result;
 
   // Safety net: if the title still matches one already used in the account, rewrite it.
   const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
@@ -281,4 +243,68 @@ Call the output_article tool with the finished article.`;
     image_url: imageUrl,
     image_alt: imageAlt,
   };
+}
+
+/** One Claude call for an article; throws unless title, meta description and HTML are all present. */
+async function requestArticle(prompt: string): Promise<{ title: string; meta_description: string; content_html: string; image_query?: string }> {
+  if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY fehlt.');
+  // Use tool-use (structured output) instead of asking the model to hand-write an
+  // escaped JSON string: when content_html contains quotes/backslashes (common in
+  // <a href="..."> attributes or quoted text), a model-authored JSON string
+  // occasionally comes out mis-escaped and JSON.parse throws. The Anthropic API
+  // encodes tool_use.input itself, so this failure mode goes away entirely.
+  // See recurring "SyntaxError ... in JSON" cron failures from 2026-09-12.
+  const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 8000,
+      messages: [{ role: 'user', content: prompt }],
+      tools: [
+        {
+          name: 'output_article',
+          description: 'Submit the finished article.',
+          input_schema: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', description: 'The H1 text as plain string' },
+              meta_description: { type: 'string', description: 'A compelling 140-160 char meta description' },
+              content_html: { type: 'string', description: 'The full HTML body content as a single string' },
+              image_query: {
+                type: 'string',
+                description: '2-4 English keywords describing a fitting stock photo for this article, e.g. "business handshake office"',
+              },
+            },
+            required: ['title', 'meta_description', 'content_html', 'image_query'],
+          },
+        },
+      ],
+      tool_choice: { type: 'tool', name: 'output_article' },
+    }),
+  });
+
+  if (!claudeRes.ok) {
+    const errText = await claudeRes.text();
+    console.error('Claude API error (generateArticleContent):', errText);
+    throw new Error('Artikel-Generierung fehlgeschlagen.');
+  }
+
+  const claudeData = await claudeRes.json();
+  const toolBlock = claudeData.content?.find((c: { type: string }) => c.type === 'tool_use');
+  if (!toolBlock) {
+    console.error('Claude API error (generateArticleContent): no tool_use block in response', JSON.stringify(claudeData));
+    throw new Error('Artikel-Generierung fehlgeschlagen.');
+  }
+  const article = toolBlock.input as { title?: string; meta_description?: string; content_html?: string; image_query?: string };
+  if (!article?.title?.trim() || !article.meta_description?.trim() || !article.content_html?.trim()) {
+    throw new Error(`incomplete article from Claude (stop_reason: ${claudeData.stop_reason}; missing: ${
+      ['title', 'meta_description', 'content_html'].filter(f => !(article as Record<string, string | undefined>)?.[f]?.trim()).join(', ')
+    })`);
+  }
+  return { title: article.title, meta_description: article.meta_description, content_html: article.content_html, image_query: article.image_query };
 }
