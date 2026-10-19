@@ -178,6 +178,12 @@ async function resolveOgImageUrl(article: ArticleRow): Promise<string | null> {
   if (article.image_url && (await verifyImageReachable(article.image_url))) {
     return article.image_url;
   }
+  // One more try after a pause (19.10.2026): on busy cron days video.pan21.com briefly
+  // refuses connections, which dropped og:image for images that were in fact online.
+  if (article.image_url) {
+    await new Promise(r => setTimeout(r, 10_000 + Math.random() * 5_000));
+    if (await verifyImageReachable(article.image_url, 15_000)) return article.image_url;
+  }
   console.error(`resolveOgImageUrl: no reachable mirrored image for article "${article.title}" — omitting og:image (never falling back to the off-domain source image).`);
   return null;
 }

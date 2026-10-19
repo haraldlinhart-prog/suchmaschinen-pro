@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isAdminEmail } from '@/lib/supabase/admin';
-import { runGscSync } from '@/lib/google/gscSync';
+import { dispatchGscSync } from '@/lib/google/gscSync';
 
 export const maxDuration = 800;
 
@@ -11,7 +11,7 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || !isAdminEmail(user.email)) return NextResponse.json({ error: 'Nicht berechtigt.' }, { status: 403 });
   try {
-    return NextResponse.json(await runGscSync());
+    return NextResponse.json(await dispatchGscSync());
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }

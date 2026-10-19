@@ -60,11 +60,28 @@ async function mirrorToVideoCdn(pixabayUrl: string, articleRef?: string): Promis
     form.append('api_key', VIDEO_UPLOAD_KEY);
     form.append('image', new Blob([bytes], { type: contentType }), `pixabay_${Date.now()}.${extFromType}`);
 
-    const res = await fetch(VIDEO_UPLOAD_URL, {
-      method: 'POST',
-      body: form,
-      signal: AbortSignal.timeout(15000),
-    });
+    // Retry connection failures (19.10.2026): on busy cron days several workers upload at
+    // once and the Plesk server stops accepting connections for a while ("Connect Timeout",
+    // 33 of 48 articles without image on 16.10.), while on quiet days every upload works.
+    // A couple of spaced-out retries with jitter get most uploads through that window.
+    let res: Response | null = null;
+    for (const waitMs of [0, 5000, 15000]) {
+      if (waitMs) await new Promise(r => setTimeout(r, waitMs + Math.random() * 3000));
+      try {
+        res = await fetch(VIDEO_UPLOAD_URL, {
+          method: 'POST',
+          body: form,
+          signal: AbortSignal.timeout(20000),
+        });
+        break;
+      } catch (err) {
+        console.warn(`mirrorToVideoCdn: upload attempt failed${articleRef ? ` for article "${articleRef}"` : ''}:`, err instanceof Error ? (err.cause ?? err.message) : err);
+      }
+    }
+    if (!res) {
+      console.error(`mirrorToVideoCdn: video.pan21.com unreachable after 3 attempts${articleRef ? ` for article "${articleRef}"` : ''} (source: ${pixabayUrl})`);
+      return null;
+    }
     if (!res.ok) {
       console.error(`mirrorToVideoCdn: upload to video.pan21.com failed with status ${res.status}${articleRef ? ` for article "${articleRef}"` : ''} (source: ${pixabayUrl})`);
       return null;

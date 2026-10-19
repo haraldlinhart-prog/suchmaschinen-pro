@@ -270,7 +270,11 @@ async function processWebsite(website: AnyWebsite, supabase: ReturnType<typeof c
           // English sites are measured on the US market (2840), not Germany — otherwise every
           // English keyword shows volume 0 and gets dropped (04.10.26, american-llc.org).
           const isEn = (website.article_language ?? 'de') === 'en';
-          const vols = await getKeywordVolumes(pool.slice(0, 30).map((k: SuggestedKeyword) => k.keyword), isEn ? 2840 : 2276, isEn ? 'en' : 'de');
+          // All pool keywords, not just the first 30 (19.10.2026): keywords further down were
+          // never measured and so always counted as "keep", letting volume-0 keywords through
+          // once the front of the list was used up. One DataForSEO call takes up to 1000
+          // keywords and results are cached for 30 days, so this costs no extra calls.
+          const vols = await getKeywordVolumes(pool.map((k: SuggestedKeyword) => k.keyword), isEn ? 2840 : 2276, isEn ? 'en' : 'de');
           const dropped: string[] = [];
           pool = pool.filter((k: SuggestedKeyword & { source?: string }) => {
             if (k.source === 'manual' || k.source === 'search_console') return true;

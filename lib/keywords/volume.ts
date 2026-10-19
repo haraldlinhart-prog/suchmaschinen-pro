@@ -21,12 +21,26 @@ function clean(k: string): string {
   return k.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
+// Google Ads rejects the WHOLE request when a single keyword contains one of these symbols
+// (DataForSEO task error "Invalid Field: 'keywords'"), so such keywords are left out of the
+// request instead of costing every other keyword in the batch its volume (19.10.2026).
+const GOOGLE_ADS_FORBIDDEN = /[,!@%^()={};~`<>?\\|*]/;
+
+// DataForSEO's top-level status_message is "Ok." whenever the HTTP call itself went through;
+// the real reason sits on the task. Logging the top level first hid every task error behind
+// "Ok." (23x in one week), so the task's code and message come first now.
+function dataForSeoError(res: Response, data: { status_code?: number; status_message?: string; tasks?: Array<{ status_code: number; status_message: string }> } | null): string {
+  const task = data?.tasks?.[0];
+  if (task && task.status_code >= 40000) return `${task.status_code} ${task.status_message}`;
+  return `HTTP ${res.status} ${data?.status_code ?? ''} ${data?.status_message ?? ''}`.trim();
+}
+
 export async function getKeywordVolumes(
   keywords: string[],
   locationCode = 2276,
   languageCode = 'de'
 ): Promise<Record<string, KeywordVolume>> {
-  const wanted = [...new Set(keywords.map(clean).filter(k => k && k.length <= 80 && k.split(' ').length <= 10))];
+  const wanted = [...new Set(keywords.map(clean).filter(k => k && k.length <= 80 && k.split(' ').length <= 10 && !GOOGLE_ADS_FORBIDDEN.test(k)))];
   const out: Record<string, KeywordVolume> = {};
   if (wanted.length === 0) return out;
 
@@ -55,7 +69,7 @@ export async function getKeywordVolumes(
     const data = await res.json().catch(() => null);
     const task = data?.tasks?.[0];
     if (!res.ok || !task || task.status_code >= 40000) {
-      console.error('DataForSEO search volume error:', data?.status_message || task?.status_message || res.status);
+      console.error(`DataForSEO search volume error: ${dataForSeoError(res, data)} (${batch.length} keywords, e.g. "${batch[0]}")`);
       continue;
     }
     const rows: Array<{ keyword: string; search_volume: number | null; cpc: number | null; competition: string | null }> = task.result || [];
@@ -92,7 +106,7 @@ export async function getRelatedKeywords(keyword: string, locationCode = 2276, l
   const data = await res.json().catch(() => null);
   const task = data?.tasks?.[0];
   if (!res.ok || !task || task.status_code >= 40000) {
-    console.error('DataForSEO related keywords error:', data?.status_message || task?.status_message || res.status);
+    console.error(`DataForSEO related keywords error: ${dataForSeoError(res, data)} (keyword "${keyword}")`);
     return [];
   }
   const rows: Array<{ keyword: string; search_volume: number | null; cpc: number | null }> = task.result || [];

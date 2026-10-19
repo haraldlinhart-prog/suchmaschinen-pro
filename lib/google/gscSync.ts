@@ -33,7 +33,50 @@ function indexStatusFrom(verdict: string, coverage?: string): string {
   return 'not_indexed';
 }
 
-export async function runGscSync() {
+// Fan-out (19.10.2026): one invocation for all sites ran into the 800 s limit every day,
+// so sites late in the list were never synced. The cron call now only dispatches; every
+// site runs in its own invocation (?site=<id>) with its own time budget, like auto-publish.
+const DISPATCH_CONCURRENCY = 6;
+const DISPATCH_BUDGET_MS = 700_000;
+// The URL Inspection quota is per property, so each site gets its own budget.
+const INSPECT_BUDGET_PER_SITE = 60;
+// Explicit www host: the apex 308-redirects and fetch drops the Authorization header.
+const WORKER_ORIGIN = process.env.CRON_WORKER_ORIGIN || 'https://www.suchmaschinen.pro';
+
+export async function dispatchGscSync() {
+  const supabase = createServiceClient();
+  const { data: sites, error } = await supabase.from('sq_websites').select('id, domain');
+  if (error) throw new Error(`failed to load websites: ${error.message}`);
+
+  const queue = [...(sites || [])];
+  const started = Date.now();
+  const results: Array<{ domain: string; articles?: number; withData?: number; inspected?: number; indexed?: number; error?: string }> = [];
+
+  async function lane() {
+    while (queue.length) {
+      const site = queue.shift()!;
+      if (Date.now() - started > DISPATCH_BUDGET_MS) {
+        results.push({ domain: site.domain, error: 'deferred-time-budget' });
+        continue;
+      }
+      try {
+        const res = await fetch(`${WORKER_ORIGIN}/api/cron/gsc-sync?site=${encodeURIComponent(site.id)}`, {
+          headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
+          cache: 'no-store',
+        });
+        const data = await res.json().catch(() => null);
+        if (res.ok && Array.isArray(data?.results)) results.push(...data.results);
+        else results.push({ domain: site.domain, error: `worker HTTP ${res.status}` });
+      } catch (err) {
+        results.push({ domain: site.domain, error: err instanceof Error ? err.message : String(err) });
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: DISPATCH_CONCURRENCY }, lane));
+  return { ranAt: new Date().toISOString(), results: results.filter(r => r.error || r.articles) };
+}
+
+export async function runGscSync(siteId?: string) {
   const supabase = createServiceClient();
   // Each site is read with its owner's own Search Console connection.
   const tokenCache = new Map<string, string | null>();
@@ -42,11 +85,13 @@ export async function runGscSync() {
     return tokenCache.get(userId) || null;
   };
 
-  const { data: articles } = await supabase
+  let query = supabase
     .from('sq_articles')
     .select('id, website_id, published_url, index_status, index_checked_at, gsc_best_position, sq_websites!inner(domain, user_id)')
     .eq('status', 'published')
     .not('published_url', 'is', null);
+  if (siteId) query = query.eq('website_id', siteId);
+  const { data: articles } = await query;
 
   // Group by website.
   type Row = { id: string; website_id: string; published_url: string; index_status: string | null; index_checked_at: string | null; gsc_best_position: number | null; sq_websites: { domain: string; user_id: string } | { domain: string; user_id: string }[] };
@@ -57,7 +102,7 @@ export async function runGscSync() {
     bySite.get(a.website_id)!.items.push(a);
   }
 
-  let inspectBudget = INSPECT_BUDGET_PER_RUN;
+  let inspectBudget = siteId ? INSPECT_BUDGET_PER_SITE : INSPECT_BUDGET_PER_RUN;
   const results: Array<{ domain: string; articles: number; withData: number; inspected: number; indexed: number; error?: string }> = [];
   const now = new Date().toISOString();
 
