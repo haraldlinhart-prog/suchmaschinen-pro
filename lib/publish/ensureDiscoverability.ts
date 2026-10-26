@@ -1,6 +1,8 @@
 import { getScAccessToken } from '@/lib/google/scToken';
 import { resolveOrigin } from '@/lib/publish/origin';
 import { submitSitemap } from '@/lib/google/searchconsole';
+import { commitFiles } from '@/lib/publish/githubCommit';
+import { siteLayoutFor, buildLayoutFiles, type SiteLayout } from '@/lib/publish/siteLayout';
 
 // Publishing an article into a repo is not enough: if nothing links to it and no sitemap
 // lists it, neither visitors nor Google ever find it (firmenabwicklung.de, chat 26.09.26 —
@@ -204,6 +206,9 @@ export async function ensureDiscoverability(website: WebsiteLike, supabase: Supa
   const token = process.env.GITHUB_TOKEN;
   if (!token) return { ...result, detail: 'GITHUB_TOKEN fehlt' };
 
+  const layout = siteLayoutFor(website.domain);
+  if (layout) return ensureLayoutDiscoverability(website, layout, supabase, token, result);
+
   const articles = await loadSitemapArticles(website, supabase);
   if (articles.length === 0) return result;
 
@@ -281,5 +286,86 @@ export async function ensureDiscoverability(website: WebsiteLike, supabase: Supa
   // 4. Tell Google about the new sitemap once, when it first appears.
   if (result.sitemap === 'created') result.gsc = await submitToSearchConsole(website.domain, sitemapUrl, website.user_id);
 
+  return result;
+}
+
+/**
+ * Sites with language sections (siteLayout.ts): one sitemap per language, merged with the
+ * repo state so pages suchmaschinen.pro did not write are never dropped. robots.txt gets a
+ * Sitemap line per language; the homepage link check uses the default language's folder.
+ */
+async function ensureLayoutDiscoverability(
+  website: WebsiteLike,
+  layout: SiteLayout,
+  supabase: SupabaseLike,
+  token: string,
+  result: DiscoverabilityResult
+): Promise<DiscoverabilityResult> {
+  const api = gh(token);
+  const [owner, repo] = (website.github_repo as string).split('/');
+  const root = await api.list(owner, repo);
+  const isNextJs = root.some(e => /^next\.config\.(js|mjs|ts)$/.test(e.name));
+  const staticPrefix = isNextJs ? 'public/' : '';
+  const origin = await resolveOrigin(website.domain);
+  const sections = Object.values(layout.sections);
+
+  // 1. Sitemaps (merged). Any read failure throws before anything is written.
+  const existed = new Map<string, boolean>();
+  for (const sec of sections) existed.set(sec.sitemap, await api.exists(owner, repo, `${staticPrefix}${sec.sitemap}`));
+  const files = await buildLayoutFiles(
+    { id: website.id, domain: website.domain, github_repo: website.github_repo as string },
+    layout, supabase, { isNextJs, origin, token }, { index: false }
+  );
+  const commit = await commitFiles(owner, repo, token, files, 'suchmaschinen.pro: update article sitemap');
+  const created = sections.filter(sec => !existed.get(sec.sitemap) && commit.changedPaths.includes(`${staticPrefix}${sec.sitemap}`));
+  result.sitemap = created.length ? 'created' : commit.committed ? 'updated' : 'unchanged';
+
+  // 2. robots.txt: one Sitemap line per language (static robots only).
+  const dynamicRobots = isNextJs && (
+    await api.exists(owner, repo, 'app/robots.ts') || await api.exists(owner, repo, 'app/robots.js') ||
+    await api.exists(owner, repo, 'src/app/robots.ts') || await api.exists(owner, repo, 'src/app/robots.js') ||
+    await api.exists(owner, repo, 'app/robots.txt/route.ts') || await api.exists(owner, repo, 'app/robots.txt/route.js')
+  );
+  if (dynamicRobots) {
+    result.robots = 'dynamic';
+  } else {
+    const robotsPath = `${staticPrefix}robots.txt`;
+    const robots = await api.get(owner, repo, robotsPath);
+    const lines = sections.map(sec => `Sitemap: ${origin}/${sec.sitemap}`);
+    if (!robots) {
+      await api.put(owner, repo, robotsPath, `User-agent: *\nAllow: /\n\n${lines.join('\n')}\n`, 'suchmaschinen.pro: add robots.txt with article sitemap');
+      result.robots = 'created';
+    } else {
+      const missing = lines.filter(l => !robots.content.includes(l));
+      if (missing.length) {
+        await api.put(owner, repo, robotsPath, `${robots.content.replace(/\s*$/, '')}\n${missing.join('\n')}\n`, 'suchmaschinen.pro: reference article sitemap in robots.txt', robots.sha);
+        result.robots = 'updated';
+      } else {
+        result.robots = 'unchanged';
+      }
+    }
+  }
+
+  // 3. Homepage link to the default language's article index.
+  const publishPath = layout.sections[layout.defaultLanguage].path;
+  if (isNextJs) {
+    result.link = 'manual-nextjs';
+  } else {
+    const home = await api.get(owner, repo, 'index.html');
+    if (!home) result.link = 'no-homepage';
+    else if (homepageLinksToBlog(home.content, publishPath)) result.link = 'present';
+    else {
+      const updated = insertBlogLink(home.content, publishPath);
+      if (updated !== home.content) {
+        await api.put(owner, repo, 'index.html', updated, 'suchmaschinen.pro: link article index from homepage', home.sha);
+        result.link = 'inserted';
+      } else {
+        result.link = 'no-homepage';
+      }
+    }
+  }
+
+  // 4. Submit newly created sitemaps once.
+  for (const sec of created) result.gsc = await submitToSearchConsole(website.domain, `${origin}/${sec.sitemap}`, website.user_id);
   return result;
 }

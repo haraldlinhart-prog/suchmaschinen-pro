@@ -7,6 +7,7 @@ import { buildNewsIndexFile } from '@/lib/publish/publishNewsIndex';
 import { buildSitemapFile } from '@/lib/publish/ensureDiscoverability';
 import { buildArticleJsonLd } from '@/lib/publish/jsonLd';
 import { discoverLegalLinks, type LegalLinks } from '@/lib/publish/legalLinks';
+import { siteLayoutFor, sectionFor, sectionLanguage, isReservedSlug, hreflangSelf, buildLayoutFiles } from '@/lib/publish/siteLayout';
 
 interface WebsiteRow {
   id?: string;
@@ -92,7 +93,7 @@ function buildLegalFooter(origin: string, legal: LegalLinks, lang: string): stri
   return `<footer style="margin-top:2rem;font-size:0.85rem;color:#666">${links.join(' &middot; ')}</footer>`;
 }
 
-function buildHtmlPage(title: string, metaDescription: string, contentHtml: string, domain: string, origin: string, canonical: string, publishPath: string, imageUrl?: string | null, lang: string = 'de', jsonLd: string = '', legal: LegalLinks = {}): string {
+function buildHtmlPage(title: string, metaDescription: string, contentHtml: string, domain: string, origin: string, canonical: string, publishPath: string, imageUrl?: string | null, lang: string = 'de', jsonLd: string = '', legal: LegalLinks = {}, extraHead: string = ''): string {
   return `<!DOCTYPE html>
 <html lang="${lang}">
 <head>
@@ -101,7 +102,7 @@ function buildHtmlPage(title: string, metaDescription: string, contentHtml: stri
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(metaDescription)}">
 <meta name="robots" content="index, follow">
-<link rel="canonical" href="${canonical}">
+<link rel="canonical" href="${canonical}">${extraHead ? `\n${extraHead}` : ''}
 <meta property="og:type" content="article">
 <meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(metaDescription)}">
@@ -301,7 +302,9 @@ async function maybeFacebookPost(website: WebsiteRow, article: ArticleRow, url: 
 }
 
 export async function publishArticle(website: WebsiteRow, article: ArticleRow, options?: PublishOptions): Promise<PublishResult> {
-  const language = options?.language || 'de';
+  // Sites with language sections (siteLayout.ts) publish each language into its own folder.
+  const layout = siteLayoutFor(website.domain);
+  const language = options?.language || (layout ? sectionLanguage(layout, null) : 'de');
 
   // Path A: network sites with a linked GitHub repo — commit directly.
   if (website.github_repo) {
@@ -309,7 +312,13 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow, o
     if (!githubToken) throw new Error('Serverkonfiguration unvollständig (GITHUB_TOKEN fehlt).');
 
     const [owner, repo] = website.github_repo.split('/');
-    const cleanPublishPath = (options?.publishPath || website.publish_path || '/blog/').replace(/^\/|\/$/g, '');
+    const section = layout ? sectionFor(layout, language) : null;
+    if (layout && isReservedSlug(layout, article.slug)) {
+      throw new Error(`Slug "${article.slug}" ist für ${website.domain} reserviert (Sprachordner).`);
+    }
+    const cleanPublishPath = section
+      ? section.path
+      : (options?.publishPath || website.publish_path || '/blog/').replace(/^\/|\/$/g, '');
 
     // Next.js projects only serve files that live under public/ (or go through the
     // Next build) — a root-level path like `news/slug/index.html` is silently dropped
@@ -337,7 +346,7 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow, o
       imageUrl: ogImageUrl,
     });
     const legal = await discoverLegalLinks(origin, language);
-    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl, cleanPublishPath, ogImageUrl, language, jsonLd, legal);
+    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl, cleanPublishPath, ogImageUrl, language, jsonLd, legal, section ? hreflangSelf(language, articleUrl) : '');
 
     // Article, news index and article sitemap go into ONE commit (04.10.2026) — before,
     // these were three commits, i.e. three Vercel builds and three GitHub mails per
@@ -345,7 +354,28 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow, o
     // (and website.id); the later publishNewsIndex/ensureDiscoverability calls then find
     // them up to date and commit nothing.
     const files = [{ path, content: html }];
-    if (options?.supabase && website.id) {
+    if (layout && options?.supabase && website.id) {
+      // Merged with the repo state, never rebuilt from the database alone. If the current
+      // index/sitemap can't be read, they are left out of this commit (the article still goes out).
+      try {
+        const layoutFiles = await buildLayoutFiles(
+          { id: website.id, domain: website.domain, github_repo: website.github_repo },
+          layout,
+          options.supabase,
+          { isNextJs, origin, token: githubToken },
+          {
+            languages: [sectionLanguage(layout, language)],
+            extra: {
+              slug: article.slug, title: article.title, meta_description: article.meta_description,
+              published_at: article.published_at || new Date().toISOString(), language,
+            },
+          },
+        );
+        files.push(...layoutFiles);
+      } catch (err) {
+        console.error(`publishArticle: merging index/sitemap failed for ${website.domain}`, err);
+      }
+    } else if (options?.supabase && website.id) {
       const site = { ...website, id: website.id };
       const ctx = { isNextJs, origin };
       const publishedAt = article.published_at || new Date().toISOString();

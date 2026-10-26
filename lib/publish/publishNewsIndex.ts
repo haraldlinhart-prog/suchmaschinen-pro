@@ -2,6 +2,7 @@ import { escapeHtml } from '@/lib/ai/generateArticle';
 import { resolveOrigin } from '@/lib/publish/origin';
 import { commitFiles } from '@/lib/publish/githubCommit';
 import { buildIndexJsonLd } from '@/lib/publish/jsonLd';
+import { siteLayoutFor, sectionLanguage, buildLayoutFiles } from '@/lib/publish/siteLayout';
 
 // Intentionally untyped (not matched structurally against the real generated Supabase
 // client) — that structural match is what caused "Type instantiation is excessively deep"
@@ -136,6 +137,23 @@ export async function publishNewsIndex(
   const rootEntries: Array<{ name: string }> = rootRes.ok ? await rootRes.json() : [];
   const isNextJs = rootEntries.some(e => /^next\.config\.(js|mjs|ts)$/.test(e.name));
   const origin = await resolveOrigin(website.domain);
+
+  // Sites with language sections: merge into the existing index of that language (or all
+  // languages when none is given) instead of regenerating it from the database.
+  const layout = siteLayoutFor(website.domain);
+  if (layout) {
+    try {
+      const files = await buildLayoutFiles(
+        { id: website.id, domain: website.domain, github_repo: website.github_repo },
+        layout, supabase, { isNextJs, origin, token: githubToken },
+        { sitemap: false, languages: options?.language ? [sectionLanguage(layout, options.language)] : undefined }
+      );
+      if (files.length) await commitFiles(owner, repo, githubToken, files, 'suchmaschinen.pro: update news index');
+    } catch (err) {
+      console.error('publishNewsIndex: failed to merge index', err);
+    }
+    return;
+  }
 
   const file = await buildNewsIndexFile(website, supabase, options, { isNextJs, origin });
   if (!file) return;
