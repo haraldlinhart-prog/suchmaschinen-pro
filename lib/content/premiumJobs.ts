@@ -59,7 +59,9 @@ export async function backlinkOlderArticles(website: WebsiteRow, newArticle: { i
   let done = 0;
   for (const t of best) {
     const { data: row } = await supabase.from('sq_articles').select('*').eq('id', t.id).single();
-    if (!row) continue;
+    // Main articles edited by hand in the repo (merged duplicates, 27.10.2026): content_html
+    // in the database is outdated, republishing it would overwrite the edited page.
+    if (!row || row.content_locked) continue;
     const updated = addRelatedLink(row.content_html, { title: newArticle.title, url: newArticle.url }, language);
     if (updated === row.content_html) continue;
     await publishArticle(website, { ...row, content_html: updated }, { ...publishOptionsFor(website, row), supabase });
@@ -85,6 +87,7 @@ export async function maybeRefreshOne(website: WebsiteRow, supabase: SupabaseLik
     .not('gsc_position', 'is', null);
   const now = Date.now();
   const candidates = (data || [])
+    .filter((a: WebsiteRow) => !a.content_locked) // edited in the repo, see backlinkOlderArticles
     .filter((a: WebsiteRow) => a.published_at && now - new Date(a.published_at).getTime() >= MIN_AGE_DAYS * 86400000)
     .filter((a: WebsiteRow) => !a.refreshed_at || now - new Date(a.refreshed_at).getTime() >= REFRESH_SAME_ARTICLE_AFTER_DAYS * 86400000)
     .map((a: WebsiteRow) => {

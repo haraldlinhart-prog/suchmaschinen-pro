@@ -1,3 +1,5 @@
+import { articleProblems } from '@/lib/content/articleQuality';
+
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const PIXABAY_API_KEY = process.env.PIXABAY_API_KEY;
 // upload-image.php accepts raw image bytes (multipart) instead of a source URL,
@@ -305,6 +307,13 @@ async function requestArticle(prompt: string): Promise<{ title: string; meta_des
     throw new Error(`incomplete article from Claude (stop_reason: ${claudeData.stop_reason}; missing: ${
       ['title', 'meta_description', 'content_html'].filter(f => !(article as Record<string, string | undefined>)?.[f]?.trim()).join(', ')
     })`);
+  }
+  // Present but unusable (27.10.2026): content_html = "<h1>Title" without any text got
+  // through the check above and was published 5 times. Same gate as publishArticle();
+  // stop_reason and length are logged so the cause can be traced next time.
+  const problems = articleProblems(article);
+  if (problems.length || claudeData.stop_reason === 'max_tokens') {
+    throw new Error(`unusable article from Claude (stop_reason: ${claudeData.stop_reason}; ${problems.join('; ') || 'truncated'}; content_html: ${article.content_html.length} chars)`);
   }
   return { title: article.title, meta_description: article.meta_description, content_html: article.content_html, image_query: article.image_query };
 }

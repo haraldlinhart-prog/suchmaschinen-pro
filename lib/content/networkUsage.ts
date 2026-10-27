@@ -13,11 +13,11 @@ export function normText(s: string | null | undefined): string {
 }
 
 export interface NetworkUsage {
-  /** Normalized keywords used by OTHER sites of the account (published or draft). */
+  /** Normalized keywords used by OTHER sites of the account (published, draft or merged). */
   otherKeywords: Set<string>;
   /** The same keywords in their original spelling, newest first (for the AI prompt). */
   otherKeywordList: string[];
-  /** All titles of the account, including this site (published or draft). */
+  /** All titles of the account, including this site (published, draft or merged). */
   titles: string[];
 }
 
@@ -26,7 +26,8 @@ export async function networkUsage(supabase: SupabaseLike, userId: string, websi
     .from('sq_articles')
     .select('keyword, title, website_id')
     .eq('user_id', userId)
-    .in('status', ['published', 'draft'])
+    // 'merged' too (27.10.2026): a merged duplicate's keyword stays covered by its main article.
+    .in('status', ['published', 'draft', 'merged'])
     .order('created_at', { ascending: false })
     .limit(5000);
   const rows = (data || []) as Array<{ keyword: string | null; title: string | null; website_id: string }>;

@@ -5,6 +5,7 @@ import { featuresFor } from '@/lib/content/planFeatures';
 import { linkTargets } from '@/lib/content/premiumJobs';
 import { relatedArticles } from '@/lib/content/internalLinks';
 import { networkUsage, titlesNear } from '@/lib/content/networkUsage';
+import { checkTopic, loadTopicLocks } from '@/lib/content/topicGuard';
 
 // This route calls the Claude API, looks up a Pixabay image, and (since the
 // video.pan21.com image mirror now downloads the Pixabay bytes itself and
@@ -46,6 +47,22 @@ export async function POST(req: NextRequest) {
           { status: 403 }
         );
       }
+    }
+
+    // Locked or near-duplicate topic (27.10.2026, lib/content/topicGuard.ts): point to the
+    // article that already covers it instead of writing a competing one.
+    const { data: siteArticles } = await supabase
+      .from('sq_articles')
+      .select('keyword')
+      .eq('website_id', websiteId)
+      .neq('status', 'rejected');
+    const verdict = checkTopic(keyword, (siteArticles || []).map(a => a.keyword).filter(Boolean), await loadTopicLocks(supabase, websiteId));
+    if (!verdict.ok) {
+      return NextResponse.json({
+        error: verdict.reason === 'lock'
+          ? `Zu „${keyword}“ gibt es bereits einen Hauptartikel (${verdict.targetUrl}). Neue Inhalte zu diesem Thema bitte dort ergänzen.`
+          : `„${keyword}“ ist zu nah an einem vorhandenen Artikel („${verdict.match}“). Bitte ein anderes Thema wählen oder den vorhandenen Artikel ausbauen.`,
+      }, { status: 409 });
     }
 
     let generated;

@@ -1,5 +1,6 @@
 export type WebsiteStatus = 'pending' | 'analyzing' | 'active' | 'paused';
-export type ArticleStatus = 'draft' | 'published';
+// merged = went into another article (merged_into), rejected = failed the quality check.
+export type ArticleStatus = 'draft' | 'published' | 'withdrawn' | 'merged' | 'rejected';
 export type HostingPlatform = 'network' | 'vercel' | 'netlify' | 'apache' | 'wordpress' | 'other';
 
 export interface Website {

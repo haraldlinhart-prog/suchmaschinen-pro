@@ -10,6 +10,8 @@ import { relatedArticles } from '@/lib/content/internalLinks';
 import { getKeywordVolumes } from '@/lib/keywords/volume';
 import { ensureDiscoverability } from '@/lib/publish/ensureDiscoverability';
 import { networkUsage, normText, titlesNear } from '@/lib/content/networkUsage';
+import { articleProblems } from '@/lib/content/articleQuality';
+import { checkTopic, loadTopicLocks, recordLockHit, type TopicVerdict } from '@/lib/content/topicGuard';
 
 export const maxDuration = 800; // Vercel Pro/Fluid Compute ceiling - was 300s, raised as the number of sites grew
 
@@ -203,7 +205,17 @@ async function processWebsite(website: AnyWebsite, supabase: ReturnType<typeof c
         .eq('status', 'draft')
         .order('created_at', { ascending: true })
         .limit(1);
-      const pendingDraft = pendingDrafts?.[0];
+      let pendingDraft = pendingDrafts?.[0];
+
+      // An empty or cut-off draft would fail in publishArticle() every day and block the
+      // site for good — take it out of the queue instead and write a new article (27.10.2026).
+      const draftProblems = pendingDraft ? articleProblems(pendingDraft) : [];
+      if (pendingDraft && draftProblems.length) {
+        await supabase.from('sq_articles').update({ status: 'rejected' }).eq('id', pendingDraft.id);
+        console.error(`Cron: draft "${pendingDraft.slug}" on ${website.domain} rejected: ${draftProblems.join('; ')}`);
+        results.push({ domain: website.domain, status: 'rejected-draft', detail: `${pendingDraft.slug}: ${draftProblems.join('; ')}` });
+        pendingDraft = undefined;
+      }
 
       if (pendingDraft) {
         const publishResult = await publishArticleAndTranslation(website, pendingDraft, supabase);
@@ -227,18 +239,35 @@ async function processWebsite(website: AnyWebsite, supabase: ReturnType<typeof c
       }
 
       // Determine which suggested keywords are still unused.
+      // Every status counts — merged duplicates too, otherwise their keywords are written
+      // again — except rejected (empty) drafts, whose topic was never covered.
       const { data: existingArticles } = await supabase
         .from('sq_articles')
         .select('keyword')
-        .eq('website_id', website.id);
+        .eq('website_id', website.id)
+        .neq('status', 'rejected');
       const usedKeywords = new Set((existingArticles || []).map(a => a.keyword));
+
+      // Same topic in other words (27.10.2026, lib/content/topicGuard.ts): keywords of a
+      // locked topic or too similar to one the site already has are skipped — new material
+      // on a locked topic belongs in its main article, so the hit is noted on the lock.
+      const topicLocks = await loadTopicLocks(supabase, website.id);
+      const siteKeywords = (existingArticles || []).map(a => a.keyword).filter(Boolean) as string[];
+      const topicBlocked = new Map<string, TopicVerdict>();
+      const topicFree = (keyword: string) => {
+        if (topicBlocked.has(keyword)) return false;
+        const verdict = checkTopic(keyword, siteKeywords, topicLocks);
+        if (!verdict.ok) topicBlocked.set(keyword, verdict);
+        return verdict.ok;
+      };
 
       // Keywords another site of the same account already covers are skipped, unless the
       // customer picked/queued them explicitly (see lib/content/networkUsage.ts).
       const network = await networkUsage(supabase, website.user_id, website.id);
       const isFree = (k: SuggestedKeyword & { source?: string }) =>
         !usedKeywords.has(k.keyword) &&
-        (k.source === 'manual' || k.source === 'search_console' || !network.otherKeywords.has(normText(k.keyword)));
+        (k.source === 'manual' || k.source === 'search_console' || !network.otherKeywords.has(normText(k.keyword))) &&
+        topicFree(k.keyword);
 
       let pool: SuggestedKeyword[] = (website.suggested_keywords || []).filter(isFree);
       let suggested: SuggestedKeyword[] = website.suggested_keywords || [];
@@ -248,7 +277,11 @@ async function processWebsite(website: AnyWebsite, supabase: ReturnType<typeof c
       const refill = async (extraAvoid: string[] = []) => {
         try {
           const { pageText, pageTitle } = await fetchSiteText(website.domain);
-          const avoid = [...(Array.from(usedKeywords) as string[]), ...extraAvoid, ...network.otherKeywordList.slice(0, 300)];
+          const avoid = [
+            ...(Array.from(usedKeywords) as string[]), ...extraAvoid,
+            ...topicLocks.flatMap(l => l.keywords), ...topicBlocked.keys(),
+            ...network.otherKeywordList.slice(0, 300),
+          ];
           const fresh = await suggestKeywords(website.domain, pageTitle, pageText, avoid, website.article_language ?? 'de');
           const merged: SuggestedKeyword[] = [
             ...suggested,
@@ -298,8 +331,14 @@ async function processWebsite(website: AnyWebsite, supabase: ReturnType<typeof c
         zeroVolume = [...zeroVolume, ...(await dropZeroVolume())];
       }
 
+      // Note the demand on the locks that blocked a keyword, and log the near-duplicates.
+      for (const [keyword, verdict] of topicBlocked) {
+        if (verdict.reason === 'lock' && verdict.lockId) await recordLockHit(supabase, verdict.lockId, keyword);
+        else console.log(`Cron: "${keyword}" skipped on ${website.domain} — too close to "${verdict.match}" (${verdict.score?.toFixed(2)})`);
+      }
+
       if (pool.length === 0) {
-        console.warn(`Cron: no worthwhile keywords for ${website.domain} (${zeroVolume.length} unused keywords without search volume)`);
+        console.warn(`Cron: no worthwhile keywords for ${website.domain} (${zeroVolume.length} unused keywords without search volume, ${topicBlocked.size} blocked as duplicate topics)`);
         results.push({ domain: website.domain, status: 'no-worthwhile-keywords' });
         return results;
       }

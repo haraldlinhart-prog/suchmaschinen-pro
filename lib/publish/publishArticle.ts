@@ -8,6 +8,7 @@ import { buildSitemapFile } from '@/lib/publish/ensureDiscoverability';
 import { buildArticleJsonLd } from '@/lib/publish/jsonLd';
 import { discoverLegalLinks, type LegalLinks } from '@/lib/publish/legalLinks';
 import { siteLayoutFor, sectionFor, sectionLanguage, isReservedSlug, hreflangSelf, buildLayoutFiles } from '@/lib/publish/siteLayout';
+import { assertPublishable } from '@/lib/content/articleQuality';
 
 interface WebsiteRow {
   id?: string;
@@ -302,6 +303,10 @@ async function maybeFacebookPost(website: WebsiteRow, article: ArticleRow, url: 
 }
 
 export async function publishArticle(website: WebsiteRow, article: ArticleRow, options?: PublishOptions): Promise<PublishResult> {
+  // Every publish path (cron, pending drafts, manual publish, translations, Premium
+  // refresh/backlinks) ends here: an article without text never goes out (27.10.2026).
+  assertPublishable(article);
+
   // Sites with language sections (siteLayout.ts) publish each language into its own folder.
   const layout = siteLayoutFor(website.domain);
   const language = options?.language || (layout ? sectionLanguage(layout, null) : 'de');
