@@ -43,9 +43,12 @@ export function articleProblems(article: { title?: string | null; content_html?:
 }
 
 export class ArticleQualityError extends Error {
-  constructor(public readonly problems: string[], slug?: string) {
+  // No parameter property: the tests run this file with Node's type stripping, which has none.
+  readonly problems: string[];
+  constructor(problems: string[], slug?: string) {
     super(`Artikel${slug ? ` "${slug}"` : ''} nicht veröffentlicht: ${problems.join('; ')}`);
     this.name = 'ArticleQualityError';
+    this.problems = problems;
   }
 }
 

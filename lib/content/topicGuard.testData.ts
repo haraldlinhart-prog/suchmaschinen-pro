@@ -174,6 +174,38 @@ export const MERGED_INTO: Record<string, string> = {
   'investitionen-afrika-mauritius-wie-die-insel-zum-strategischen-tor-fur': 'mauritius-finanzzentrum-warum-der-inselstaat-zur-ersten-adresse-fur-af',
 };
 
+/** site → topic locks as in sq_topic_locks (same data as supabase/migrations/20261028_merged_articles_data.sql). */
+export const TOPIC_LOCKS: Record<string, Array<{ topic: string; target_slug: string; keywords: string[] }>> = {
+  'companyking.de': [
+    { topic: 'Firmengründung allgemein', target_slug: 'firmengrundung-in-deutschland-der-umfassende-leitfaden-fur-angehende-u', keywords: ['firmengründung', 'firmengründung deutschland', 'firmengründung online', 'firmengründung beratung'] },
+    { topic: 'Limited gründen', target_slug: 'ltd-grunden-praxisnahe-anleitung-fur-deutsche-unternehmer', keywords: ['ltd gründen', 'uk limited gründen', 'englische limited gründen'] },
+    { topic: 'UG gründen', target_slug: 'ug-grunden-der-komplette-leitfaden-fur-ihre-unternehmergesellschaft', keywords: ['ug gründen', 'unternehmergesellschaft gründen', 'wie gründe ich eine ug', 'ug gründung'] },
+  ],
+  'kaputte-links.de': [
+    { topic: 'Automatisches Link-Monitoring', target_slug: 'link-monitoring-tool-automatische-uberwachung-fur-dauerhaft-fehlerfrei', keywords: ['link monitoring', 'link monitoring tool', 'link validierung automatisch', 'linkcheck benachrichtigung', 'linkcheck e-mail benachrichtigung', 'website pflege defekte links'] },
+    { topic: 'Kaputte/tote Links finden & prüfen', target_slug: 'defekte-links-prufen-so-finden-und-beheben-sie-kaputte-links-effizient', keywords: ['defekte links prüfen', 'tote links finden', 'kaputte links finden', 'website links testen', 'tote urls finden'] },
+    { topic: 'Link-Checker-Tool', target_slug: 'link-checker-service-professionelle-losungen-fur-fehlerfreie-websites', keywords: ['link checker', 'link checker service', 'broken link checker', 'broken link checker deutsch', 'broken links checker', 'defekte links checker kostenlos', 'linkcheck tool', 'website link checker', 'seo link checker', 'links prüfen', 'links checken', '404 checker'] },
+  ],
+  'lighthouse-mauritius.com': [
+    { topic: 'DBA', target_slug: 'mauritius-dba-deutschland-so-profitieren-sie-vom-doppelbesteuerungsabk', keywords: ['doppelbesteuerungsabkommen mauritius', 'dba mauritius deutschland', 'mauritius dba deutschland'] },
+    { topic: 'Finanzzentrum/Tor nach Afrika', target_slug: 'mauritius-finanzzentrum-warum-der-inselstaat-zur-ersten-adresse-fur-af', keywords: ['mauritius finanzzentrum', 'investitionen afrika mauritius'] },
+    { topic: 'GBC gründen/Überblick', target_slug: 'gbc-mauritius-grunden-ihr-weg-zur-global-business-company', keywords: ['gbc mauritius', 'gbc mauritius gründen', 'global business company mauritius', 'gbc gründen'] },
+    { topic: 'Unternehmenssteuern Mauritius', target_slug: 'steuern-mauritius-unternehmen-der-umfassende-leitfaden-zur-unternehmen', keywords: ['steuern mauritius', 'steuern mauritius unternehmen', 'unternehmenssteuer mauritius', 'mauritius unternehmenssteuer', 'effective tax mauritius 3%', 'gbc mauritius steuern', 'gbc steuern', 'offshore steuer mauritius', 'mauritius offshore steuer'] },
+  ],
+  'pagespeed-plus.de': [
+    { topic: 'Core Web Vitals', target_slug: 'core-web-vitals-messen-der-vollstandige-leitfaden-fur-bessere-website-', keywords: ['core web vitals', 'core web vitals messen', 'web vitals test', 'was sind core web vitals'] },
+    { topic: 'Kostenlose SEO-/Website-Analyse-Tools', target_slug: 'seo-test-kostenlos-umfassende-analyse-fur-bessere-rankings', keywords: ['seo test kostenlos', 'website analyse tool kostenlos'] },
+    { topic: 'Website-Geschwindigkeit/Ladezeit/Performance', target_slug: 'pagespeed-test-website-geschwindigkeit-messen-und-optimieren', keywords: ['pagespeed test', 'pagespeed check kostenlos', 'website geschwindigkeit testen', 'ladezeit prüfen', 'ladezeit messen', 'ladezeit website prüfen', 'ladegeschwindigkeit website messen', 'website ladezeit analyse', 'website performance messen', 'website performance analyse'] },
+  ],
+  'rentyourcompany.com': [
+    { topic: 'Geschäftsadresse/Briefkastenfirma', target_slug: 'geschaftsadresse-deutschland-geschaftlich-warum-der-richtige-standort-', keywords: ['geschäftsadresse deutschland', 'geschäftsadresse deutschland geschäftlich', 'briefkastenfirma legal', 'briefkastenfirma deutschland legal mieten'] },
+    { topic: 'GmbH/Firma mieten', target_slug: 'gmbh-mieten-der-schnelle-weg-zur-eigenen-kapitalgesellschaft', keywords: ['gmbh mieten', 'firma mieten', 'gmbh vermietung', 'firma auf zeit', 'flexible firmenlösung', 'gmbh-miete.de'] },
+    { topic: 'Kosten Nominee/Treuhand-GF', target_slug: 'nominee-director-kosten-preise-leistungen-und-versteckte-gebuhren-bei-', keywords: ['nominee director kosten', 'geschäftsführer treuhand kosten', 'geschäftsführer auf treuhandbasis kosten'] },
+    { topic: 'Treuhänder-/Nominee-Geschäftsführer', target_slug: 'treuhander-geschaftsfuhrer-wann-diese-losung-fur-ihr-unternehmen-sinnv', keywords: ['treuhänder geschäftsführer', 'gmbh ohne eigenen geschäftsführer', 'gmbh ohne eigenen geschäftsführer betreiben', 'nominee geschäftsführer'] },
+    { topic: 'Vorratsgesellschaft', target_slug: 'vorratsgesellschaft-mieten-schneller-start-in-die-selbststandigkeit', keywords: ['vorratsgesellschaft', 'vorratsgesellschaft mieten', 'vorratsgesellschaft deutschland'] },
+  ],
+};
+
 /** The pairs from the task that must be caught. */
 export const MUST_MATCH: Array<[string, string]> = [
   ['ladezeit messen', 'ladegeschwindigkeit messen'],
