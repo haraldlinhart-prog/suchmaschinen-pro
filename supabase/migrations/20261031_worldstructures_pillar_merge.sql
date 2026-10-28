@@ -18,7 +18,9 @@ update sq_articles a
 
 -- 2. Topic lock. Every keyword contains "Ausland": "gründen" and "Firma" are in many keywords of
 --    the site (GmbH/UG/Trust gründen, Offshore Gesellschaft gründen, Firmenmantel kaufen) and must
---    stay free; topicGuard.test.ts checks that no other keyword of the site falls under this lock.
+--    stay free. "Offshore Gesellschaft gründen" still scores 0.49 against "firmengründung ausland",
+--    but the merged keyword already blocks it by similarity; topicGuard.test.ts checks that the lock
+--    blocks no keyword of the site that would otherwise be free.
 insert into sq_topic_locks (website_id, topic, keywords, target_article_id, target_url, note)
 select '85e986ab-cedc-4b3c-b922-c5693fbc7141'::uuid, 'Firmengründung Ausland',
        array['firmengründung ausland', 'firmengründung im ausland', 'firma im ausland gründen', 'firma ausland gründen', 'auslandsfirma gründen'],

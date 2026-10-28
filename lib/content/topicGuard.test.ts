@@ -89,7 +89,11 @@ test('follow-up 28.10.: the redirected keywords are blocked by their new lock, n
   }
 });
 
-test('worldstructures.net 28.10.: "Firmengründung Ausland" and its variants hit the pillar lock, no other keyword of the site does', () => {
+test('worldstructures.net 28.10.: "Firmengründung Ausland" and its variants hit the pillar lock, the lock blocks no other keyword of the site', () => {
+  // "Offshore Gesellschaft gründen" scores 0.49 against "firmengründung ausland" (shared concepts
+  // firm + found). The merged keyword stays in the site's keywords, so the plain similarity check
+  // already blocks it without any lock — the lock only changes where it points. What must not
+  // happen: the lock blocking a keyword that would otherwise be free.
   for (const [site, rows] of Object.entries(PILLAR_SITE_KEYWORDS)) {
     const locks = PILLAR_LOCKS[site].map(l => ({ id: l.topic, topic: l.topic, keywords: l.keywords, target_url: l.target_url }));
     for (const [slug, keyword] of rows) {
@@ -98,8 +102,8 @@ test('worldstructures.net 28.10.: "Firmengründung Ausland" and its variants hit
       if (PILLAR_MERGED_INTO[slug]) {
         assert.equal(verdict.reason, 'lock', `${site}: "${keyword}" not blocked by the lock`);
         assert.equal(verdict.targetUrl, PILLAR_MERGED_INTO[slug]);
-      } else {
-        assert.notEqual(verdict.reason, 'lock', `${site}: "${keyword}" falls under the lock (match "${verdict.match}", score ${verdict.score})`);
+      } else if (verdict.reason === 'lock') {
+        assert.equal(checkTopic(keyword, existing, []).ok, false, `${site}: "${keyword}" is free without the lock but falls under it (match "${verdict.match}", score ${verdict.score})`);
       }
     }
     const all = rows.map(r => r[1]);
