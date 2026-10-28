@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { checkTopic, siteWeights, topicSimilarity, SIMILARITY_THRESHOLD, type TopicLock } from './topicGuard.ts';
-import { SITE_KEYWORDS, MERGED_INTO, MUST_MATCH, TOPIC_LOCKS, FOLLOWUP_SITE_KEYWORDS, FOLLOWUP_MERGED_INTO, FOLLOWUP_LOCKS, calibrationPairs } from './topicGuard.testData.ts';
+import { SITE_KEYWORDS, MERGED_INTO, MUST_MATCH, TOPIC_LOCKS, FOLLOWUP_SITE_KEYWORDS, FOLLOWUP_MERGED_INTO, FOLLOWUP_LOCKS, PILLAR_SITE_KEYWORDS, PILLAR_MERGED_INTO, PILLAR_LOCKS, calibrationPairs } from './topicGuard.testData.ts';
 
 const locksOf = (site: string): TopicLock[] =>
   (TOPIC_LOCKS[site] ?? []).map(l => ({ id: l.target_slug, topic: l.topic, keywords: l.keywords, target_url: l.target_slug }));
@@ -86,6 +86,26 @@ test('follow-up 28.10.: the redirected keywords are blocked by their new lock, n
   const delaware = FOLLOWUP_SITE_KEYWORDS['pan21.org'].map(r => r[1]);
   for (const variant of ['Delaware LLC gründen', 'LLC in Delaware gründen']) {
     assert.equal(checkTopic(variant, delaware, FOLLOWUP_LOCKS['pan21.org'].map(l => ({ id: l.target_slug, topic: l.topic, keywords: l.keywords, target_url: l.target_slug }))).reason, 'lock', variant);
+  }
+});
+
+test('worldstructures.net 28.10.: "Firmengründung Ausland" and its variants hit the pillar lock, no other keyword of the site does', () => {
+  for (const [site, rows] of Object.entries(PILLAR_SITE_KEYWORDS)) {
+    const locks = PILLAR_LOCKS[site].map(l => ({ id: l.topic, topic: l.topic, keywords: l.keywords, target_url: l.target_url }));
+    for (const [slug, keyword] of rows) {
+      const existing = rows.filter(r => r[0] !== slug).map(r => r[1]);
+      const verdict = checkTopic(keyword, existing, locks);
+      if (PILLAR_MERGED_INTO[slug]) {
+        assert.equal(verdict.reason, 'lock', `${site}: "${keyword}" not blocked by the lock`);
+        assert.equal(verdict.targetUrl, PILLAR_MERGED_INTO[slug]);
+      } else {
+        assert.notEqual(verdict.reason, 'lock', `${site}: "${keyword}" falls under the lock (match "${verdict.match}", score ${verdict.score})`);
+      }
+    }
+    const all = rows.map(r => r[1]);
+    for (const variant of ['Firma im Ausland gründen', 'Firmengründung im Ausland', 'Auslandsfirma gründen']) {
+      assert.equal(checkTopic(variant, all, locks).reason, 'lock', variant);
+    }
   }
 });
 

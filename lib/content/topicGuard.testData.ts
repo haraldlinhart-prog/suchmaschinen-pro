@@ -272,6 +272,45 @@ export const FOLLOWUP_LOCKS: Record<string, Array<{ topic: string; target_slug: 
   ],
 };
 
+/** 28.10.2026 (supabase/migrations/20261031_worldstructures_pillar_merge.sql): the blog article
+ *  "Firmengründung Ausland" on worldstructures.net went into the hand-written pillar page
+ *  /de/firma-im-ausland-gruenden (worldstructures#1), which is not an sq_articles row — the lock
+ *  points at its URL. site → [slug, keyword] of every article of the site. */
+export const PILLAR_SITE_KEYWORDS: Record<string, Array<[string, string]>> = {
+  'worldstructures.net': [
+    ['internationale-unternehmensstrukturen-aufbau-vorteile-und-strategische', 'internationale Unternehmensstrukturen'],
+    ['us-llc-grunden-der-komplette-leitfaden-fur-deutsche-unternehmer-2024', 'US LLC gründen'],
+    ['gmbh-grunden-der-vollstandige-leitfaden-fur-ihre-unternehmensgrundung-', 'GmbH gründen'],
+    ['ug-grunden-der-vollstandige-leitfaden-zur-unternehmergesellschaft', 'UG gründen'],
+    ['offshore-gesellschaft-grunden-leitfaden-fur-internationale-unternehmen', 'Offshore Gesellschaft gründen'],
+    ['trust-grunden-ihr-umfassender-leitfaden-fur-vermogensschutz-und-nachla', 'Trust gründen'],
+    ['series-llc-die-flexible-unternehmensstruktur-fur-mehrere-geschaftsbere', 'Series LLC'],
+    ['gmbh-stammkapital-hohe-was-sie-bei-der-kapitalausstattung-beachten-mus', 'GmbH Stammkapital Höhe'],
+    ['wyoming-llc-warum-dieser-bundesstaat-zur-ersten-wahl-fur-international', 'Wyoming LLC'],
+    ['ug-stammkapital-flexibler-start-in-die-selbststandigkeit-mit-minimaler', 'UG Stammkapital'],
+    ['offshore-firma-vorteile-warum-internationale-gesellschaften-fur-untern', 'Offshore Firma Vorteile'],
+    ['gmbh-haftung-wie-sie-die-beschrankte-haftung-wirksam-nutzen-und-typisc', 'GmbH Haftung'],
+    ['transparenzregister-fristen-rechtzeitige-meldung-und-aktualisierung-im', 'Transparenzregister Fristen'],
+    ['gmbh-ug-vergleich-welche-rechtsform-passt-wirklich-zu-ihrer-unternehme', 'GmbH UG Vergleich'],
+    ['asset-protection-trust-funktionsweise-vorteile-und-praktische-umsetzun', 'Asset Protection Trust'],
+    ['firmengrundung-ausland-standortwahl-steueroptimierung-und-rechtliche-r', 'Firmengründung Ausland'],
+    ['firmenmantel-kaufen-so-nutzen-sie-bestehende-gesellschaften-fur-ihren-', 'Firmenmantel kaufen'],
+  ],
+};
+
+/** Slugs merged into a pillar page → its URL. */
+export const PILLAR_MERGED_INTO: Record<string, string> = {
+  'firmengrundung-ausland-standortwahl-steueroptimierung-und-rechtliche-r': 'https://www.worldstructures.net/de/firma-im-ausland-gruenden',
+};
+
+/** Every keyword of the lock contains "Ausland": "gründen" and "Firma" are in many keywords of
+ *  the site and must not carry the lock on their own ("Offshore Gesellschaft gründen"). */
+export const PILLAR_LOCKS: Record<string, Array<{ topic: string; target_url: string; keywords: string[] }>> = {
+  'worldstructures.net': [
+    { topic: 'Firmengründung Ausland', target_url: 'https://www.worldstructures.net/de/firma-im-ausland-gruenden', keywords: ['firmengründung ausland', 'firmengründung im ausland', 'firma im ausland gründen', 'firma ausland gründen', 'auslandsfirma gründen'] },
+  ],
+};
+
 /** The pairs from the task that must be caught. */
 export const MUST_MATCH: Array<[string, string]> = [
   ['ladezeit messen', 'ladegeschwindigkeit messen'],
