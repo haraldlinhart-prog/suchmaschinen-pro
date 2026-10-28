@@ -206,6 +206,68 @@ export const TOPIC_LOCKS: Record<string, Array<{ topic: string; target_slug: str
   ],
 };
 
+/** Follow-up of 28.10.2026 (supabase/migrations/20261029_merged_articles_followup.sql): two empty
+ *  articles 301-redirected by Conny on sites with a new topic lock. site → [slug, keyword]. */
+export const FOLLOWUP_SITE_KEYWORDS: Record<string, Array<[string, string]>> = {
+  'pan-finanzvertrieb.de': [
+    ['finanz-affiliate-chancen-und-moglichkeiten-im-finanzvertrieb', 'finanz affiliate'],
+    ['affiliate-tracking-system-erfolgsmessung-im-finanzvertrieb', 'Affiliate Tracking System'],
+    ['pan21-erfahrungen-partner-chancen-und-realitat-im-finanzvertrieb', 'PAN21 Erfahrungen Partner'],
+    ['finanzvertrieb-partnerprogramm-registrierung-so-starten-sie-erfolgreic', 'Finanzvertrieb Partnerprogramm Registrierung'],
+    ['finanzvertrieb-partnerprogramm-registrierung-so-gelingt-ihr-einstieg-b', 'Finanzvertrieb Partnerprogramm Registrierung'],
+    ['werbeeinnahmen-finanzprodukte-lukrative-monetarisierungsmoglichkeiten-', 'Werbeeinnahmen Finanzprodukte'],
+    ['affiliate-ohne-eigene-website-so-starten-sie-erfolgreich-im-finanzvert', 'Affiliate ohne eigene Website'],
+    ['referral-code-system-finanzen-wie-digitale-empfehlungssysteme-den-vert', 'Referral Code System Finanzen'],
+    ['provisionsauszahlung-partnerprogramm-wie-sie-ihre-vergutung-bei-pan-pu', 'Provisionsauszahlung Partnerprogramm'],
+    ['unternehmensdienstleistungen-vermitteln-erfolgreich-als-partner-im-fin', 'Unternehmensdienstleistungen vermitteln'],
+    ['finance-affiliate-network-deutschland-warum-sie-als-partner-im-finanzv', 'Finance Affiliate Network Deutschland'],
+    ['live-statistiken-im-affiliate-programm-transparenz-und-kontrolle-fur-i', 'Live Statistiken Affiliate Programm'],
+    ['conversion-nachverfolgen-partnerprogramm-transparente-erfolgsmessung-f', 'Conversion nachverfolgen Partnerprogramm'],
+    ['firmengrundung-provision-empfehlen-so-profitieren-sie-vom-pan-empfehlu', 'Firmengründung Provision empfehlen'],
+    ['b2b-affiliate-programm-im-finanzvertrieb-strategische-partnerschaften-', 'B2B Affiliate Programm'],
+    ['klicks-zu-conversions-finanzen-so-optimieren-sie-ihre-performance-im-f', 'Klicks zu Conversions Finanzen'],
+    ['social-media-geld-verdienen-mit-finanzprodukten-praxiserprobte-strateg', 'Social Media Geld verdienen Finanzprodukte'],
+    ['cookie-tracking-30-tage-warum-diese-zeitspanne-im-finanzpartner-market', 'Cookie Tracking 30 Tage'],
+    ['wie-verdiene-ich-mit-affiliate-links-praktische-anleitung-fur-einsteig', 'wie verdiene ich mit Affiliate Links'],
+  ],
+  'pan21.org': [
+    ['offshore-company-ein-umfassender-leitfaden-zu-grundung-vorteilen-und-r', 'offshore company'],
+    ['steuerberater-netzwerk-partnerschaft-fur-wachstum-und-innovation', 'Steuerberater Netzwerk'],
+    ['unternehmensberater-netzwerk-gemeinsam-erfolgreicher-in-der-beratungsb', 'Unternehmensberater Netzwerk'],
+    ['firmengrundung-deutschland-der-komplette-leitfaden-fur-ihren-erfolgrei', 'Firmengründung Deutschland'],
+    ['llc-grunden-delaware-warum-deutsche-unternehmer-den-first-state-wahlen', 'LLC gründen Delaware'],
+    ['llc-grunden-delaware-warum-dieser-bundesstaat-fur-europaische-unterneh', 'LLC gründen Delaware'],
+    ['franchise-alternative-warum-partnersysteme-ohne-franchisevertrag-die-b', 'Franchise Alternative'],
+    ['firmengrundung-osterreich-praktische-anleitung-fur-deutsche-unternehme', 'Firmengründung Österreich'],
+    ['virtuelles-buro-deutschland-flexibilitat-und-professionalitat-fur-ihr-', 'virtuelles Büro Deutschland'],
+    ['firmengrundung-florida-warum-der-sunshine-state-fur-deutsche-unternehm', 'Firmengründung Florida'],
+    ['berater-kooperation-international-wie-strategische-partnerschaften-ihr', 'Berater Kooperation international'],
+    ['eigene-marke-im-netzwerk-warum-selbststandigkeit-und-kooperation-kein-', 'eigene Marke im Netzwerk'],
+    ['partner-werden-steuerberater-wie-sie-mit-pan21-ihre-kanzlei-strategisc', 'Partner werden Steuerberater'],
+    ['partner-werden-rechtsanwalt-wie-sie-als-jurist-mit-pan21-neue-mandante', 'Partner werden Rechtsanwalt'],
+    ['netzwerk-bewerbung-berater-so-gelingt-ihr-einstieg-in-ein-professionel', 'Netzwerk Bewerbung Berater'],
+    ['berater-netzwerk-kosten-was-die-mitgliedschaft-in-professionellen-bera', 'Berater Netzwerk Kosten'],
+    ['49-euro-monatlich-netzwerk-transparente-preismodelle-fur-professionell', '49 Euro monatlich Netzwerk'],
+    ['berater-werden-international-wie-sie-mit-pan21-ihre-expertise-weltweit', 'Berater werden international'],
+    ['wie-werde-ich-pan21-partner-ihr-weg-zur-strategischen-partnerschaft-im', 'wie werde ich PAN21 Partner'],
+    ['sheung-wan-capital-limited-hongkong-partner-strategische-asien-koopera', 'Sheung Wan Capital Limited Hongkong Partner'],
+  ],
+};
+
+export const FOLLOWUP_MERGED_INTO: Record<string, string> = {
+  'finanz-affiliate-chancen-und-moglichkeiten-im-finanzvertrieb': 'finance-affiliate-network-deutschland-warum-sie-als-partner-im-finanzv',
+  'llc-grunden-delaware-warum-dieser-bundesstaat-fur-europaische-unterneh': 'llc-grunden-delaware-warum-deutsche-unternehmer-den-first-state-wahlen',
+};
+
+export const FOLLOWUP_LOCKS: Record<string, Array<{ topic: string; target_slug: string; keywords: string[] }>> = {
+  'pan-finanzvertrieb.de': [
+    { topic: 'Finanz-Affiliate-Netzwerk', target_slug: 'finance-affiliate-network-deutschland-warum-sie-als-partner-im-finanzv', keywords: ['finanz affiliate', 'finance affiliate', 'finance affiliate network', 'finance affiliate network deutschland', 'finanz affiliate netzwerk'] },
+  ],
+  'pan21.org': [
+    { topic: 'LLC Delaware gründen', target_slug: 'llc-grunden-delaware-warum-deutsche-unternehmer-den-first-state-wahlen', keywords: ['llc gründen delaware', 'llc delaware gründen', 'delaware llc gründen', 'delaware llc'] },
+  ],
+};
+
 /** The pairs from the task that must be caught. */
 export const MUST_MATCH: Array<[string, string]> = [
   ['ladezeit messen', 'ladegeschwindigkeit messen'],
