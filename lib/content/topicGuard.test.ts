@@ -67,6 +67,8 @@ test('calibration at SIMILARITY_THRESHOLD: at least 39 of 47 merged pairs, at mo
 });
 
 test('follow-up 28.10.: the redirected keywords are blocked by their new lock, no other keyword of the site is', () => {
+  // pan-finanzvertrieb.de has two groups (Finanz-Affiliate-Netzwerk, Partnerprogramm-Registrierung):
+  // each member must hit the lock of its own main article.
   for (const [site, rows] of Object.entries(FOLLOWUP_SITE_KEYWORDS)) {
     const locks = FOLLOWUP_LOCKS[site].map(l => ({ id: l.target_slug, topic: l.topic, keywords: l.keywords, target_url: l.target_slug }));
     const group = new Set(Object.entries(FOLLOWUP_MERGED_INTO).flatMap(([slug, main]) => rows.some(r => r[0] === slug) ? [slug, main] : []));

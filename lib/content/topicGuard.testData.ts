@@ -206,8 +206,9 @@ export const TOPIC_LOCKS: Record<string, Array<{ topic: string; target_slug: str
   ],
 };
 
-/** Follow-up of 28.10.2026 (supabase/migrations/20261029_merged_articles_followup.sql): two empty
- *  articles 301-redirected by Conny on sites with a new topic lock. site → [slug, keyword]. */
+/** Follow-up of 28.10.2026 (supabase/migrations/20261029_merged_articles_followup.sql and
+ *  20261030_partnerprogramm_dublette.sql): articles 301-redirected by Conny on sites with a new
+ *  topic lock. site → [slug, keyword]. */
 export const FOLLOWUP_SITE_KEYWORDS: Record<string, Array<[string, string]>> = {
   'pan-finanzvertrieb.de': [
     ['finanz-affiliate-chancen-und-moglichkeiten-im-finanzvertrieb', 'finanz affiliate'],
@@ -257,11 +258,14 @@ export const FOLLOWUP_SITE_KEYWORDS: Record<string, Array<[string, string]>> = {
 export const FOLLOWUP_MERGED_INTO: Record<string, string> = {
   'finanz-affiliate-chancen-und-moglichkeiten-im-finanzvertrieb': 'finance-affiliate-network-deutschland-warum-sie-als-partner-im-finanzv',
   'llc-grunden-delaware-warum-dieser-bundesstaat-fur-europaische-unterneh': 'llc-grunden-delaware-warum-deutsche-unternehmer-den-first-state-wahlen',
+  // 20261030_partnerprogramm_dublette.sql: the same keyword published twice on 06.10.2026.
+  'finanzvertrieb-partnerprogramm-registrierung-so-gelingt-ihr-einstieg-b': 'finanzvertrieb-partnerprogramm-registrierung-so-starten-sie-erfolgreic',
 };
 
 export const FOLLOWUP_LOCKS: Record<string, Array<{ topic: string; target_slug: string; keywords: string[] }>> = {
   'pan-finanzvertrieb.de': [
     { topic: 'Finanz-Affiliate-Netzwerk', target_slug: 'finance-affiliate-network-deutschland-warum-sie-als-partner-im-finanzv', keywords: ['finanz affiliate', 'finance affiliate', 'finance affiliate network', 'finance affiliate network deutschland', 'finanz affiliate netzwerk'] },
+    { topic: 'Partnerprogramm-Registrierung', target_slug: 'finanzvertrieb-partnerprogramm-registrierung-so-starten-sie-erfolgreic', keywords: ['finanzvertrieb partnerprogramm registrierung', 'partnerprogramm registrierung', 'finanzvertrieb partnerprogramm anmelden'] },
   ],
   'pan21.org': [
     { topic: 'LLC Delaware gründen', target_slug: 'llc-grunden-delaware-warum-deutsche-unternehmer-den-first-state-wahlen', keywords: ['llc gründen delaware', 'llc delaware gründen', 'delaware llc gründen', 'delaware llc'] },
