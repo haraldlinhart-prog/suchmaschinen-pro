@@ -1,6 +1,7 @@
 import { publishArticle } from '@/lib/publish/publishArticle';
 import { relatedArticles, addRelatedLink, type LinkTarget } from '@/lib/content/internalLinks';
 import { refreshArticleContent } from '@/lib/content/refreshArticle';
+import { ArticleQualityError } from '@/lib/content/articleQuality';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseLike = any;
@@ -21,6 +22,7 @@ function publishOptionsFor(website: WebsiteRow, row: { language?: string | null 
 const REFRESH_EVERY_DAYS_PER_SITE = 3;
 const REFRESH_SAME_ARTICLE_AFTER_DAYS = 60;
 const MIN_AGE_DAYS = 28;
+const MAX_REFRESH_TRIES = 3;
 
 /** Republishing only makes sense where we own the URL: GitHub repos and hosted pages. */
 export function canRepublish(website: WebsiteRow): boolean {
@@ -59,10 +61,20 @@ export async function backlinkOlderArticles(website: WebsiteRow, newArticle: { i
   let done = 0;
   for (const t of best) {
     const { data: row } = await supabase.from('sq_articles').select('*').eq('id', t.id).single();
-    if (!row) continue;
+    // Main articles edited by hand in the repo (merged duplicates, 27.10.2026): content_html
+    // in the database is outdated, republishing it would overwrite the edited page.
+    if (!row || row.content_locked) continue;
     const updated = addRelatedLink(row.content_html, { title: newArticle.title, url: newArticle.url }, language);
     if (updated === row.content_html) continue;
-    await publishArticle(website, { ...row, content_html: updated }, { ...publishOptionsFor(website, row), supabase });
+    try {
+      await publishArticle(website, { ...row, content_html: updated }, { ...publishOptionsFor(website, row), supabase });
+    } catch (e) {
+      // An older article that fails the publish gate (e.g. one of the empty ones still live)
+      // must not stop the backlinks for the others or the cron run.
+      if (!(e instanceof ArticleQualityError)) throw e;
+      console.error(`backlinkOlderArticles: ${website.domain} ${row.slug} skipped – ${e.problems.join('; ')}`);
+      continue;
+    }
     await supabase.from('sq_articles').update({ content_html: updated }).eq('id', row.id);
     done++;
   }
@@ -85,6 +97,7 @@ export async function maybeRefreshOne(website: WebsiteRow, supabase: SupabaseLik
     .not('gsc_position', 'is', null);
   const now = Date.now();
   const candidates = (data || [])
+    .filter((a: WebsiteRow) => !a.content_locked) // edited in the repo, see backlinkOlderArticles
     .filter((a: WebsiteRow) => a.published_at && now - new Date(a.published_at).getTime() >= MIN_AGE_DAYS * 86400000)
     .filter((a: WebsiteRow) => !a.refreshed_at || now - new Date(a.refreshed_at).getTime() >= REFRESH_SAME_ARTICLE_AFTER_DAYS * 86400000)
     .map((a: WebsiteRow) => {
@@ -97,9 +110,20 @@ export async function maybeRefreshOne(website: WebsiteRow, supabase: SupabaseLik
     .filter((c: { dropped: boolean; stalling: boolean }) => c.dropped || c.stalling)
     .sort((x: { potential: number }, y: { potential: number }) => y.potential - x.potential);
 
-  const pick = candidates[0];
-  if (!pick) return null;
+  // A refresh that fails the publish gate is logged and the next candidate tried, so one
+  // bad article does not stop the run (at most MAX_REFRESH_TRIES content generations).
+  for (const pick of candidates.slice(0, MAX_REFRESH_TRIES)) {
+    try {
+      return await refreshOne(website, pick, supabase);
+    } catch (e) {
+      if (!(e instanceof ArticleQualityError)) throw e;
+      console.error(`maybeRefreshOne: ${website.domain} ${pick.a.slug} skipped – ${e.problems.join('; ')}`);
+    }
+  }
+  return null;
+}
 
+async function refreshOne(website: WebsiteRow, pick: { a: WebsiteRow; pos: number; best: number | null; dropped: boolean }, supabase: SupabaseLike): Promise<string> {
   const targets = await linkTargets(website, supabase, pick.a.id, rowLanguage(website, pick.a));
   const related = relatedArticles(pick.a.keyword, pick.a.title, targets, 3).map(t => ({ title: t.title, url: t.url }));
   const revised = await refreshArticleContent({
