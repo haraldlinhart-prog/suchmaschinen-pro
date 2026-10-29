@@ -1,3 +1,4 @@
+import { isNextJsRepo } from '@/lib/publish/nextJsDetect';
 import { getScAccessToken } from '@/lib/google/scToken';
 import { resolveOrigin } from '@/lib/publish/origin';
 import { submitSitemap } from '@/lib/google/searchconsole';
@@ -216,7 +217,7 @@ export async function ensureDiscoverability(website: WebsiteLike, supabase: Supa
   const [owner, repo] = website.github_repo.split('/');
   const publishPath = (website.publish_path || '/blog/').replace(/^\/|\/$/g, '');
   const root = await api.list(owner, repo);
-  const isNextJs = root.some(e => /^next\.config\.(js|mjs|ts)$/.test(e.name));
+  const isNextJs = isNextJsRepo(root, website.domain);
   const staticPrefix = isNextJs ? 'public/' : '';
   const origin = await resolveOrigin(website.domain);
   const sitemapUrl = `${origin}/sitemap-blog.xml`;
@@ -304,7 +305,7 @@ async function ensureLayoutDiscoverability(
   const api = gh(token);
   const [owner, repo] = (website.github_repo as string).split('/');
   const root = await api.list(owner, repo);
-  const isNextJs = root.some(e => /^next\.config\.(js|mjs|ts)$/.test(e.name));
+  const isNextJs = isNextJsRepo(root, website.domain);
   const staticPrefix = isNextJs ? 'public/' : '';
   const origin = await resolveOrigin(website.domain);
   const sections = Object.values(layout.sections);
