@@ -19,7 +19,7 @@ export async function GET() {
   const service = createServiceClient();
   const { data: websites } = await service
     .from('sq_websites')
-    .select('id, user_id, domain, github_repo, publish_path')
+    .select('id, user_id, domain, github_repo, publish_path, article_language, secondary_language, secondary_publish_path')
     .not('github_repo', 'is', null);
 
   const results: Array<DiscoverabilityResult | { domain: string; error: string }> = [];

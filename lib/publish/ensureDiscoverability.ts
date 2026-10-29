@@ -4,6 +4,10 @@ import { resolveOrigin } from '@/lib/publish/origin';
 import { submitSitemap } from '@/lib/google/searchconsole';
 import { commitFiles } from '@/lib/publish/githubCommit';
 import { siteLayoutFor, buildLayoutFiles, type SiteLayout } from '@/lib/publish/siteLayout';
+import {
+  blogLabel, buildSections, buildComponentSource, insertNavComponent, navLinksToBlog,
+  rankNavCandidates, relativeImport, COMPONENT_NAME, type NavSection,
+} from '@/lib/publish/navLink';
 
 // Publishing an article into a repo is not enough: if nothing links to it and no sitemap
 // lists it, neither visitors nor Google ever find it (firmenabwicklung.de, chat 26.09.26 —
@@ -20,6 +24,7 @@ interface WebsiteLike {
   domain: string;
   github_repo: string | null;
   publish_path: string;
+  article_language?: string | null;
   secondary_language?: string | null;
   secondary_publish_path?: string | null;
 }
@@ -28,13 +33,14 @@ export interface DiscoverabilityResult {
   domain: string;
   sitemap: 'created' | 'updated' | 'unchanged' | 'skipped';
   robots: 'created' | 'updated' | 'unchanged' | 'dynamic' | 'skipped';
-  link: 'inserted' | 'present' | 'manual-nextjs' | 'no-homepage' | 'skipped';
+  link: 'inserted' | 'present' | 'manual-nextjs' | 'no-homepage' | 'no-index' | 'skipped';
+  /** Static bilingual sites: result for the secondary-language homepage. */
+  secondaryLink?: 'inserted' | 'present' | 'no-homepage';
   gsc?: 'submitted' | 'error' | 'not-connected';
   detail?: string;
 }
 
 const LINK_MARKER = '<!-- suchmaschinen.pro:blog-link -->';
-const LINK_LABEL = 'Ratgeber';
 
 function gh(token: string) {
   const headers = { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' };
@@ -139,8 +145,9 @@ export function homepageLinksToBlog(html: string, publishPath: string): boolean 
 
 // Inserts a single crawlable link to the article index. Prefers the main navigation
 // (so visitors see it), falls back to the footer, then to just before </body>.
-export function insertBlogLink(html: string, publishPath: string): string {
+export function insertBlogLink(html: string, publishPath: string, label = 'Ratgeber'): string {
   const href = `/${publishPath}/`;
+  const LINK_LABEL = label;
   const navMatch = html.match(/<nav\b[^>]*>[\s\S]*?<\/nav>/i);
   if (navMatch && navMatch.index !== undefined) {
     const nav = navMatch[0];
@@ -179,7 +186,7 @@ export function insertBlogLink(html: string, publishPath: string): string {
     if (newNav) return html.slice(0, navMatch.index) + newNav + html.slice(navMatch.index + nav.length);
   }
 
-  const standalone = `${LINK_MARKER}<p style="text-align:center;margin:1rem 0;font-size:.9rem"><a href="${href}" style="color:inherit">${LINK_LABEL} &amp; Artikel</a></p>\n`;
+  const standalone = `${LINK_MARKER}<p style="text-align:center;margin:1rem 0;font-size:.9rem"><a href="${href}" style="color:inherit">${LINK_LABEL}</a></p>\n`;
   const footerEnd = html.search(/<\/footer>/i);
   if (footerEnd !== -1) return html.slice(0, footerEnd) + standalone + html.slice(footerEnd);
   const bodyEnd = html.search(/<\/body>/i);
@@ -263,24 +270,19 @@ export async function ensureDiscoverability(website: WebsiteLike, supabase: Supa
     }
   }
 
-  // 3. A crawlable link from the homepage to the article index.
+  // 3. A menu link to the article index, in every language the site publishes in.
+  const entries = [{ lang: website.article_language || 'de', path: publishPath }];
+  if (website.secondary_language && website.secondary_publish_path) {
+    entries.push({ lang: website.secondary_language, path: cleanPath(website.secondary_publish_path) });
+  }
+  const sections = buildSections(entries);
   if (isNextJs) {
-    // JSX navigation can't be edited safely by string insertion; flagged for manual work.
-    result.link = 'manual-nextjs';
+    result.link = await ensureNextJsNavLink(token, owner, repo, sections);
   } else {
-    const home = await api.get(owner, repo, 'index.html');
-    if (!home) {
-      result.link = 'no-homepage';
-    } else if (homepageLinksToBlog(home.content, publishPath)) {
-      result.link = 'present';
-    } else {
-      const updated = insertBlogLink(home.content, publishPath);
-      if (updated !== home.content) {
-        await api.put(owner, repo, 'index.html', updated, 'suchmaschinen.pro: link article index from homepage', home.sha);
-        result.link = 'inserted';
-      } else {
-        result.link = 'no-homepage';
-      }
+    result.link = await ensureStaticHomeLink(api, owner, repo, 'index.html', publishPath, blogLabel(entries[0].lang));
+    const sec = sections[1];
+    if (sec?.prefix) {
+      result.secondaryLink = await ensureStaticHomeLink(api, owner, repo, `${sec.prefix}/index.html`, cleanPath(sec.href), sec.label);
     }
   }
 
@@ -350,23 +352,87 @@ async function ensureLayoutDiscoverability(
   // 3. Homepage link to the default language's article index.
   const publishPath = layout.sections[layout.defaultLanguage].path;
   if (isNextJs) {
-    result.link = 'manual-nextjs';
+    const navSections = buildSections(
+      [layout.defaultLanguage, ...Object.keys(layout.sections).filter(l => l !== layout.defaultLanguage)]
+        .map(l => ({ lang: l, path: layout.sections[l].path }))
+    );
+    result.link = await ensureNextJsNavLink(token, owner, repo, navSections);
   } else {
-    const home = await api.get(owner, repo, 'index.html');
-    if (!home) result.link = 'no-homepage';
-    else if (homepageLinksToBlog(home.content, publishPath)) result.link = 'present';
-    else {
-      const updated = insertBlogLink(home.content, publishPath);
-      if (updated !== home.content) {
-        await api.put(owner, repo, 'index.html', updated, 'suchmaschinen.pro: link article index from homepage', home.sha);
-        result.link = 'inserted';
-      } else {
-        result.link = 'no-homepage';
-      }
-    }
+    result.link = await ensureStaticHomeLink(api, owner, repo, 'index.html', publishPath, blogLabel(layout.defaultLanguage));
   }
 
   // 4. Submit newly created sitemaps once.
   for (const sec of created) result.gsc = await submitToSearchConsole(website.domain, `${origin}/${sec.sitemap}`, website.user_id);
   return result;
 }
+
+async function ensureStaticHomeLink(
+  api: ReturnType<typeof gh>, owner: string, repo: string, file: string, publishPath: string, label: string
+): Promise<'inserted' | 'present' | 'no-homepage'> {
+  const home = await api.get(owner, repo, file);
+  if (!home) return 'no-homepage';
+  if (homepageLinksToBlog(home.content, publishPath)) return 'present';
+  const updated = insertBlogLink(home.content, publishPath, label);
+  if (updated === home.content) return 'no-homepage';
+  await api.put(owner, repo, file, updated, 'suchmaschinen.pro: link article index from homepage', home.sha);
+  return 'inserted';
+}
+
+/**
+ * Next.js: menu link via a generated client component (see navLink.ts). Only sections whose
+ * index page already exists are linked, so a second language shows up once it has articles.
+ */
+async function ensureNextJsNavLink(
+  token: string, owner: string, repo: string, sections: NavSection[]
+): Promise<'inserted' | 'present' | 'manual-nextjs' | 'no-index'> {
+  const headers = { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' };
+  const base = `https://api.github.com/repos/${owner}/${repo}`;
+  const info = await fetch(base, { headers });
+  if (!info.ok) return 'manual-nextjs';
+  const branch: string = (await info.json()).default_branch || 'main';
+  const treeRes = await fetch(`${base}/git/trees/${branch}?recursive=1`, { headers });
+  if (!treeRes.ok) return 'manual-nextjs';
+  const paths: string[] = ((await treeRes.json()).tree || [])
+    .filter((e: { type: string }) => e.type === 'blob')
+    .map((e: { path: string }) => e.path);
+  const have = new Set(paths);
+
+  const live = sections.filter(s => have.has(`public/${s.href.replace(/^\/+|\/+$/g, '')}/index.html`));
+  if (live.length === 0) return 'no-index';
+  const primaryPath = live[0].href;
+
+  const read = async (path: string): Promise<string | null> => {
+    const res = await fetch(`${base}/contents/${path}?ref=${branch}`, { headers });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.content === 'string' ? Buffer.from(data.content, 'base64').toString('utf-8') : null;
+  };
+
+  const existingComponent = paths.find(p => new RegExp(`(^|/)${COMPONENT_NAME}\\.(tsx|jsx)$`).test(p));
+  for (const candidate of rankNavCandidates(paths).slice(0, 15)) {
+    const src = await read(candidate);
+    if (!src || !/<nav\b/.test(src)) continue;
+    const navBlock = src.slice(src.search(/<nav\b/), src.indexOf('</nav>', src.search(/<nav\b/)) + 6);
+
+    if (navBlock.includes(COMPONENT_NAME)) {
+      // Already wired up: keep the component's language sections current.
+      const compPath = existingComponent ?? candidate.replace(/[^/]+$/, `${COMPONENT_NAME}.${candidate.endsWith('.jsx') ? 'jsx' : 'tsx'}`);
+      await commitFiles(owner, repo, token, [{ path: compPath, content: buildComponentSource(live, compPath.endsWith('.tsx')) }],
+        'suchmaschinen.pro: update blog menu link');
+      return 'present';
+    }
+    if (live.some(s => navLinksToBlog(navBlock, s.href))) return 'present';
+
+    const ts = candidate.endsWith('.tsx');
+    const compPath = existingComponent ?? candidate.replace(/[^/]+$/, `${COMPONENT_NAME}.${ts ? 'tsx' : 'jsx'}`);
+    const inserted = insertNavComponent(src, primaryPath, relativeImport(candidate, compPath));
+    if (!inserted.ok) return inserted.reason === 'present' ? 'present' : 'manual-nextjs';
+    await commitFiles(owner, repo, token, [
+      { path: compPath, content: buildComponentSource(live, compPath.endsWith('.tsx')) },
+      { path: candidate, content: inserted.source },
+    ], 'suchmaschinen.pro: add blog link to the site menu');
+    return 'inserted';
+  }
+  return 'manual-nextjs';
+}
+
