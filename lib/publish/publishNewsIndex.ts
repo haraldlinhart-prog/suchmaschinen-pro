@@ -1,3 +1,4 @@
+import { isNextJsRepo } from '@/lib/publish/nextJsDetect';
 import { escapeHtml } from '@/lib/ai/generateArticle';
 import { resolveOrigin } from '@/lib/publish/origin';
 import { commitFiles } from '@/lib/publish/githubCommit';
@@ -135,7 +136,7 @@ export async function publishNewsIndex(
     headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github+json' },
   });
   const rootEntries: Array<{ name: string }> = rootRes.ok ? await rootRes.json() : [];
-  const isNextJs = rootEntries.some(e => /^next\.config\.(js|mjs|ts)$/.test(e.name));
+  const isNextJs = isNextJsRepo(rootEntries, website.domain);
   const origin = await resolveOrigin(website.domain);
 
   // Sites with language sections: merge into the existing index of that language (or all

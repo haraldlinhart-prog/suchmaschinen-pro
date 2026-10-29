@@ -1,3 +1,4 @@
+import { isNextJsRepo } from '@/lib/publish/nextJsDetect';
 import { escapeHtml } from '@/lib/ai/generateArticle';
 import { resolveOrigin } from '@/lib/publish/origin';
 import { postToFacebook } from '@/lib/publish/postToFacebook';
@@ -68,17 +69,17 @@ export interface PublishResult {
   githubPath?: string;
 }
 
-async function repoIsNextJs(owner: string, repo: string, githubToken: string): Promise<boolean> {
+async function repoIsNextJs(owner: string, repo: string, githubToken: string, domain?: string | null): Promise<boolean> {
   try {
     const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/`, {
       headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github+json' },
     });
     if (!res.ok) return false;
     const entries: Array<{ name: string; type: string }> = await res.json();
-    return entries.some(e => /^next\.config\.(js|mjs|ts)$/.test(e.name));
+    return isNextJsRepo(entries, domain);
   } catch (err) {
     console.error('repoIsNextJs detection failed, defaulting to static-HTML layout:', err);
-    return false;
+    return isNextJsRepo([], domain);
   }
 }
 
@@ -329,7 +330,7 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow, o
     // Next build) — a root-level path like `news/slug/index.html` is silently dropped
     // and 404s. Plain static-HTML network sites serve any root-level file directly.
     // Detect which kind of repo this is before deciding where to commit.
-    const isNextJs = await repoIsNextJs(owner, repo, githubToken);
+    const isNextJs = await repoIsNextJs(owner, repo, githubToken, website.domain);
     const publishPrefix = isNextJs ? `public/${cleanPublishPath}` : cleanPublishPath;
     const path = `${publishPrefix}/${article.slug}/index.html`;
     const origin = await resolveOrigin(website.domain);
