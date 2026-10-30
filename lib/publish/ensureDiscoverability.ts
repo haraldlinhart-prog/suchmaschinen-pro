@@ -1,4 +1,4 @@
-import { isNextJsRepo } from '@/lib/publish/nextJsDetect';
+import { isNextJsRepo, usesPublicDir } from '@/lib/publish/nextJsDetect';
 import { getScAccessToken } from '@/lib/google/scToken';
 import { resolveOrigin } from '@/lib/publish/origin';
 import { submitSitemap } from '@/lib/google/searchconsole';
@@ -225,7 +225,8 @@ export async function ensureDiscoverability(website: WebsiteLike, supabase: Supa
   const publishPath = (website.publish_path || '/blog/').replace(/^\/|\/$/g, '');
   const root = await api.list(owner, repo);
   const isNextJs = isNextJsRepo(root, website.domain);
-  const staticPrefix = isNextJs ? 'public/' : '';
+  const publicDir = usesPublicDir(root, website.domain);
+  const staticPrefix = publicDir ? 'public/' : '';
   const origin = await resolveOrigin(website.domain);
   const sitemapUrl = `${origin}/sitemap-blog.xml`;
 
@@ -308,7 +309,8 @@ async function ensureLayoutDiscoverability(
   const [owner, repo] = (website.github_repo as string).split('/');
   const root = await api.list(owner, repo);
   const isNextJs = isNextJsRepo(root, website.domain);
-  const staticPrefix = isNextJs ? 'public/' : '';
+  const publicDir = usesPublicDir(root, website.domain);
+  const staticPrefix = publicDir ? 'public/' : '';
   const origin = await resolveOrigin(website.domain);
   const sections = Object.values(layout.sections);
 
@@ -317,7 +319,7 @@ async function ensureLayoutDiscoverability(
   for (const sec of sections) existed.set(sec.sitemap, await api.exists(owner, repo, `${staticPrefix}${sec.sitemap}`));
   const files = await buildLayoutFiles(
     { id: website.id, domain: website.domain, github_repo: website.github_repo as string },
-    layout, supabase, { isNextJs, origin, token }, { index: false }
+    layout, supabase, { isNextJs: publicDir, origin, token }, { index: false }
   );
   const commit = await commitFiles(owner, repo, token, files, 'suchmaschinen.pro: update article sitemap');
   const created = sections.filter(sec => !existed.get(sec.sitemap) && commit.changedPaths.includes(`${staticPrefix}${sec.sitemap}`));

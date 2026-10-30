@@ -14,3 +14,14 @@ export function isNextJsRepo(rootEntries: Array<{ name: string }>, domain: strin
   if (FORCE_NEXTJS_DOMAINS.has(normDomain(domain))) return true;
   return rootEntries.some(e => /^next\.config\.(js|mjs|ts)$/.test(e.name));
 }
+
+// Nicht-Next.js-Repos, deren Build statische Dateien ebenfalls nur aus public/ ausliefert
+// (z. B. escort-angels.com: TanStack Start/Vite + Nitro auf Coolify). Artikel, sitemap-blog.xml
+// und robots.txt landeten dort im Root und lieferten 404 (30.10.2026). Nur der Ausgabepfad
+// wechselt nach public/; Next.js-spezifische Schritte (Nav-Link in TSX, app/robots.ts) nicht.
+const FORCE_PUBLIC_DIR_DOMAINS = new Set<string>(['escort-angels.com']);
+
+/** true, wenn statische Dateien (Artikel, Index, Sitemap, robots.txt) unter public/ gehören. */
+export function usesPublicDir(rootEntries: Array<{ name: string }>, domain: string | null | undefined): boolean {
+  return FORCE_PUBLIC_DIR_DOMAINS.has(normDomain(domain)) || isNextJsRepo(rootEntries, domain);
+}

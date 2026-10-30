@@ -1,4 +1,4 @@
-import { isNextJsRepo } from '@/lib/publish/nextJsDetect';
+import { usesPublicDir } from '@/lib/publish/nextJsDetect';
 import { escapeHtml } from '@/lib/ai/generateArticle';
 import { resolveOrigin } from '@/lib/publish/origin';
 import { postToFacebook } from '@/lib/publish/postToFacebook';
@@ -76,10 +76,10 @@ async function repoIsNextJs(owner: string, repo: string, githubToken: string, do
     });
     if (!res.ok) return false;
     const entries: Array<{ name: string; type: string }> = await res.json();
-    return isNextJsRepo(entries, domain);
+    return usesPublicDir(entries, domain);
   } catch (err) {
     console.error('repoIsNextJs detection failed, defaulting to static-HTML layout:', err);
-    return isNextJsRepo([], domain);
+    return usesPublicDir([], domain);
   }
 }
 
