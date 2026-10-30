@@ -1,4 +1,4 @@
-import { isNextJsRepo } from '@/lib/publish/nextJsDetect';
+import { usesPublicDir } from '@/lib/publish/nextJsDetect';
 import { escapeHtml } from '@/lib/ai/generateArticle';
 import { resolveOrigin } from '@/lib/publish/origin';
 import { commitFiles } from '@/lib/publish/githubCommit';
@@ -136,7 +136,7 @@ export async function publishNewsIndex(
     headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github+json' },
   });
   const rootEntries: Array<{ name: string }> = rootRes.ok ? await rootRes.json() : [];
-  const isNextJs = isNextJsRepo(rootEntries, website.domain);
+  const isNextJs = usesPublicDir(rootEntries, website.domain); // = Ausgabe unter public/
   const origin = await resolveOrigin(website.domain);
 
   // Sites with language sections: merge into the existing index of that language (or all
