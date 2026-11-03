@@ -80,7 +80,7 @@ export interface PublishNewsIndexOptions {
   includeLegacyNullLanguage?: boolean;
 }
 
-type IndexWebsite = { id: string; domain: string; github_repo: string | null; publish_path: string };
+type IndexWebsite = { id: string; domain: string; github_repo: string | null; publish_path: string; secondary_language?: string | null };
 
 /**
  * Builds the index file (path relative to the repo root + HTML) without writing it.

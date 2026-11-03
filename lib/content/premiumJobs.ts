@@ -1,3 +1,4 @@
+import { domainForLanguage } from '@/lib/publish/origin';
 import { publishArticle } from '@/lib/publish/publishArticle';
 import { relatedArticles, addRelatedLink, type LinkTarget } from '@/lib/content/internalLinks';
 import { refreshArticleContent } from '@/lib/content/refreshArticle';
@@ -127,7 +128,7 @@ async function refreshOne(website: WebsiteRow, pick: { a: WebsiteRow; pos: numbe
   const targets = await linkTargets(website, supabase, pick.a.id, rowLanguage(website, pick.a));
   const related = relatedArticles(pick.a.keyword, pick.a.title, targets, 3).map(t => ({ title: t.title, url: t.url }));
   const revised = await refreshArticleContent({
-    domain: website.domain,
+    domain: domainForLanguage(website, rowLanguage(website, pick.a)),
     notes: website.notes,
     keyword: pick.a.keyword,
     title: pick.a.title,
