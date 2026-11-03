@@ -2,6 +2,8 @@
 // Same URL and slug; content is revised, updated and extended — Google treats it as
 // an improved page, not a new one.
 
+import { CONTENT_RULES } from '@/lib/content/contentRules';
+
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 export interface RefreshInput {
@@ -29,8 +31,10 @@ export async function refreshArticleContent(input: RefreshInput): Promise<{ titl
 
   const prompt = `You are an expert German-language SEO editor. Improve the existing article below for the website ${input.domain}${input.notes ? ` (context: ${input.notes})` : ''}, targeting the search term "${input.keyword}". ${situation}
 
+${CONTENT_RULES}
+
 Revise it so it answers the searcher's question better than competing pages:
-- Keep the topic, the H1 meaning and everything that is correct; fix anything outdated and bring facts, figures and legal references up to date (current year 2026)
+- Keep the topic, the H1 meaning and everything that is correct; fix anything outdated (current year 2026), and remove figures, sources or legal references in the existing text that break the rules below
 - Add missing sub-questions searchers typically have, concrete examples, and a short FAQ section (3–5 questions as H2 "Häufige Fragen" with H3 questions)
 - Put a direct 2–3 sentence answer to the main question right after the H1
 - 900–1400 words in total, no filler, no keyword stuffing
