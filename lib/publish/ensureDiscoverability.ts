@@ -1,6 +1,6 @@
 import { isNextJsRepo } from '@/lib/publish/nextJsDetect';
 import { getScAccessToken } from '@/lib/google/scToken';
-import { resolveOrigin } from '@/lib/publish/origin';
+import { resolveOrigin, secondaryDomainFor } from '@/lib/publish/origin';
 import { submitSitemap } from '@/lib/google/searchconsole';
 import { commitFiles } from '@/lib/publish/githubCommit';
 import { siteLayoutFor, buildLayoutFiles, type SiteLayout } from '@/lib/publish/siteLayout';
@@ -96,15 +96,33 @@ function articlePath(website: WebsiteLike, a: SitemapArticle): string {
     : cleanPath(website.publish_path);
 }
 
-function buildSitemap(origin: string, website: WebsiteLike, articles: SitemapArticle[]): string {
+// Sites with a secondary-language domain list that language's URLs under it. The file is
+// served on both domains and robots.txt names it on both, which makes the cross-domain
+// entries valid. `secondaryOrigin` defaults to `origin` for every other site.
+export function buildSitemap(origin: string, website: WebsiteLike, articles: SitemapArticle[], secondaryOrigin: string = origin): string {
   const publishPath = cleanPath(website.publish_path);
   const newest = articles.map(a => a.published_at).filter(Boolean).sort().pop();
   const entry = (loc: string, lastmod: string | null | undefined, priority: string) =>
     `  <url>\n    <loc>${xmlEscape(loc)}</loc>\n${lastmod ? `    <lastmod>${lastmod.slice(0, 10)}</lastmod>\n` : ''}    <priority>${priority}</priority>\n  </url>\n`;
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
   xml += entry(`${origin}/${publishPath}/`, newest, '0.8');
-  for (const a of articles) xml += entry(`${origin}/${articlePath(website, a)}/${a.slug}/`, a.published_at, '0.7');
+  if (secondaryOrigin !== origin && website.secondary_publish_path) {
+    xml += entry(`${secondaryOrigin}/${cleanPath(website.secondary_publish_path)}/`, newest, '0.8');
+  }
+  for (const a of articles) {
+    const base = a.language === website.secondary_language ? secondaryOrigin : origin;
+    xml += entry(`${base}/${articlePath(website, a)}/${a.slug}/`, a.published_at, '0.7');
+  }
   return xml + '</urlset>\n';
+}
+
+// publishArticle() passes the origin of the article being published, which may be the
+// secondary domain; the sitemap needs both.
+async function sitemapOrigins(website: WebsiteLike, origin: string): Promise<{ origin: string; secondaryOrigin: string }> {
+  const secondary = website.secondary_language ? secondaryDomainFor(website.domain) : null;
+  if (!secondary) return { origin, secondaryOrigin: origin };
+  const [primaryOrigin, secondaryOrigin] = await Promise.all([resolveOrigin(website.domain), resolveOrigin(secondary)]);
+  return { origin: primaryOrigin, secondaryOrigin };
 }
 
 async function loadSitemapArticles(website: WebsiteLike, supabase: SupabaseLike): Promise<SitemapArticle[]> {
@@ -134,7 +152,8 @@ export async function buildSitemapFile(
       .sort((a, b) => (b.published_at || '').localeCompare(a.published_at || ''));
   }
   if (articles.length === 0) return null;
-  return { path: `${ctx.isNextJs ? 'public/' : ''}sitemap-blog.xml`, content: buildSitemap(ctx.origin, website, articles) };
+  const origins = await sitemapOrigins(website, ctx.origin);
+  return { path: `${ctx.isNextJs ? 'public/' : ''}sitemap-blog.xml`, content: buildSitemap(origins.origin, website, articles, origins.secondaryOrigin) };
 }
 
 export function homepageLinksToBlog(html: string, publishPath: string): boolean {
@@ -232,7 +251,7 @@ export async function ensureDiscoverability(website: WebsiteLike, supabase: Supa
   // 1. Dedicated article sitemap. Kept separate from the site's own sitemap.xml so we
   //    never clobber a hand-written or framework-generated one.
   const sitemapPath = `${staticPrefix}sitemap-blog.xml`;
-  const sitemapXml = buildSitemap(origin, website, articles);
+  const sitemapXml = buildSitemap(origin, website, articles, (await sitemapOrigins(website, origin)).secondaryOrigin);
   const existingSitemap = await api.get(owner, repo, sitemapPath);
   if (!existingSitemap) {
     await api.put(owner, repo, sitemapPath, sitemapXml, 'suchmaschinen.pro: add article sitemap');

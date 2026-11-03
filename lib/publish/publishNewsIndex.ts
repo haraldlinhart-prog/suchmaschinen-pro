@@ -1,6 +1,6 @@
 import { isNextJsRepo } from '@/lib/publish/nextJsDetect';
 import { escapeHtml } from '@/lib/ai/generateArticle';
-import { resolveOrigin } from '@/lib/publish/origin';
+import { resolveOrigin, domainForLanguage } from '@/lib/publish/origin';
 import { commitFiles } from '@/lib/publish/githubCommit';
 import { buildIndexJsonLd } from '@/lib/publish/jsonLd';
 import { siteLayoutFor, sectionLanguage, buildLayoutFiles } from '@/lib/publish/siteLayout';
@@ -80,7 +80,7 @@ export interface PublishNewsIndexOptions {
   includeLegacyNullLanguage?: boolean;
 }
 
-type IndexWebsite = { id: string; domain: string; github_repo: string | null; publish_path: string };
+type IndexWebsite = { id: string; domain: string; github_repo: string | null; publish_path: string; secondary_language?: string | null };
 
 /**
  * Builds the index file (path relative to the repo root + HTML) without writing it.
@@ -118,7 +118,7 @@ export async function buildNewsIndexFile(
 
   const cleanPublishPath = (options?.publishPath || website.publish_path || '/blog/').replace(/^\/|\/$/g, '');
   const publishPrefix = ctx.isNextJs ? `public/${cleanPublishPath}` : cleanPublishPath;
-  const html = buildIndexHtml(website.domain, ctx.origin, `${ctx.origin}/${cleanPublishPath}/`, cleanPublishPath, articles, options?.language || 'de');
+  const html = buildIndexHtml(domainForLanguage(website, options?.language), ctx.origin, `${ctx.origin}/${cleanPublishPath}/`, cleanPublishPath, articles, options?.language || 'de');
   return { path: `${publishPrefix}/index.html`, content: html };
 }
 
@@ -137,7 +137,7 @@ export async function publishNewsIndex(
   });
   const rootEntries: Array<{ name: string }> = rootRes.ok ? await rootRes.json() : [];
   const isNextJs = isNextJsRepo(rootEntries, website.domain);
-  const origin = await resolveOrigin(website.domain);
+  const origin = await resolveOrigin(domainForLanguage(website, options?.language));
 
   // Sites with language sections: merge into the existing index of that language (or all
   // languages when none is given) instead of regenerating it from the database.
