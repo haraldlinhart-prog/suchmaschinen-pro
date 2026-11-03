@@ -1,6 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service';
 import { getScAccessToken } from '@/lib/google/scToken';
-import { resolveOrigin, isSecondaryDomainUrl } from '@/lib/publish/origin';
+import { resolveOrigin } from '@/lib/publish/origin';
 import { searchAnalyticsByPage, inspectUrlIndex } from '@/lib/google/searchconsole';
 
 // Daily: pull Search Console performance per published article and check whether Google
@@ -102,8 +102,6 @@ export async function runGscSync() {
       // 2. Index status — oldest checks first, indexed articles only re-checked occasionally.
       const origin = await resolveOrigin(domain);
       const due = items
-        // Not part of this site's Search Console property, would stay 'no_access' forever.
-        .filter(a => !isSecondaryDomainUrl(a.published_url))
         .filter(a => {
           if (!a.index_checked_at || a.index_status === 'no_access') return true;
           const age = (Date.now() - new Date(a.index_checked_at).getTime()) / 86400000;

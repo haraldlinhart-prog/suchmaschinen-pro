@@ -1,6 +1,6 @@
 import { isNextJsRepo } from '@/lib/publish/nextJsDetect';
 import { escapeHtml } from '@/lib/ai/generateArticle';
-import { resolveOrigin, domainForLanguage } from '@/lib/publish/origin';
+import { resolveOrigin } from '@/lib/publish/origin';
 import { postToFacebook } from '@/lib/publish/postToFacebook';
 import { postToInstagram } from '@/lib/publish/postToInstagram';
 import { commitFiles } from '@/lib/publish/githubCommit';
@@ -333,8 +333,7 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow, o
     const isNextJs = await repoIsNextJs(owner, repo, githubToken, website.domain);
     const publishPrefix = isNextJs ? `public/${cleanPublishPath}` : cleanPublishPath;
     const path = `${publishPrefix}/${article.slug}/index.html`;
-    const siteDomain = domainForLanguage(website, language);
-    const origin = await resolveOrigin(siteDomain);
+    const origin = await resolveOrigin(website.domain);
     const articleUrl = `${origin}/${cleanPublishPath}/${article.slug}/`;
     const ogImageUrl = await resolveOgImageUrl(article);
     // JSON-LD (04.10.2026): BlogPosting + BreadcrumbList. A republish (refresh/backlink)
@@ -346,14 +345,14 @@ export async function publishArticle(website: WebsiteRow, article: ArticleRow, o
       lang: language,
       canonical: articleUrl,
       origin,
-      siteName: siteDomain,
+      siteName: website.domain,
       indexUrl: `${origin}/${cleanPublishPath}/`,
       datePublished: article.published_at || now,
       dateModified: now,
       imageUrl: ogImageUrl,
     });
     const legal = await discoverLegalLinks(origin, language);
-    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, siteDomain, origin, articleUrl, cleanPublishPath, ogImageUrl, language, jsonLd, legal, section ? hreflangSelf(language, articleUrl) : '');
+    const html = buildHtmlPage(article.title, article.meta_description || '', article.content_html, website.domain, origin, articleUrl, cleanPublishPath, ogImageUrl, language, jsonLd, legal, section ? hreflangSelf(language, articleUrl) : '');
 
     // Article, news index and article sitemap go into ONE commit (04.10.2026) — before,
     // these were three commits, i.e. three Vercel builds and three GitHub mails per
