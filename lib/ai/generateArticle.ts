@@ -1,5 +1,4 @@
 import { articleProblems } from '@/lib/content/articleQuality';
-
 import { CONTENT_RULES } from '@/lib/content/contentRules';
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;

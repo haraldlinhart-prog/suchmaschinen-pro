@@ -2,7 +2,7 @@
 // Same URL and slug; content is revised, updated and extended — Google treats it as
 // an improved page, not a new one.
 
-import { CONTENT_RULES } from '@/lib/content/contentRules';
+import { CONTENT_RULES, refreshLabels } from '@/lib/content/contentRules';
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -11,6 +11,8 @@ export interface RefreshInput {
   notes: string | null;
   keyword: string;
   title: string;
+  /** Language the article is written in; the revision stays in it. */
+  language: string;
   contentHtml: string;
   position: number | null;
   bestPosition: number | null;
@@ -29,16 +31,18 @@ export async function refreshArticleContent(input: RefreshInput): Promise<{ titl
     ? `It used to rank at position ${input.bestPosition} on Google and has dropped to ${input.position}.`
     : input.position ? `It currently ranks around position ${input.position} on Google (page ${Math.ceil(input.position / 10)}) and should reach page 1.` : '';
 
-  const prompt = `You are an expert German-language SEO editor. Improve the existing article below for the website ${input.domain}${input.notes ? ` (context: ${input.notes})` : ''}, targeting the search term "${input.keyword}". ${situation}
+  const labels = refreshLabels(input.language);
+  const prompt = `You are an expert ${labels.languageName}-language SEO editor. Improve the existing article below for the website ${input.domain}${input.notes ? ` (context: ${input.notes})` : ''}, targeting the search term "${input.keyword}". ${situation}
 
 ${CONTENT_RULES}
 
 Revise it so it answers the searcher's question better than competing pages:
 - Keep the topic, the H1 meaning and everything that is correct; fix anything outdated (current year 2026), and remove figures, sources or legal references in the existing text that break the rules below
-- Add missing sub-questions searchers typically have, concrete examples, and a short FAQ section (3–5 questions as H2 "Häufige Fragen" with H3 questions)
+- Add missing sub-questions searchers typically have, concrete examples, and a short FAQ section (3–5 questions as H2 "${labels.faqHeading}" with H3 questions)
 - Put a direct 2–3 sentence answer to the main question right after the H1
 - 900–1400 words in total, no filler, no keyword stuffing
 ${input.related.length ? `- Where it genuinely fits, link 1–3 times to these related articles on the same site (use exactly these URLs):\n${input.related.map(r => `  - ${r.title}: ${r.url}`).join('\n')}` : ''}
+- Write in ${labels.languageName}
 - Output clean semantic HTML body content only (h1, h2, h3, p, ul/li, a) — no html/head/body tags, no inline styles, no markdown
 
 Existing article:
@@ -80,7 +84,6 @@ Call the output_article tool with the revised article.`;
 
   let html = out.content_html;
   if (figure) html = /^\s*<h1[^>]*>.*?<\/h1>/i.test(html) ? html.replace(/(^\s*<h1[^>]*>.*?<\/h1>)/i, `$1\n${figure}`) : `${figure}\n${html}`;
-  const stamp = new Date().toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
-  html += `\n<p style="font-size:0.85rem;color:#6b7b76;margin-top:2rem"><em>Aktualisiert im ${stamp}.</em></p>`;
+  html += `\n<p style="font-size:0.85rem;color:#6b7b76;margin-top:2rem"><em>${labels.updatedNote(new Date())}</em></p>`;
   return { title: out.title, meta_description: out.meta_description, content_html: html };
 }
