@@ -1,4 +1,5 @@
 import { articleProblems } from '@/lib/content/articleQuality';
+import { CONTENT_RULES } from '@/lib/content/contentRules';
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const PIXABAY_API_KEY = process.env.PIXABAY_API_KEY;
@@ -179,6 +180,8 @@ export async function generateArticleContent(
 ${rationale ? `Why this keyword matters for this site: ${rationale}` : ''}
 ${intent ? `Search intent: ${intent}` : ''}
 ${legalCautionNote}
+${CONTENT_RULES}
+
 Requirements:
 - Write in ${langName}
 - 700-1000 words, genuinely informative (not generic filler)

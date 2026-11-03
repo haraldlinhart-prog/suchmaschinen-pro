@@ -131,6 +131,7 @@ async function refreshOne(website: WebsiteRow, pick: { a: WebsiteRow; pos: numbe
     notes: website.notes,
     keyword: pick.a.keyword,
     title: pick.a.title,
+    language: rowLanguage(website, pick.a),
     contentHtml: pick.a.content_html,
     position: pick.pos,
     bestPosition: pick.best,
