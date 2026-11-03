@@ -2,7 +2,6 @@ import { generateArticleContent } from '@/lib/ai/generateArticle';
 import { translateKeyword } from '@/lib/ai/analyzeWebsite';
 import { publishArticle, type PublishResult } from '@/lib/publish/publishArticle';
 import { publishNewsIndex } from '@/lib/publish/publishNewsIndex';
-import { domainForLanguage } from '@/lib/publish/origin';
 
 // Intentionally untyped — see publishNewsIndex.ts for why (structural match against the
 // generated Supabase client blew up TS build times / "excessively deep" errors).
@@ -115,7 +114,7 @@ async function publishSecondaryLanguage(
   }
 
   const generated = await generateArticleContent(
-    domainForLanguage(website, secondaryLanguage),
+    website.domain,
     website.notes,
     keyword,
     undefined,
