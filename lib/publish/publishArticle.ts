@@ -10,6 +10,7 @@ import { buildArticleJsonLd } from '@/lib/publish/jsonLd';
 import { discoverLegalLinks, type LegalLinks } from '@/lib/publish/legalLinks';
 import { siteLayoutFor, sectionFor, sectionLanguage, isReservedSlug, hreflangSelf, buildLayoutFiles } from '@/lib/publish/siteLayout';
 import { assertPublishable } from '@/lib/content/articleQuality';
+import { analyticsTagFor } from '@/lib/publish/analyticsTag';
 
 interface WebsiteRow {
   id?: string;
@@ -115,7 +116,7 @@ ${imageUrl ? `<meta property="og:image" content="${imageUrl}">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="${imageUrl}">` : ''}
-${jsonLd}
+${jsonLd}${analyticsTagFor(domain)}
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 720px; margin: 0 auto; padding: 40px 20px; line-height: 1.7; color: #1a1a1a; }
   h1 { font-size: 2rem; margin-bottom: 0.5rem; }
