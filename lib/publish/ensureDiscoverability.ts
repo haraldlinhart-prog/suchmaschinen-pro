@@ -6,7 +6,7 @@ import { commitFiles } from '@/lib/publish/githubCommit';
 import { siteLayoutFor, buildLayoutFiles, type SiteLayout } from '@/lib/publish/siteLayout';
 import {
   blogLabel, buildSections, buildComponentSource, insertNavComponent, navLinksToBlog,
-  rankNavCandidates, relativeImport, COMPONENT_NAME, type NavSection,
+  rankNavCandidates, homePageCandidates, relativeImport, COMPONENT_NAME, type NavSection,
 } from '@/lib/publish/navLink';
 
 // Publishing an article into a repo is not enough: if nothing links to it and no sitemap
@@ -409,7 +409,8 @@ async function ensureNextJsNavLink(
   };
 
   const existingComponent = paths.find(p => new RegExp(`(^|/)${COMPONENT_NAME}\\.(tsx|jsx)$`).test(p));
-  for (const candidate of rankNavCandidates(paths).slice(0, 15)) {
+  const candidates = [...new Set([...homePageCandidates(paths), ...rankNavCandidates(paths).slice(0, 15)])];
+  for (const candidate of candidates) {
     const src = await read(candidate);
     if (!src || !/<nav\b/.test(src)) continue;
     const navBlock = src.slice(src.search(/<nav\b/), src.indexOf('</nav>', src.search(/<nav\b/)) + 6);
@@ -426,13 +427,18 @@ async function ensureNextJsNavLink(
     const ts = candidate.endsWith('.tsx');
     const compPath = existingComponent ?? candidate.replace(/[^/]+$/, `${COMPONENT_NAME}.${ts ? 'tsx' : 'jsx'}`);
     const inserted = insertNavComponent(src, primaryPath, relativeImport(candidate, compPath));
-    if (!inserted.ok) return inserted.reason === 'present' ? 'present' : 'manual-nextjs';
+    if (!inserted.ok) {
+      if (inserted.reason === 'present') return 'present';
+      console.warn(`ensureNextJsNavLink: ${owner}/${repo}: menu in ${candidate} could not be changed safely, the menu link is missing`);
+      return 'manual-nextjs';
+    }
     await commitFiles(owner, repo, token, [
       { path: compPath, content: buildComponentSource(live, compPath.endsWith('.tsx')) },
       { path: candidate, content: inserted.source },
     ], 'suchmaschinen.pro: add blog link to the site menu');
     return 'inserted';
   }
+  console.warn(`ensureNextJsNavLink: ${owner}/${repo}: no menu found, the menu link is missing`);
   return 'manual-nextjs';
 }
 

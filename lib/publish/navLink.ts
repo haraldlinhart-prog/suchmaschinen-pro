@@ -135,13 +135,30 @@ export function insertNavComponent(source: string, publishPath: string, importPa
     className = /className=["']([^"']+)["']/.exec(attrs)?.[1] ?? '';
     break;
   }
+  // A link inside <li>: the new link gets its own <li> after that one, not a place inside it.
+  let wrapInLi = false;
+  if (insertAt !== -1) {
+    const liClose = /^\s*<\/li>/.exec(source.slice(insertAt));
+    if (liClose) {
+      insertAt += liClose[0].length;
+      wrapInLi = true;
+    }
+  }
   const closeLineStart = source.lastIndexOf('\n', close - 1);
   const indent = (/^[ \t]*/.exec(source.slice(closeLineStart + 1, close))?.[0] ?? '') + '  ';
   const element = `{/* ${NAV_MARKER} */}\n${indent}<${COMPONENT_NAME}${className ? ` className="${className}"` : ''} />`;
 
   let out: string;
   if (insertAt !== -1) {
-    out = `${source.slice(0, insertAt)}\n${indent}${element}${source.slice(insertAt)}`;
+    const placed = wrapInLi ? `<li>\n${indent}${element}\n${indent}</li>` : element;
+    out = `${source.slice(0, insertAt)}\n${indent}${placed}${source.slice(insertAt)}`;
+  } else if (/<\/(div|ul)>\s*$/.test(inner)) {
+    // The nav ends in a wrapper, so "before </nav>" would land outside the header row
+    // (europan.group, 05.11.26). Use an actions container if there is one, else report it.
+    const actions = /<div\b[^>]*className=["'][^"']*\b(nav-actions|actions|nav-right|header-actions)\b[^"']*["'][^>]*>/.exec(inner);
+    if (!actions) return { ok: false, reason: 'unsafe' };
+    const at = innerStart + actions.index + actions[0].length;
+    out = `${source.slice(0, at)}\n${indent}${element}${source.slice(at)}`;
   } else {
     // Before </nav>, on its own line.
     const lineStart = source.lastIndexOf('\n', close - 1);
@@ -168,6 +185,17 @@ export function insertNavComponent(source: string, publishPath: string, importPa
   if (braceDepth(out.slice(out.search(/<nav\b/), o2)) !== 0) return { ok: false, reason: 'unsafe' };
   if ((out.match(/<nav\b/g) || []).length !== (source.match(/<nav\b/g) || []).length) return { ok: false, reason: 'unsafe' };
   return { ok: true, source: out };
+}
+
+/**
+ * Home page files, checked before everything else. Sites can have one <nav> per page; the
+ * first shell found used to win, so europan.group and pan-finanzvertrieb.de got the link
+ * only on their legal pages (05.11.26). The home page menu is what visitors see.
+ */
+export function homePageCandidates(paths: string[]): string[] {
+  return paths
+    .filter(p => /^(src\/)?(app\/(\[[^\]/]+\]\/|[a-z]{2}\/)?page|pages\/index)\.(tsx|jsx)$/.test(p))
+    .sort((a, b) => a.length - b.length);
 }
 
 /** Order in which candidate files are checked for the site navigation. */
