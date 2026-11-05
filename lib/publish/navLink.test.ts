@@ -1,7 +1,7 @@
 // `npm test` — menu link insertion for Next.js sites (navLink.ts).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { insertNavComponent, buildSections, buildComponentSource, rankNavCandidates, relativeImport, navLinksToBlog } from './navLink.ts';
+import { insertNavComponent, buildSections, buildComponentSource, rankNavCandidates, homePageCandidates, relativeImport, navLinksToBlog } from './navLink.ts';
 
 const SHELL = `import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -69,6 +69,62 @@ test('className of the first plain link is copied', () => {
   const r = insertNavComponent(src, '/blog/', './c');
   assert.equal(r.ok, true);
   if (r.ok) assert.match(r.source, /<SuchmaschinenBlogLink className="nav-link" \/>/);
+});
+
+test('link inside a list item: gets its own list item', () => {
+  const src = `import Link from 'next/link';
+export default function H() {
+  return (
+    <nav className="nav">
+      <div className="nav-inner">
+        <Link href="/" className="nav-logo">L</Link>
+        <ul className="nav-links">
+          <li><Link href="#about">About</Link></li>
+          <li><Link href="/faq">FAQ</Link></li>
+        </ul>
+      </div>
+    </nav>
+  );
+}
+`;
+  const r = insertNavComponent(src, '/blog/', './c');
+  assert.equal(r.ok, true);
+  if (!r.ok) return;
+  const about = r.source.indexOf('About</Link></li>');
+  const blog = r.source.indexOf('<SuchmaschinenBlogLink');
+  const faq = r.source.indexOf('<li><Link href="/faq">');
+  assert.ok(about < blog && blog < faq);
+  assert.match(r.source.slice(about, blog), /<li>/);
+  assert.match(r.source.slice(blog, faq), /<\/li>/);
+});
+
+test('nav ending in a wrapper: never outside the header row', () => {
+  const withActions = `import Link from 'next/link';
+export default function H() {
+  return (
+    <nav className="nav">
+      <div className="nav-inner">
+        <Link href="/" className="nav-logo">L</Link>
+        <div className="nav-actions">
+          <Account />
+        </div>
+      </div>
+    </nav>
+  );
+}
+`;
+  const r = insertNavComponent(withActions, '/blog/', './c');
+  assert.equal(r.ok, true);
+  if (r.ok) assert.ok(r.source.indexOf('<SuchmaschinenBlogLink') < r.source.indexOf('<Account />'));
+  const without = withActions.replace('nav-actions', 'other');
+  assert.deepEqual(insertNavComponent(without, '/blog/', './c'), { ok: false, reason: 'unsafe' });
+});
+
+test('home page files come first', () => {
+  assert.deepEqual(
+    homePageCandidates(['app/_legal/LegalShell.tsx', 'app/faq/page.tsx', 'app/page.tsx', 'src/app/[locale]/page.tsx', 'app/de/page.tsx', 'components/Header.tsx']),
+    ['app/page.tsx', 'app/de/page.tsx', 'src/app/[locale]/page.tsx']
+  );
 });
 
 test('sections and component source', () => {
