@@ -48,6 +48,24 @@ const SITE_LAYOUTS: Record<string, SiteLayout> = {
       de: { path: 'blog/de', sitemap: 'sitemap-blog-de.xml', indexTitle: 'Ratgeber auf Deutsch', backLabel: 'Zurück zu' },
     },
   },
+  // aktien-club.com, privatboerse.com und privatanteile.com teilen sich EIN Repo
+  // (haraldlinhart-prog/aktien-club, Host-Routing per vercel.json). aktien-club.com nutzt den
+  // Standard (/blog/ + sitemap-blog.xml); die beiden anderen brauchen eigene Ordner und
+  // Sitemaps, sonst überschreiben sich Index und sitemap-blog.xml gegenseitig (07.11.2026).
+  'privatboerse.com': {
+    defaultLanguage: 'de',
+    legacyLanguage: 'de',
+    sections: {
+      de: { path: 'ratgeber', sitemap: 'sitemap-ratgeber.xml', indexTitle: 'Ratgeber', backLabel: 'Zurück zu' },
+    },
+  },
+  'privatanteile.com': {
+    defaultLanguage: 'de',
+    legacyLanguage: 'de',
+    sections: {
+      de: { path: 'wissen', sitemap: 'sitemap-wissen.xml', indexTitle: 'Wissen für Unternehmen', backLabel: 'Zurück zu' },
+    },
+  },
 };
 
 export function siteLayoutFor(domain: string | null | undefined): SiteLayout | null {
